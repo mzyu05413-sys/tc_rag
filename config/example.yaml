@@ -1,0 +1,76 @@
+project:
+  name: demo
+  workdir: ./workdir
+
+storage:
+  backend: sqlite
+  database: ./workdir/data.sqlite
+
+parsing:
+  formats: [pdf, docx]
+  scan_policy: report_unsupported     # report_unsupported | ocr
+  vision_enabled: false
+
+chunking:
+  strategy: structural
+  target_tokens: 900
+  overlap_tokens: 100
+  token_counter: tiktoken_approx      # 中文需实测
+
+models:
+  llm:
+    adapter: openai_sdk               # openai_sdk | langchain | claude_sdk
+    api_mode: chat_completions
+    base_url: ${TC_RAG_LLM_BASE_URL}
+    model: ${TC_RAG_LLM_MODEL}
+    api_key_env: TC_RAG_LLM_API_KEY
+    concurrency: 3
+  embedding:
+    adapter: openai_sdk
+    base_url: ${TC_RAG_EMBEDDING_BASE_URL}
+    model: ${TC_RAG_EMBEDDING_MODEL}
+    api_key_env: TC_RAG_EMBEDDING_API_KEY
+    batch_size: 16
+    concurrency: 2
+  vision:
+    enabled: false
+  rerank:
+    enabled: false
+    adapter: http
+
+retrieval:
+  mode: direct                        # direct | rag
+  scope: requirement_set
+  backend: numpy                      # numpy | faiss
+  metric: cosine                      # cosine | euclidean | dot
+  normalize: true
+  vector_top_k: 20
+  keyword_enabled: false
+  rerank_top_n: 6
+  threshold_policy: disabled          # 评估后按 metric 配置
+
+planning:
+  methods: [equivalence, boundary, decision_table, state, permission]
+  relation_enabled: false
+
+generation:
+  batch_point_limit: 5
+  schema_repair_attempts: 1
+  unsupported_expectation_policy: flag
+
+runtime:
+  max_attempts: 3
+  request_timeout_seconds: 90
+  cache_enabled: true
+  budget:
+    max_calls: null
+    max_cost: null
+
+observability:
+  metrics_enabled: true
+  save_raw_model_payloads: false
+
+export:
+  formats: [json, markdown]           # P2 起加 xlsx
+  include_issues: true
+  include_coverage: true

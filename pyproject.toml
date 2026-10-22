@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tc-rag"
+version = "0.0.1"
+description = "Traceable requirement-driven test design framework"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2", "pydantic-settings", "pyyaml", "openai", "httpx",
+  "tenacity", "aiolimiter", "pymupdf", "pdfplumber", "python-docx",
+  "pillow", "numpy", "openpyxl", "loguru", "typer", "rich", "tiktoken",
+]
+
+[project.optional-dependencies]
+faiss = ["faiss-cpu"]
+keyword = ["jieba"]
+langchain = ["langchain-core"]
+claude = ["claude-agent-sdk"]
+local = ["sentence-transformers"]
+dev = ["pytest", "pytest-asyncio", "respx", "ruff", "mypy", "types-PyYAML"]
+
+[project.scripts]
+tc-rag = "tc_rag.interfaces.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = ["live: explicitly enabled real provider smoke tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true

@@ -1,0 +1,76 @@
+project:      # 项目配置
+  name: demo
+  workdir: ./workdir  # 运行产物
+
+storage:      # 存储配置
+  backend: sqlite
+  database: ./workdir/data.sqlite
+
+parsing:      # 文档解析
+  formats: [pdf, docx]
+  scan_policy: report_unsupported     # report_unsupported | ocr
+  vision_enabled: false
+
+chunking:     # 分块策略
+  strategy: structural    # 按结构分块
+  target_tokens: 900
+  overlap_tokens: 100
+  token_counter: tiktoken_approx      # 中文需实测
+
+models:      # 模型端点
+  llm:       # 大模型
+    adapter: openai_sdk               # openai_sdk | langchain | claude_sdk
+    api_mode: chat_completions        # 对话协议
+    base_url: ""
+    model: ""
+    api_key_env: TC_RAG_LLM_API_KEY
+    concurrency: 3                  # 请求并发数量
+  embedding: # 向量模型
+    adapter: openai_sdk
+    base_url: ""
+    model: ""
+    api_key_env: TC_RAG_EMBEDDING_API_KEY
+    batch_size: 16    # 批量数目
+    concurrency: 2
+  vision:     # 图片转文字设置
+    enabled: false
+  rerank:
+    enabled: false
+    adapter: http
+
+retrieval:
+  mode: direct                        # direct | rag   # 向量检索开关
+  scope: requirement_set
+  backend: numpy                      # numpy | faiss
+  metric: cosine                      # cosine | euclidean | dot
+  normalize: true
+  vector_top_k: 20
+  keyword_enabled: false
+  rerank_top_n: 6
+  threshold_policy: disabled          # 评估后按 metric 配置
+
+planning:   # 测试点设计
+  methods: [equivalence, boundary, decision_table, state, permission] # 等价类、边界值、决策表、状态转换、权限矩阵
+  relation_enabled: false # 业务关系
+
+generation:
+  batch_point_limit: 5
+  schema_repair_attempts: 1
+  unsupported_expectation_policy: flag
+
+runtime:
+  max_attempts: 3
+  request_timeout_seconds: 90
+  cache_enabled: true
+  budget:
+    max_calls: null
+    max_cost: null
+
+observability:
+  metrics_enabled: true
+  save_raw_model_payloads: false
+
+export:
+  formats: [json, markdown]           # P2 起加 xlsx
+  include_issues: true
+  include_coverage: true
