@@ -1,4 +1,4 @@
-"""Monotonic timings with context-local run attribution."""
+"""使用单调时钟计时，并通过上下文隔离不同运行的记录。"""
 
 import inspect
 from collections import defaultdict
@@ -24,11 +24,12 @@ class TimingEvent:
 
 
 _active: ContextVar["Timer | None"] = ContextVar("active_timer", default=None)
+# 当前收集器属于执行上下文，asyncio 子任务会继承；并发运行各自绑定，避免串记。
 F = TypeVar("F", bound=Callable[..., Any])
 
 
 class Timer:
-    """Own one run's events; bind explicitly around the work to measure."""
+    """收集一次运行的计时事件；通过显式绑定指定要记录的执行范围。"""
 
     def __init__(self, run_id: str) -> None:
         self.run_id = run_id
@@ -37,28 +38,33 @@ class Timer:
 
     @property
     def events(self) -> tuple[TimingEvent, ...]:
+        # 返回快照，调用方不能直接修改收集器内部列表。
         with self._lock:
             return tuple(self._events)
 
-    def _record(self, stage: str, name: str, start: float, success: bool,
-                kind: str = "call") -> None:
-        event = TimingEvent(self.run_id, stage, name, (perf_counter() - start) * 1000,
-                            success, kind)
+    def _record(
+        self, stage: str, name: str, start: float, success: bool, kind: str = "call"
+    ) -> None:
+        event = TimingEvent(
+            self.run_id, stage, name, (perf_counter() - start) * 1000, success, kind
+        )
         with self._lock:
             self._events.append(event)
 
     @contextmanager
     def bind(self) -> Iterator["Timer"]:
-        """Make this collector active; asyncio child tasks inherit the binding."""
+        """激活当前收集器；异步子任务继承此绑定。"""
         token = _active.set(self)
         try:
             yield self
         finally:
+            # 恢复进入前的绑定，支持嵌套使用；不能简单设置为 None。
             _active.reset(token)
 
     @contextmanager
     def wall(self, *, stage: str = "run", name: str = "total") -> Iterator[None]:
-        """Measure actual elapsed time, separately from concurrent call totals."""
+        """测量实际经过的墙钟时间，与并发调用的累计耗时分开记录。"""
+        # 单调时钟不受系统时间校准影响；墙钟单独记录，不能用并发调用之和替代。
         start = perf_counter()
         success = False
         try:
@@ -69,21 +75,29 @@ class Timer:
             self._record(stage, name, start, success, "wall")
 
     def summary(self) -> list[dict[str, Any]]:
-        """Group by stage/name/kind. Percentiles use nearest rank, including failures."""
+        """按阶段、名称和类型分组；包含失败调用，百分位使用最近秩法。"""
         groups: dict[tuple[str, str, str], list[TimingEvent]] = defaultdict(list)
         for event in self.events:
             groups[event.stage, event.name, event.kind].append(event)
         result: list[dict[str, Any]] = []
         for (stage, name, kind), events in sorted(groups.items()):
+            # 失败调用也参与耗时统计；最近秩百分位采用 ceil(n*p)-1 的零基下标。
             values = sorted(event.duration_ms for event in events)
             count = len(values)
-            result.append({
-                "run_id": self.run_id, "stage": stage, "name": name, "kind": kind,
-                "count": count, "failed_count": sum(not event.success for event in events),
-                "total_ms": sum(values), "mean_ms": sum(values) / count,
-                "p50_ms": values[ceil(count * 0.50) - 1],
-                "p95_ms": values[ceil(count * 0.95) - 1],
-            })
+            result.append(
+                {
+                    "run_id": self.run_id,
+                    "stage": stage,
+                    "name": name,
+                    "kind": kind,
+                    "count": count,
+                    "failed_count": sum(not event.success for event in events),
+                    "total_ms": sum(values),
+                    "mean_ms": sum(values) / count,
+                    "p50_ms": values[ceil(count * 0.50) - 1],
+                    "p95_ms": values[ceil(count * 0.95) - 1],
+                }
+            )
         return result
 
     def export_events(self) -> list[dict[str, Any]]:
@@ -91,10 +105,12 @@ class Timer:
 
 
 def timed(*, stage: str, name: str | None = None) -> Callable[[F], F]:
-    """Record sync/async calls when bound; preserve return values and exceptions."""
+    """绑定收集器后记录同步或异步调用，保留原返回值与异常。"""
+
     def decorate(func: F) -> F:
         event_name = name or func.__name__
         if inspect.iscoroutinefunction(func):
+            # 必须 await 原协程，才能测到执行耗时，而不是仅创建协程对象的耗时。
             @wraps(func)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 timer = _active.get()
@@ -105,12 +121,15 @@ def timed(*, stage: str, name: str | None = None) -> Callable[[F], F]:
                     success = True
                     return result
                 finally:
+                    # 异常或取消也记录失败，且不吞掉原异常；未绑定时只执行原函数。
                     if timer is not None:
                         timer._record(stage, event_name, start, success)
+
             return cast(F, async_wrapper)
 
         @wraps(func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+            # wraps 保留函数名、文档和原函数引用，方便调试与检查。
             timer = _active.get()
             start = perf_counter()
             success = False
@@ -121,5 +140,7 @@ def timed(*, stage: str, name: str | None = None) -> Callable[[F], F]:
             finally:
                 if timer is not None:
                     timer._record(stage, event_name, start, success)
+
         return cast(F, sync_wrapper)
+
     return decorate

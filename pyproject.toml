@@ -1,7 +1,7 @@
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
-
+# 项目配置
 [project]
 name = "tc-rag"
 version = "0.0.1"
@@ -14,6 +14,7 @@ dependencies = [
   "pillow", "numpy", "openpyxl", "loguru", "typer", "rich", "tiktoken",
 ]
 
+# 可选依赖
 [project.optional-dependencies]
 faiss = ["faiss-cpu"]
 keyword = ["jieba"]
@@ -22,20 +23,39 @@ claude = ["claude-agent-sdk"]
 local = ["sentence-transformers"]
 dev = ["pytest", "pytest-asyncio", "respx", "ruff", "mypy", "types-PyYAML"]
 
+# CLI连接口
 [project.scripts]
 tc-rag = "tc_rag.interfaces.cli:app"
+rag = "tc_rag.interfaces.cli:app"
 
+# 包的位置
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"tc_rag.infrastructure.storage" = ["migrations/*.sql"]
+
+[tool.setuptools.data-files]
+"share/tc_rag/prompts/extract" = ["prompts/extract/v1.md"]
+"share/tc_rag/prompts/generate" = ["prompts/generate/v1.md"]
+"share/tc_rag/prompts/case_skill" = ["prompts/case_skill/v1.md"]
+"share/tc_rag/prompts/plan_points" = ["prompts/plan_points/v1.md"]
+"share/tc_rag/prompts/rag_context" = ["prompts/rag_context/v1.md"]
+"share/tc_rag/prompts/vision" = ["prompts/vision/v1.md"]
+
+# pytest初始化配置
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# 开发产物集中管理；current 是 pytest 专用临时目录，每次运行可重建。
+addopts = "--basetemp=workdir/dev/tests/current"
+cache_dir = "workdir/dev/cache/pytest"
 asyncio_mode = "auto"
 markers = ["live: explicitly enabled real provider smoke tests"]
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+cache-dir = "workdir/dev/cache/ruff"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
@@ -43,3 +63,4 @@ select = ["E", "F", "I"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
+cache_dir = "workdir/dev/cache/mypy"

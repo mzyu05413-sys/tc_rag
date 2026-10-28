@@ -21,25 +21,31 @@ models:
   llm:
     adapter: openai_sdk               # openai_sdk | langchain | claude_sdk
     api_mode: chat_completions
+    response_format: json_schema     # DeepSeek Chat 等仅支持 JSON 模式的服务改为 json_object
+    thinking_mode: default           # 支持此参数的 Chat 服务可设 disabled 或 enabled
+    max_output_tokens: null          # 单次输出上限；DeepSeek 大批量 JSON 可先设 16384
     base_url: ${TC_RAG_LLM_BASE_URL}
     model: ${TC_RAG_LLM_MODEL}
+    api_key: null                     # 可在私有配置直接填密钥，无需设置密钥环境变量
     api_key_env: TC_RAG_LLM_API_KEY
     concurrency: 3
   embedding:
     adapter: openai_sdk
     base_url: ${TC_RAG_EMBEDDING_BASE_URL}
     model: ${TC_RAG_EMBEDDING_MODEL}
+    api_key: null
     api_key_env: TC_RAG_EMBEDDING_API_KEY
     batch_size: 16
     concurrency: 2
   vision:
     enabled: false
+    api_key: null
   rerank:
     enabled: false
     adapter: http
+    api_key: null
 
 retrieval:
-  mode: direct                        # direct | rag
   scope: requirement_set
   backend: numpy                      # numpy | faiss
   metric: cosine                      # cosine | euclidean | dot
@@ -54,6 +60,7 @@ planning:
   relation_enabled: false
 
 generation:
+  skill_file: null # 可填自定义 Skill 的 .md 路径，也可通过 --skill-file 指定
   batch_point_limit: 5
   schema_repair_attempts: 1
   unsupported_expectation_policy: flag
@@ -61,6 +68,7 @@ generation:
 runtime:
   max_attempts: 3
   request_timeout_seconds: 90
+  vision_min_interval_seconds: 0 # 仅作用于视觉；缓存命中不等待
   cache_enabled: true
   budget:
     max_calls: null

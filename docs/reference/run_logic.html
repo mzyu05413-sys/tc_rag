@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tc-rag 完整运行逻辑</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --panel:#fff; --ink:#14171c; --muted:#5a6472; --line:#e2e6ec;
+    --accent:#2563eb; --accent2:#7c3aed; --soft:#e9efff; --soft2:#f3ecff;
+    --ok:#0b7a4b; --okbg:#e7f7ef; --warn:#9a5b00; --warnbg:#fff4e0;
+    --err:#b3261e; --errbg:#fdeceb; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0d1117; --panel:#161b22; --ink:#e6e9ef; --muted:#98a2b3; --line:#252c37;
+      --accent:#6ea8ff; --accent2:#b18cff; --soft:#16233a; --soft2:#241a3d;
+      --ok:#4cc38a; --okbg:#12281f; --warn:#e3a008; --warnbg:#2a2110;
+      --err:#ff6b6b; --errbg:#2b1514;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;line-height:1.6}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 20px 70px}
+  h1{font-size:24px;margin:0 0 6px}
+  .lead{color:var(--muted);font-size:14px;margin:0 0 18px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);
+          background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:24px}
+  .sw{display:inline-flex;align-items:center;gap:6px}
+  .sw i{width:12px;height:12px;border-radius:4px;display:inline-block}
+
+  section{margin-top:28px}
+  h2{font-size:17px;margin:0 0 12px;display:flex;align-items:center;gap:9px}
+  h2 .n{width:24px;height:24px;border-radius:7px;background:var(--accent);color:#fff;
+        font-size:12px;display:grid;place-items:center}
+
+  .flow{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .node{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--bg);
+        font-size:13.5px;position:relative}
+  .node .t{font-weight:600}
+  .node .d{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .node.start{background:var(--soft);border-color:var(--accent)}
+  .node.dec{background:var(--soft2);border-color:var(--accent2);border-radius:999px;
+            font-weight:600;text-align:center}
+  .node.fail{background:var(--errbg);border-color:var(--err)}
+  .node.okn{background:var(--okbg);border-color:var(--ok)}
+  .node.warn{background:var(--warnbg);border-color:var(--warn)}
+  .arrow{height:22px;display:grid;place-items:center;color:var(--muted);font-size:15px}
+
+  .branch{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0}
+  .branch .col{display:flex;flex-direction:column;gap:8px}
+  .colhead{font-size:12px;color:var(--muted);font-weight:600;padding-left:2px}
+
+  .loophead{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--accent);
+            font-weight:600;margin:10px 0 6px}
+  .loophead::before{content:"";width:3px;height:14px;background:var(--accent);border-radius:2px}
+  .loopbox{border:1px dashed var(--line);border-radius:12px;padding:12px;background:transparent}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel);
+        border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-size:12px;font-weight:600;background:var(--bg)}
+  tr:last-child td{border-bottom:none}
+  code{font-family:var(--mono);font-size:11.5px;background:var(--bg);border:1px solid var(--line);
+       padding:1px 5px;border-radius:5px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:860px){.grid2,.branch{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>tc-rag 完整运行逻辑</h1>
+  <p class="lead">通用控制流：入口 → 配置与装配 → 解析/视觉 → 分块 → 提炼 → 索引 → 测试点 → 用例 → 校验 → 导出。含判断分支、循环与失败路径。</p>
+
+  <div class="legend">
+    <span class="sw"><i style="background:var(--soft);border:1px solid var(--accent)"></i>入口/结束</span>
+    <span class="sw"><i style="background:var(--soft2);border:1px solid var(--accent2);border-radius:99px"></i>判断</span>
+    <span class="sw"><i style="background:var(--bg);border:1px solid var(--line)"></i>处理步骤</span>
+    <span class="sw"><i style="background:var(--warnbg);border:1px solid var(--warn)"></i>降级/标记</span>
+    <span class="sw"><i style="background:var(--errbg);border:1px solid var(--err)"></i>失败终止</span>
+  </div>
+
+  <section>
+    <h2><span class="n">1</span>入口与前置检查</h2>
+    <div class="flow">
+      <div class="node start"><div class="t">CLI 命令</div>
+        <div class="d"><code>run</code> · <code>start</code> · <code>cases</code> · <code>doctor</code> · <code>status</code> · <code>inspect</code> · <code>export</code> · <code>evaluate</code> · <code>estimate</code></div></div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">加载配置</div>
+        <div class="d">内置默认 → YAML（--config / workdir/local.yaml / config/defaults.yaml）→ 环境变量 → CLI 覆盖；Pydantic 校验；密钥仅以环境变量名引用或走 <code>SecretStr</code></div></div>
+      <div class="arrow">↓</div>
+      <div class="node dec">命令类型？</div>
+      <div class="branch" style="margin-top:10px">
+        <div class="col">
+          <div class="colhead">只读命令</div>
+          <div class="node"><div class="t">status / inspect / export / evaluate</div>
+            <div class="d">只读 SQLite 快照与业务表，不创建模型客户端、不产生费用；export 从事实重建派生文件</div></div>
+          <div class="node okn"><div class="t">输出结果后结束</div></div>
+        </div>
+        <div class="col">
+          <div class="colhead">执行类命令</div>
+          <div class="node"><div class="t">run / start / cases / doctor</div>
+            <div class="d">start 交互采集文档路径与指令后复用 run；cases 从已保存测试点重试用例生成</div></div>
+          <div class="node dec">仅预览？（--preview）</div>
+          <div class="node warn"><div class="t">是 → 输出阶段计划</div><div class="d">不解析、不调用模型、不写运行数据</div></div>
+          <div class="node"><div class="t">否 → 继续</div></div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">校验运行配置 validate_runtime_config</div>
+        <div class="d">密钥是否可取、模型能力是否匹配（vision 需 supports_images）、scan_policy 是否在支持范围；失败即启动错误</div></div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">装配 build_pipeline</div>
+        <div class="d">加载 prompts/<i>stage</i>/v1.md（extract、plan_points、generate、rag_context、vision、case_skill）；generate 追加内置 skill 与用户 skill；构造 Repository、ArtifactStore、LLM、Embedder、VectorIndex、Reranker(可选)、Vision(可选)、Exporter；录制每次模型调用</div></div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">创建 Run（status=running）</div><div class="d">run_id 为不透明标识，写入 config_snapshot</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>准备阶段：续跑 / 接入 / 解析</h2>
+    <div class="flow">
+      <div class="node dec">--resume &lt;run_id&gt; ？</div>
+      <div class="branch" style="margin-top:10px">
+        <div class="col">
+          <div class="colhead">是 · 校验一致</div>
+          <div class="node"><div class="t">一致性检查</div>
+            <div class="d">配置快照相同、生成指令相同、文档内容 hash 相同；任一不符即拒绝恢复</div></div>
+          <div class="node dec">存在父运行的 chunk 快照？</div>
+          <div class="node okn"><div class="t">是 → 直接复用 blocks / chunks / issues</div><div class="d">跳过解析与分块</div></div>
+          <div class="node warn"><div class="t">否 → 重新解析</div><div class="d">已完成页命中 <code>pdf_page:n</code> 检查点；已转写图片命中视觉缓存；仅补算缺失部分</div></div>
+        </div>
+        <div class="col">
+          <div class="colhead">否 · 全新运行</div>
+          <div class="node"><div class="t">ingest</div>
+            <div class="d">校验路径/格式/大小 → 内容哈希 → 复制到 <code>assets/&lt;hash&gt;</code> → 登记 Document 与 Asset（同 hash 复用）</div></div>
+          <div class="node"><div class="t">写 input 快照</div><div class="d">指令 + 文档指纹；保证解析中途中断也能安全续跑</div></div>
+          <div class="node"><div class="t">解析 parse</div>
+            <div class="d">PDF：逐页取文字块/坐标/页码/表格候选/图片；DOCX：按文档顺序取段落/表格/图片锚点</div></div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="loopbox">
+        <div class="loophead">逐页循环（PDF）</div>
+        <div class="node dec">该页检查点已存在？</div>
+        <div class="branch" style="margin-top:8px">
+          <div class="col"><div class="colhead">是</div><div class="node"><div class="t">复用页结果</div><div class="d">恢复 blocks / assets / issues / 跨页状态（标题层级、全局序号、问题计数）</div></div></div>
+          <div class="col"><div class="colhead">否</div><div class="node"><div class="t">解析本页并写检查点</div><div class="d">空白/扫描页 → 记 unparsed Issue，不生成业务块</div></div></div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node dec">视觉转写开启？（vision_enabled）</div>
+      <div class="branch" style="margin-top:10px">
+        <div class="col"><div class="colhead">否</div><div class="node warn"><div class="t">跳过图片</div><div class="d">在报告中列明被跳过的图片范围</div></div></div>
+        <div class="col"><div class="colhead">是</div><div class="node"><div class="t">全部页完成后统一并发转写</div>
+          <div class="d">按 <code>concurrency</code> 并发；请求间隔与限流冷却；单张失败仅记 Issue，不中断</div></div>
+          <div class="node dec">图片缓存命中？</div>
+          <div class="node okn"><div class="t">是 → 复用描述；否 → 调视觉模型</div>
+            <div class="d">缓存键 = 图片哈希 + 模型 + 预处理参数 + 模板版本</div></div>
+          <div class="node"><div class="t">生成 origin=vision 派生块</div><div class="d">保留原图定位与处理模型/版本，标记不确定</div></div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">分块 chunk</div>
+        <div class="d">按标题/段落/表格与 token 预算切分；小表格整体保留，大表格按行组拆并复制表头；条件与紧邻例外不拆开；每块保存 <code>(block_id, start, end)</code> 来源映射</div></div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">写 chunk 快照并持久化</div><div class="d">blocks、chunks、issues 一并落库</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>提炼与规则合并</h2>
+    <div class="flow">
+      <div class="loopbox">
+        <div class="loophead">遍历每个 chunk（worker 数 = llm.concurrency）</div>
+        <div class="node dec">模型结果缓存命中？</div>
+        <div class="branch" style="margin-top:8px">
+          <div class="col"><div class="colhead">是</div><div class="node okn"><div class="t">直接取缓存输出</div><div class="d">键 = 请求 + 输出 Schema + 模型配置；续跑可复用父运行缓存</div></div></div>
+          <div class="col"><div class="colhead">否</div><div class="node"><div class="t">调用 LLM 结构化提炼</div><div class="d">输入 chunk + 标题路径 + 相邻块 + 可引用 evidence 列表；输出 Feature / Rule / Entity / 缺口</div></div>
+            <div class="node dec">输出通过 Schema 校验？</div>
+            <div class="node warn"><div class="t">否 → 携带字段错误修复重试（有上限）</div><div class="d">超过上限 → 该批失败并取消其余任务</div></div>
+            <div class="node okn"><div class="t">是 → 落库并写缓存</div></div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="node"><div class="t">单 chunk 后处理</div>
+          <div class="d">命名空间化 ID；证据来源取自解析事实（禁止 vision 冒充原文）；引文必须能在本 chunk 的来源区间匹配；引用闭包校验</div></div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">合并 reconcile</div>
+        <div class="d">按功能 / 原文范围 / 规则类型 / 结构约束指纹分组：相同规则合并证据；条件不同保留；冲突建 Issue，不覆盖</div></div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">保存 extract 快照</div><div class="d">evidence · features · rules · entities · issues 写入业务表</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>向量化与索引</h2>
+    <div class="flow">
+      <div class="node dec">chunk 文本嵌入缓存命中？</div>
+      <div class="branch" style="margin-top:10px">
+        <div class="col"><div class="colhead">是</div><div class="node okn"><div class="t">复用向量</div><div class="d">不产生调用；计时标注缓存命中</div></div></div>
+        <div class="col"><div class="colhead">否</div><div class="node"><div class="t">批量嵌入</div><div class="d">按 batch_size 分批、按并发上限调用；响应按 index 对齐，校验条数/维度/有限值</div></div></div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">构建向量索引</div>
+        <div class="d">float32 矩阵；显式 int64 vector_id 映射业务 ID；记录 EmbeddingSpace（供应商/模型/维度/归一化/模板版本）；度量与后端固定</div></div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">发布索引清单 manifest</div><div class="d">校验维度/行数/ID 映射/checksum 后再提交活动指针；读取只认已发布版本</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span>测试点设计</h2>
+    <div class="flow">
+      <div class="node"><div class="t">程序先产生确定性测试点</div>
+        <div class="d">按 Rule.kind 映射方法；结构化约束明确时直接算边界（下界/边界/上界）；精度或单位缺失 → needs_clarification，不猜</div></div>
+      <div class="arrow">↓</div>
+      <div class="loopbox">
+        <div class="loophead">按规则批次（batch_point_limit）并发</div>
+        <div class="node dec">检索增强开启？</div>
+        <div class="node"><div class="t">按需求集/空间/度量取候选 → 范围掩码过滤 → 可选重排</div>
+          <div class="d">重排关闭时跳过；分数不解释为概率</div></div>
+        <div class="arrow">↓</div>
+        <div class="node"><div class="t">调用 LLM 补充测试点</div><div class="d">输入规则批次 + 证据 + 已有程序测试点；禁止引用批次外规则</div></div>
+        <div class="arrow">↓</div>
+        <div class="node"><div class="t">校验与合并</div><div class="d">数量上限、规则引用归属、边界点不合并；探索性建议单独标记</div></div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">生成测试点目录树</div><div class="d">供 XMind 输出；节点与 point_id 绑定</div></div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">保存 plan_points 快照</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">6</span>用例生成与校验</h2>
+    <div class="flow">
+      <div class="loopbox">
+        <div class="loophead">按测试点批次并发（batch_point_limit）</div>
+        <div class="node"><div class="t">组装上下文</div>
+          <div class="d">直接证据（按 ID 加载，不经阈值）→ 所属功能/章节/例外 → 检索补充；预算不足则拆批，不静默截断核心规则</div></div>
+        <div class="arrow">↓</div>
+        <div class="node dec">检索增强 / 重排？</div>
+        <div class="node"><div class="t">按开关执行，失败可降级为不重排并记录事件</div></div>
+        <div class="arrow">↓</div>
+        <div class="node"><div class="t">调用 LLM 生成用例</div><div class="d">提示词 = generate + rag_context + 内置 skill +（可选）用户 skill；显式列出禁止推断的字段</div></div>
+        <div class="arrow">↓</div>
+        <div class="node dec">Schema 通过？</div>
+        <div class="node warn"><div class="t">否 → 有限次修复；仍失败则该批失败</div></div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">批量校验 validate_cases</div>
+        <div class="d">① 结构 ② 引用闭包（规则/测试点/证据属于当前运行）③ 可执行性 ④ 依据检查（精确文案/数值/状态须有证据）⑤ 重复（指纹筛，相似仅标记）⑥ 覆盖</div></div>
+      <div class="arrow">↓</div>
+      <div class="branch">
+        <div class="col"><div class="colhead">通过</div><div class="node okn"><div class="t">status = validated</div><div class="d">仅表示通过自动检查，不等于人工批准</div></div></div>
+        <div class="col"><div class="colhead">有问题</div><div class="node warn"><div class="t">status = needs_review + Issue</div><div class="d">未受支持预期按策略 flag：保留用例并记录</div></div></div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">生成 CoverageLink 与缺口清单</div><div class="d">用例步骤 → 规则 → 测试点断言级映射</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">7</span>导出、清单与结束状态</h2>
+    <div class="flow">
+      <div class="node"><div class="t">导出</div>
+        <div class="d">XMind（测试点目录）· Excel（用例列 + 测试点/规则/覆盖/问题/未解析附表）· Markdown 评审视图 · JSON 规范格式</div></div>
+      <div class="node warn"><div class="t">导出前清洗</div><div class="d">控制字符转义为 <code>\uXXXX</code>；来源文本按文本写入，防公式注入；原始事实不被修改</div></div>
+      <div class="arrow">↓</div>
+      <div class="node"><div class="t">运行清单 manifest 与 metrics</div>
+        <div class="d">配置快照（脱敏）、提示词版本与指纹、模型标识、输入文档指纹、阶段耗时、调用数、token；未知用量记 unknown，不记 0</div></div>
+      <div class="arrow">↓</div>
+      <div class="node dec">运行结果判定</div>
+      <div class="branch" style="margin-top:10px">
+        <div class="col"><div class="colhead">正常完成</div><div class="node okn"><div class="t">succeeded</div></div>
+          <div class="node warn"><div class="t">partial_failed</div><div class="d">有效产物已导出，但存在失败批次或待确认问题</div></div></div>
+        <div class="col"><div class="colhead">未完成</div><div class="node fail"><div class="t">failed</div><div class="d">记录失败阶段与错误类型；已完成检查点保留，可 --resume</div></div>
+          <div class="node fail"><div class="t">cancelled</div><div class="d">Ctrl+C；停止投递新任务，保存已完成结果</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">8</span>失败与降级路径总览</h2>
+    <div class="grid2">
+      <table>
+        <thead><tr><th>触发</th><th>行为</th></tr></thead>
+        <tbody>
+          <tr><td>配置非法 / 缺密钥</td><td>启动即失败，错误只提示字段与变量名，不回显密钥</td></tr>
+          <tr><td>文档不存在 / 格式未启用</td><td>输入校验失败，不产生运行记录</td></tr>
+          <tr><td>加密 PDF / 损坏文件</td><td>解析失败，Run= failed</td></tr>
+          <tr><td>扫描页 / 文字质量低</td><td>整页记 unparsed Issue，不进入后续流程</td></tr>
+          <tr><td>单张图片转写失败</td><td>记 Issue，其余图片继续</td></tr>
+          <tr><td>模型输出不合 Schema</td><td>携带错误修复重试；超限则整批失败</td></tr>
+        </tbody>
+      </table>
+      <table>
+        <thead><tr><th>触发</th><th>行为</th></tr></thead>
+        <tbody>
+          <tr><td>上下文超预算</td><td>拆分批次，不静默截断核心规则</td></tr>
+          <tr><td>输出被截断</td><td>返回特定错误，上层缩批或提示提高输出上限</td></tr>
+          <tr><td>429 限流</td><td>有界退避 + 尊重 retry-after；不无限重试</td></tr>
+          <tr><td>401/402/403/1113</td><td>快速失败并给出中文处置建议，不重试</td></tr>
+          <tr><td>证据不足</td><td>标记待确认，不让模型编造来修复</td></tr>
+          <tr><td>索引缺失 / 损坏</td><td>拒绝加载，运行停止；可从事实重建</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">9</span>核心不变式</h2>
+    <div class="flow">
+      <div class="node"><div class="t">① SQLite 是唯一事实来源</div><div class="d">XMind / Excel / Markdown / 向量索引都是派生视图，可重建，不可反向修改事实</div></div>
+      <div class="node"><div class="t">② 一切皆可追溯</div><div class="d">用例 → 步骤 → 规则 → 证据 → 原文块与字符区间；vision/ocr 与原文严格区分来源</div></div>
+      <div class="node"><div class="t">③ 程序约束、模型表达</div><div class="d">程序负责 ID、引用闭包、引文匹配、覆盖矩阵；模型只负责理解与表达</div></div>
+      <div class="node"><div class="t">④ 不猜测缺失信息</div><div class="d">精度/单位/文案/错误码缺失时留空并建 Issue，不补造</div></div>
+      <div class="node"><div class="t">⑤ 自动检查 ≠ 人工批准</div><div class="d">validated 仅表示通过当前自动校验</div></div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

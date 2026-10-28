@@ -1,26 +1,28 @@
-"""Configuration loading; credentials remain environment references."""
+"""加载并校验配置；支持本地密钥，序列化时自动排除密钥值。"""
 
 import os
-import re
-from collections.abc import Mapping
+import re  # 正则校验库
+from collections.abc import Mapping  # 类型标注：字典
 from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
 
 class Section(BaseModel):
     # extra="forbid": 配置里出现未定义字段直接报错（防拼错键名后被静默忽略）
-    # hide_input_in_errors=True: 校验报错不回显输入值（配合 api_key_env 防密钥泄漏进错误信息）
+    # hide_input_in_errors=True: 校验报错不回显输入值，避免凭据出现在错误说明中。
     model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
 
 
 class Chunking(Section):
-    strategy: Literal["structural"] = "structural"
-    target_tokens: int = Field(default=900, gt=0)
+    """分块参数"""
+
+    strategy: Literal["structural"] = "structural"  # 枚举限制输入
+    target_tokens: int = Field(default=900, gt=0)  # 默认值+约束
     overlap_tokens: int = Field(default=100, ge=0)
-    token_counter: Literal["tiktoken_approx"] = "tiktoken_approx"
+    token_counter: Literal["tiktoken_approx", "character_approx"] = "tiktoken_approx"
 
     # model_validator(mode="after"): 单字段约束表达不了"两者的关系"，需整对象构建后再校验
     @model_validator(mode="after")
@@ -31,30 +33,49 @@ class Chunking(Section):
 
 
 class Endpoint(Section):
+    """模型端点共用结构"""
+
     adapter: Literal["openai_sdk", "langchain", "claude_sdk", "http"] = "openai_sdk"
     api_mode: Literal["chat_completions", "responses"] = "chat_completions"
+    # JSON Object 兼容仅支持 JSON 模式的服务；字段结构仍由本地 Pydantic 严格校验。
+    response_format: Literal["json_schema", "json_object"] = "json_schema"
+    # 显式选择支持此参数的 Chat 服务；default 不向供应商发送思考开关。
+    thinking_mode: Literal["default", "enabled", "disabled"] = "default"
+    # 单次输出上限，与 runtime.max_context_tokens 的输入预算分开；留空沿用服务商默认。
+    max_output_tokens: int | None = Field(default=None, gt=0)
     base_url: str = ""
     model: str = ""
-    # api_key_env 只允许是合法的环境变量名（或空），不允许塞任意字符串——
-    # 这把"密钥值硬写进配置/YAML"从源头挡掉；真实密钥永远只在运行时从环境变量读取（设计书 §17）
+    # 本地 YAML 可直接填密钥；SecretStr 避免意外显示，exclude 保证快照和导出不含此字段。
+    # 模型/配置变更仍参与版本检查；密钥轮换不改变业务配置指纹。
+    api_key: SecretStr | None = Field(default=None, exclude=True, repr=False)
+    # 文件未填写有效密钥时，兼容原有环境变量方式；这里只保存变量名。
     api_key_env: str = Field(default="", pattern=r"^$|^[A-Za-z_][A-Za-z0-9_]*$")
     concurrency: int = Field(default=3, gt=0)
     batch_size: int = Field(default=16, gt=0)
     enabled: bool = True
+    supports_images: bool = False  # 开启视觉前必须由部署方明确声明能力
 
 
 class Models(Section):
     # 各端点必须用 default_factory 生成独立实例，否则会共享同一可变默认值（pydantic 可变默认陷阱）
     # vision/rerank 默认 disabled：这两类能力是 P2 才启用，P1 不参与主线
     llm: Endpoint = Field(default_factory=lambda: Endpoint(api_key_env="TC_RAG_LLM_API_KEY"))
-    embedding: Endpoint = Field(default_factory=lambda: Endpoint(
-        api_key_env="TC_RAG_EMBEDDING_API_KEY", concurrency=2))
-    vision: Endpoint = Field(default_factory=lambda: Endpoint(enabled=False))
-    rerank: Endpoint = Field(default_factory=lambda: Endpoint(enabled=False, adapter="http"))
+    embedding: Endpoint = Field(
+        default_factory=lambda: Endpoint(api_key_env="TC_RAG_EMBEDDING_API_KEY", concurrency=2)
+    )
+    vision: Endpoint = Field(
+        default_factory=lambda: Endpoint(enabled=False, api_key_env="TC_RAG_VISION_API_KEY")
+    )
+    rerank: Endpoint = Field(
+        default_factory=lambda: Endpoint(
+            enabled=False, adapter="http", api_key_env="TC_RAG_RERANK_API_KEY"
+        )
+    )
 
 
 class Retrieval(Section):
-    mode: Literal["direct", "rag"] = "direct"
+    embedding_dimension: int = Field(default=1536, gt=0)
+    """Literal约束"""
     scope: Literal["requirement_set"] = "requirement_set"
     backend: Literal["numpy", "faiss"] = "numpy"
     metric: Literal["cosine", "euclidean", "dot"] = "cosine"
@@ -71,40 +92,91 @@ class Budget(Section):
 
 
 class Runtime(Section):
+    max_context_tokens: int = Field(default=12000, gt=0)
     max_attempts: int = Field(default=3, gt=0)
     request_timeout_seconds: float = Field(default=90, gt=0, allow_inf_nan=False)
+    # 仅约束视觉真实请求的启动间隔；缓存不等待，不代表服务商承诺的配额。
+    vision_min_interval_seconds: float = Field(default=0, ge=0, allow_inf_nan=False)
     cache_enabled: bool = True
     budget: Budget = Field(default_factory=Budget)
 
 
-# Simple sections are defined as typed schemas, with unknown fields forbidden.
+# 简单配置分区使用带类型的模型定义，拒绝未声明字段。
 class Project(Section):
-    name: str = 'demo'
-    workdir: str = './workdir'
+    name: str = "demo"
+    workdir: str = "./workdir"
+
+
 class Storage(Section):
-    backend: Literal['sqlite'] = 'sqlite'
-    database: str = './workdir/data.sqlite'
+    backend: Literal["sqlite"] = "sqlite"
+    database: str = "./workdir/data.sqlite"
+
+
 class Parsing(Section):
-    formats: list[Literal['pdf', 'docx']] = ['pdf', 'docx']
-    scan_policy: Literal['report_unsupported', 'ocr'] = 'report_unsupported'
+    formats: list[Literal["pdf", "docx"]] = ["pdf", "docx"]
+    scan_policy: Literal["report_unsupported", "ocr"] = "report_unsupported"
     vision_enabled: bool = False
+
+
 class Planning(Section):
-    methods: list[Literal['equivalence', 'boundary', 'decision_table', 'state', 'permission']] = ['equivalence', 'boundary', 'decision_table', 'state', 'permission']
+    max_points_per_rule: int = Field(default=12, gt=0)
+    methods: list[Literal["equivalence", "boundary", "decision_table", "state", "permission"]] = [
+        "equivalence",
+        "boundary",
+        "decision_table",
+        "state",
+        "permission",
+    ]
     relation_enabled: bool = False
+
+
 class Generation(Section):
+    # 默认使用内置用例 Skill；可选自包含 Markdown 追加规范，路径相对启动目录。
+    skill_file: str | None = Field(default=None, min_length=1)
+    max_cases_per_point: int = Field(default=3, gt=0)
     batch_point_limit: int = Field(default=5, gt=0)
     schema_repair_attempts: int = Field(default=1, ge=0)
-    unsupported_expectation_policy: Literal['flag'] = 'flag'
+    unsupported_expectation_policy: Literal["flag"] = "flag"
+
+
 class Observability(Section):
     metrics_enabled: bool = True
     save_raw_model_payloads: bool = False
+
+
+class ExcelColumn(Section):
+    field: Literal[
+        "title",
+        "external_id",
+        "preconditions",
+        "module_path",
+        "actions",
+        "expected",
+        "tags",
+        "remarks",
+        "priority",
+        "product_version",
+        "edit_mode",
+    ]
+    header: str = Field(min_length=1)
+
+
 class Export(Section):
-    formats: list[Literal['json', 'markdown', 'xlsx']] = ['json', 'markdown']
+    formats: list[Literal["json", "markdown", "xlsx"]] = ["json", "markdown", "xlsx"]
     include_issues: bool = True
     include_coverage: bool = True
+    case_columns: list[ExcelColumn] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def unique_columns(self) -> "Export":
+        if len({c.field for c in self.case_columns}) != len(self.case_columns):
+            raise ValueError("Excel 列字段不能重复")
+        return self
 
 
 class AppConfig(Section):
+    """根模型"""
+
     project: Project = Field(default_factory=Project)
     storage: Storage = Field(default_factory=Storage)
     parsing: Parsing = Field(default_factory=Parsing)
@@ -116,6 +188,16 @@ class AppConfig(Section):
     runtime: Runtime = Field(default_factory=Runtime)
     observability: Observability = Field(default_factory=Observability)
     export: Export = Field(default_factory=Export)
+
+
+def resolve_api_key(endpoint: Endpoint, *, environ: Mapping[str, str] | None = None) -> str:
+    """非空配置密钥优先，否则读取环境变量；只在启动校验和客户端装配时使用。"""
+    if endpoint.api_key is not None:
+        configured = endpoint.api_key.get_secret_value().strip()
+        if configured:
+            return configured
+    env = os.environ if environ is None else environ
+    return env.get(endpoint.api_key_env, "").strip()
 
 
 def _merge(target: dict[str, Any], incoming: Mapping[str, Any]) -> None:
@@ -134,19 +216,24 @@ def _expand(value: Any, env: Mapping[str, str]) -> Any:
     if isinstance(value, list):
         return [_expand(item, env) for item in value]
     if isinstance(value, str):
+
         def replace(match: re.Match[str]) -> str:
             name = match.group(1)
             if not env.get(name):
                 raise ValueError(f"Missing environment variable: {name}")
             return env[name]
+
         return re.sub(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}", replace, value)
     return value
 
 
-def load_config(path: str | Path | None = None, *,
-                environ: Mapping[str, str] | None = None,
-                cli_overrides: Mapping[str, Any] | None = None) -> AppConfig:
-    """Merge defaults, file, environment, CLI; expand before final validation.
+def load_config(
+    path: str | Path | None = None,
+    *,
+    environ: Mapping[str, str] | None = None,
+    cli_overrides: Mapping[str, Any] | None = None,
+) -> AppConfig:
+    """按默认值、文件、环境变量、命令行顺序合并，展开变量后执行最终校验。
 
     覆盖优先级（低→高）：内置默认 → YAML 文件 → 环境变量(TC_RAG_*) → CLI 参数。
     environ/cli_overrides 可注入，便于测试不依赖真实环境与文件。
@@ -159,12 +246,12 @@ def load_config(path: str | Path | None = None, *,
         if loaded is not None and not isinstance(loaded, dict):
             raise ValueError("Configuration root must be a mapping")
         _merge(data, loaded or {})
-    # 嵌套式环境变量覆盖：TC_RAG_RETRIEVAL__MODE=rag → retrieval.mode。
+    # 嵌套式环境变量覆盖：TC_RAG_RETRIEVAL__VECTOR_TOP_K=10 → retrieval.vector_top_k。
     # reversed+逐层包回字典，把扁平名还原成层级结构；值按 YAML 解析以便 "9"→int 9、"true"→bool
     for key, value in env.items():
         if key.startswith("TC_RAG_") and "__" in key:
             nested: Any = yaml.safe_load(value)
-            for part in reversed(key[len("TC_RAG_"):].lower().split("__")):
+            for part in reversed(key[len("TC_RAG_") :].lower().split("__")):
                 nested = {part: nested}
             _merge(data, nested)
     # 扁平式环境变量覆盖：TC_RAG_LLM_BASE_URL/... 直接映射到 models.<role>.<field>

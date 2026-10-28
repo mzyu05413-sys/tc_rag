@@ -9,16 +9,16 @@ from tc_rag.infrastructure.runtime.timer import Timer, timed
 def test_sync_result_metadata_and_no_binding():
     @timed(stage="parse")
     def add(value: int) -> int:
-        """Example operation."""
+        """用于验证装饰器元数据保留行为的示例函数。"""
         return value + 1
 
     assert add(1) == 2
     assert add.__name__ == "add"
-    assert add.__doc__ == "Example operation."
+    assert add.__doc__ == "用于验证装饰器元数据保留行为的示例函数。"
     timer = Timer("r1")
     with timer.bind():
         assert add(4) == 5
-    event, = timer.events
+    (event,) = timer.events
     assert (event.run_id, event.stage, event.name, event.success) == ("r1", "parse", "add", True)
     assert event.duration_ms >= 0
     assert timer.export_events()[0]["kind"] == "call"
@@ -52,7 +52,7 @@ async def test_async_concurrent_wall_is_not_call_sum():
     with timer.wall():
         assert await asyncio.gather(*(work(i) for i in range(5))) == list(range(5))
     calls = [event for event in timer.events if event.kind == "call"]
-    wall, = [event for event in timer.events if event.kind == "wall"]
+    (wall,) = [event for event in timer.events if event.kind == "wall"]
     assert len(calls) == 5
     assert wall.duration_ms < sum(event.duration_ms for event in calls)
     row = next(row for row in timer.summary() if row["kind"] == "call")
@@ -127,7 +127,7 @@ def test_summary_exact_values(monkeypatch):
     with timer.bind():
         for _ in range(3):
             work()
-    row, = timer.summary()
+    (row,) = timer.summary()
     assert row["count"] == 3
     assert row["total_ms"] == pytest.approx(60)
     assert row["mean_ms"] == pytest.approx(20)
