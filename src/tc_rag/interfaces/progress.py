@@ -78,7 +78,10 @@ for _code in range(1316, 1322):
 
 
 def format_duration(seconds: float) -> str:
-    """把秒数转成用户可读的时长，避免长任务只显示大数字。"""
+    """把秒数转成用户可读的时长；1 秒以下显示毫秒，避免快阶段被误读成 0 秒。"""
+    millis = round(seconds * 1000)
+    if 0 < millis < 1000:
+        return f"{millis}毫秒"
     total = max(0, int(round(seconds)))
     minutes, secs = divmod(total, 60)
     return f"{minutes}分{secs}秒" if minutes else f"{secs}秒"
