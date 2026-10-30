@@ -4,10 +4,12 @@ import json
 
 import pytest
 
+from tc_rag.application.orchestration.pipeline import sort_points
 from tc_rag.application.services.chunking import structural_chunks, verify_evidence
 from tc_rag.application.services.design import (
     boundary_values,
     check_extraction,
+    derive_constraint,
     plan_points,
     validate_cases,
 )
@@ -168,6 +170,145 @@ def test_namespace_preserves_typed_and_ambiguous_references():
     assert Pipeline._namespace(candidate, "other").rules[0].rule_id != result.rules[0].rule_id
 
 
+def test_sort_points_matches_tree_order():
+    extraction = Extraction(
+        features=[m.Feature(feature_id="f", name="订单", description="", evidence_ids=["e"])],
+        rules=[
+            m.RequirementRule(
+                rule_id="r_field",
+                feature_id="f",
+                kind="field_constraint",
+                statement="金额必须大于0",
+                evidence_ids=["e"],
+            ),
+            m.RequirementRule(
+                rule_id="r_perm",
+                feature_id="f",
+                kind="permission",
+                statement="仅管理员可操作",
+                evidence_ids=["e"],
+            ),
+        ],
+    )
+    points = [
+        m.TestPoint(
+            point_id="p3",
+            rule_ids=["r_field"],
+            technique="boundary",
+            objective="金额边界",
+            status="needs_clarification",
+        ),
+        m.TestPoint(
+            point_id="p2",
+            rule_ids=["r_field"],
+            technique="equivalence",
+            objective="金额校验",
+            status="ready",
+            applicability="applicable",
+        ),
+        m.TestPoint(
+            point_id="p1",
+            rule_ids=["r_perm"],
+            technique="permission",
+            objective="仅管理员可操作",
+            status="ready",
+            applicability="applicable",
+        ),
+    ]
+    assert [point.point_id for point in sort_points(points, extraction)] == [
+        "p1",
+        "p2",
+        "p3",
+    ]
+
+
+def test_tree_groups_by_status_then_business_category():
+    from tc_rag.application.orchestration.pipeline import Pipeline
+
+    extraction = Extraction(
+        features=[m.Feature(feature_id="f", name="订单", description="", evidence_ids=["e"])],
+        rules=[
+            m.RequirementRule(
+                rule_id="r_field",
+                feature_id="f",
+                kind="field_constraint",
+                statement="金额必须大于0",
+                evidence_ids=["e"],
+            ),
+            m.RequirementRule(
+                rule_id="r_perm",
+                feature_id="f",
+                kind="permission",
+                statement="仅管理员可操作",
+                evidence_ids=["e"],
+            ),
+        ],
+    )
+    points = [
+        m.TestPoint(
+            point_id="p1",
+            rule_ids=["r_perm"],
+            technique="permission",
+            objective="仅管理员可操作",
+            status="ready",
+            applicability="applicable",
+        ),
+        m.TestPoint(
+            point_id="p2",
+            rule_ids=["r_field"],
+            technique="equivalence",
+            objective="金额校验",
+            status="ready",
+            applicability="applicable",
+        ),
+        m.TestPoint(
+            point_id="p3",
+            rule_ids=["r_field"],
+            technique="boundary",
+            objective="金额边界",
+            status="needs_clarification",
+        ),
+    ]
+    tree = Pipeline._tree("run", "hash", extraction, points)
+    titles = [node.title for node in tree.nodes]
+    assert "已就绪（2）" in titles and "待澄清（1）" in titles
+    assert "权限（1）" in titles and "字段校验（1）" in titles
+    assert titles.index("权限（1）") < titles.index("字段校验（1）")
+    assert titles.index("已就绪（2）") < titles.index("权限（1）")
+
+
+def test_check_extraction_derives_numeric_constraint_from_quote():
+    text = "审批意见最多300字符。"
+    block = m.DocumentBlock(
+        block_id="b", document_id="d", kind="paragraph", order=0, content=text,
+        locator=m.Locator(page=1),
+    )
+    evidence = m.EvidenceSpan(evidence_id="e", block_id="b", locator=block.locator, quote=text)
+    feature = m.Feature(feature_id="f", name="长度", description="", evidence_ids=["e"])
+    rule = m.RequirementRule(
+        rule_id="r",
+        feature_id="f",
+        kind="field_constraint",
+        statement="审批意见最多300字符",
+        evidence_ids=["e"],
+    )
+    result = check_extraction(
+        Extraction(evidence=[evidence], features=[feature], rules=[rule]), [block]
+    )
+    constraint = result.rules[0].structured_constraint
+    assert constraint is not None
+    assert constraint.operator == "<=" and constraint.boundary == 300
+    assert constraint.precision == 0
+    assert boundary_values(result.rules[0]) == ["299", "300", "301"]
+
+
+def test_derive_constraint_supports_length_and_rejects_conflicts():
+    length = derive_constraint("状态名称长度限制为16")
+    assert length is not None
+    assert length.operator == "<=" and length.boundary == 16 and length.precision == 0
+    assert derive_constraint("最多300个，至少10个") is None
+
+
 def test_evidence_fullwidth_whitespace_and_wrong_location():
     original = block()
     evidence = m.EvidenceSpan(
@@ -234,6 +375,27 @@ def test_validation_rejects_cross_run_reference_and_reports_gap():
     valid, links, issues = validate_cases([case], points, [rule()], [])
     assert valid == [] and links == []
     assert sum(i.kind == "coverage" for i in issues) == 3
+
+
+def test_explanatory_expectation_is_advisory_not_blocking():
+    r = rule()
+    point = plan_points([r], ["boundary"])[0]
+    evidence = m.EvidenceSpan(
+        evidence_id="e", block_id="b", locator=m.Locator(), quote="最多300个"
+    )
+    case = m.TestCase(
+        case_id="c",
+        point_ids=[point.point_id],
+        title="边界拒绝",
+        steps=[
+            m.TestStep(
+                action="输入299个", expected="系统拒绝提交", rule_ids=["r"], evidence_ids=["e"]
+            )
+        ],
+    )
+    valid, _, issues = validate_cases([case], [point], [r], [evidence])
+    assert valid[0].status == "validated"
+    assert any(item.severity == "info" for item in issues)
 
 
 def test_unsupported_expectation_and_duplicate_are_retained_and_flagged():

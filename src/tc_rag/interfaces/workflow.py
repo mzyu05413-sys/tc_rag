@@ -98,7 +98,13 @@ def _snapshot(repo: SqliteRepository, run_id: str, stage: str) -> dict[str, Any]
 
 def _error(exc: Exception) -> None:
     # 只展示程序固定说明；第三方异常正文可能含凭据或需求原文，仍不回显。
-    if isinstance(exc, ValidationError) and any(
+    if isinstance(exc, ValidationError) and any(e["loc"] == ("sources",) for e in exc.errors()):
+        typer.echo(
+            "代码读取分支已移除；请删除配置中的 sources 段，"
+            "并清除当前终端的 TC_RAG_SOURCES__* 环境变量。",
+            err=True,
+        )
+    elif isinstance(exc, ValidationError) and any(
         e["loc"] == ("retrieval", "mode") for e in exc.errors()
     ):
         typer.echo("配置已统一为 RAG，请删除 retrieval.mode；CLI 不再使用 --mode。", err=True)
@@ -185,6 +191,12 @@ def run(
     from_stage: str | None = typer.Option(None, "--from-stage"),
     quiet: bool = typer.Option(False, "--quiet", help="隐藏执行进度，保留结果与错误。"),
     skill_file: Path | None = typer.Option(None, "--skill-file", exists=True, dir_okay=False),
+    metric: Literal["cosine", "euclidean", "dot"] | None = typer.Option(
+        None, "--metric", help="检索相似度：cosine / euclidean / dot。"
+    ),
+    normalize: bool | None = typer.Option(
+        None, "--normalize/--no-normalize", help="是否对向量做 L2 归一化。"
+    ),
 ) -> None:
     """一次生成测试点 XMind 和用例 Excel；--preview 仅展示计划。"""
     try:
@@ -192,6 +204,10 @@ def run(
         cfg = load_config(config)
         if skill_file is not None:
             cfg.generation.skill_file = str(skill_file)
+        if metric is not None:
+            cfg.retrieval.metric = metric
+        if normalize is not None:
+            cfg.retrieval.normalize = normalize
         stages = run_plan(doc, cfg)
         # 兼容原有只给文件路径的预览行为，绝不隐式发起付费调用。
         if preview or instruction is None:
@@ -201,8 +217,8 @@ def run(
         run_id = new_id("run")
         pipeline = build_pipeline(cfg, run_id)
         typer.echo(f"run_id={run_id}")
-        # 正常全流程包含 11 个阶段，开启图片解释时多 1 个；恢复运行不虚构总数。
-        stage_total = None if resume else (12 if cfg.parsing.vision_enabled else 11)
+        # 无图主线有 10 个阶段；图片解释按开关增加 1 个，恢复运行不虚构总数。
+        stage_total = None if resume else 10 + int(cfg.parsing.vision_enabled)
         reporter = _progress(pipeline, quiet, stage_total)
         if not quiet:
             typer.echo(
@@ -233,10 +249,15 @@ def run(
                 await _close(pipeline)
 
         result = asyncio.run(execute())
+        total_points = result.get("points_total", 0)
+        ready_points = result.get("points_ready", 0)
+        covered_points = result.get("points_with_cases", 0)
         typer.echo(
             f"[完成] 总用时 {format_duration(perf_counter() - started)}\n"
             f"XMind 测试点目录：{Path(result['xmind']).resolve()}\n"
             f"Excel 测试用例：{Path(result['excel']).resolve()}\n"
+            f"测试点 {total_points}（ready {ready_points} / 待澄清 "
+            f"{total_points - ready_points}），覆盖 {covered_points} 个 ready 点；"
             f"生成用例 {result['cases']} 条，问题清单 {result['issues']} 项。"
         )
     except KeyboardInterrupt:
@@ -258,11 +279,17 @@ def _interactive_start(
     preview: bool,
     quiet: bool,
     skill_file: Path | None,
+    metric: Literal["cosine", "euclidean", "dot"] | None = None,
+    normalize: bool | None = None,
 ) -> None:
     """交互输入需求路径和提示词，连续生成测试点 XMind 与用例 Excel。"""
     try:
         config = _config_path(config)
         cfg = load_config(config)
+        if metric is not None:
+            cfg.retrieval.metric = metric
+        if normalize is not None:
+            cfg.retrieval.normalize = normalize
         # 不创建客户端、不调用模型；缺少密钥等问题应在用户输入长提示词之前说明。
         if not preview:
             validate_runtime_config(cfg)
@@ -317,6 +344,8 @@ def _interactive_start(
         from_stage=None,
         quiet=quiet,
         skill_file=skill_file,
+        metric=metric,
+        normalize=normalize,
     )
 
 
@@ -333,6 +362,12 @@ def start(
     preview: bool = typer.Option(False, "--preview"),
     quiet: bool = typer.Option(False, "--quiet"),
     skill_file: Path | None = typer.Option(None, "--skill-file", exists=True, dir_okay=False),
+    metric: Literal["cosine", "euclidean", "dot"] | None = typer.Option(
+        None, "--metric", help="检索相似度：cosine / euclidean / dot。"
+    ),
+    normalize: bool | None = typer.Option(
+        None, "--normalize/--no-normalize", help="是否对向量做 L2 归一化。"
+    ),
 ) -> None:
     """交互输入需求文档路径，自动生成测试点 XMind 与用例 Excel。"""
     _interactive_start(
@@ -341,6 +376,8 @@ def start(
         preview=preview,
         quiet=quiet,
         skill_file=skill_file,
+        metric=metric,
+        normalize=normalize,
     )
 
 

@@ -8,6 +8,71 @@ from openpyxl import load_workbook
 from tc_rag.infrastructure.exporters.reports import ReportExporter
 
 
+def test_remarks_use_specific_case_issues(tmp_path):
+    output = tmp_path / "remarks.xlsx"
+    ReportExporter().export(
+        {
+            "cases": [
+                {
+                    "case_id": "c1",
+                    "title": "t1",
+                    "status": "needs_review",
+                    "steps": [{"action": "a", "expected": "e"}],
+                },
+                {
+                    "case_id": "c2",
+                    "title": "t2",
+                    "status": "needs_review",
+                    "steps": [{"action": "a", "expected": "e"}],
+                },
+            ],
+            "issues": [
+                {
+                    "issue_id": "i1",
+                    "kind": "unsupported_expectation",
+                    "description": "预期缺少依据",
+                    "object_ids": ["c1"],
+                }
+            ],
+        },
+        output,
+    )
+    sheet = load_workbook(output)["模版"]
+    assert "预期缺少依据" in sheet["H2"].value
+    assert "详见问题清单" in sheet["H3"].value
+
+
+def test_validated_case_uses_advisory_remark(tmp_path):
+    output = tmp_path / "advisory.xlsx"
+    ReportExporter().export(
+        {
+            "cases": [
+                {
+                    "case_id": "c1",
+                    "title": "边界拒绝",
+                    "status": "validated",
+                    "steps": [{"action": "a", "expected": "e"}],
+                }
+            ],
+            "issues": [
+                {
+                    "issue_id": "i1",
+                    "kind": "unsupported_expectation",
+                    "severity": "info",
+                    "description": "预期为业务表达，未逐字出现在原文中",
+                    "object_ids": ["c1"],
+                }
+            ],
+        },
+        output,
+    )
+    sheet = load_workbook(output)["模版"]
+    # validated 且仅带 info 提示的用例，备注不再写 "[提示]"，保持干净可直接使用。
+    remark = sheet["H2"].value or ""
+    assert "[提示]" not in remark
+    assert "[需核实]" not in remark
+
+
 def test_quality_sheets_and_formula_text(tmp_path):
     output = tmp_path / "cases.xlsx"
     ReportExporter().export(
@@ -21,10 +86,100 @@ def test_quality_sheets_and_formula_text(tmp_path):
         output,
     )
     book = load_workbook(output)
-    assert book.sheetnames == ["模版", "测试点", "规则", "覆盖矩阵", "问题清单", "未解析范围"]
+    assert book.sheetnames == [
+        "模版",
+        "阅读说明",
+        "测试点",
+        "规则",
+        "覆盖矩阵",
+        "问题清单",
+        "未解析范围",
+    ]
     assert book["规则"]["B2"].value == "=1+1"
     assert book["规则"]["B2"].data_type == "s"
     assert book["未解析范围"].max_row == 2
+
+
+def test_appendix_sheets_are_human_readable(tmp_path):
+    output = tmp_path / "readable.xlsx"
+    ReportExporter().export(
+        {
+            "cases": [{"case_id": "c1", "title": "提交订单", "steps": []}],
+            "points": [
+                {
+                    "point_id": "p1",
+                    "objective": "金额校验",
+                    "category": "字段校验",
+                    "technique": "boundary",
+                    "rule_ids": ["r1"],
+                    "status": "ready",
+                }
+            ],
+            "rules": [
+                {
+                    "rule_id": "r1",
+                    "kind": "field_constraint",
+                    "statement": "金额大于0",
+                    "evidence_ids": ["e1"],
+                    "status": "supported",
+                }
+            ],
+            "evidence": [
+                {"evidence_id": "e1", "block_id": "b", "locator": {"page": 1}, "quote": "金额大于0"}
+            ],
+            "coverage": [
+                {
+                    "case_id": "c1",
+                    "step_no": 1,
+                    "rule_id": "r1",
+                    "point_id": "p1",
+                    "validation_status": "needs_review",
+                }
+            ],
+            "issues": [
+                {
+                    "issue_id": "i1",
+                    "kind": "coverage",
+                    "severity": "warning",
+                    "description": "测试点没有用例覆盖",
+                    "object_ids": ["p1"],
+                }
+            ],
+        },
+        output,
+    )
+    book = load_workbook(output)
+    try:
+        assert list(book["测试点"].values)[1] == (
+            "字段校验",
+            "边界值",
+            "金额校验",
+            "金额大于0",
+            "已就绪",
+            "p1",
+        )
+        assert list(book["规则"].values)[1] == (
+            "字段约束",
+            "金额大于0",
+            "金额大于0",
+            "有依据",
+            "r1",
+        )
+        assert list(book["覆盖矩阵"].values)[1] == (
+            "提交订单",
+            1,
+            "金额大于0",
+            "金额校验",
+            "需人工核实",
+        )
+        assert list(book["问题清单"].values)[1] == (
+            "覆盖缺口",
+            "警告",
+            "测试点没有用例覆盖",
+            "测试点：金额校验",
+        )
+    finally:
+        book.close()
 
 
 def test_custom_case_column_order_and_header(tmp_path):
@@ -72,12 +227,12 @@ def test_illegal_controls_are_visible_in_excel_without_mutating_facts(tmp_path):
         assert sheet["C2"].value == expected and sheet["H2"].value == expected
         assert sheet["E2"].value == "[1] " + expected
         assert sheet["F2"].value == "[1] " + expected
-        assert book["测试点"]["B2"].value == expected
+        assert book["测试点"]["C2"].value == expected
         assert book["规则"]["B2"].value == expected
         assert book["问题清单"]["C2"].value == expected
         assert book["未解析范围"]["B2"].value == expected
         assert book["覆盖矩阵"]["B2"].value == 1
-        assert json.loads(book["问题清单"]["D2"].value) == [original]
+        assert book["问题清单"]["D2"].value == expected
         assert not any(cell.data_type == "f" for page in book for row in page for cell in row)
     finally:
         book.close()

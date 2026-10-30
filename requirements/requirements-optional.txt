@@ -1,9 +1,0 @@
-# 按需单独安装，避免一次引入全部可选依赖：
-# pip install -e ".[faiss]"
-# faiss-cpu             向量索引后端（faiss extras）
-# jieba                 中文关键词召回（keyword extras）
-# langchain-core        可选模型适配（langchain extras）
-# claude-agent-sdk      可选 Claude 适配（claude extras）
-# sentence-transformers 本地向量模型（local extras）
-# SQLite 使用 Python 标准库 sqlite3，无需安装。
-# 缓存首先使用 SQLite；diskcache 是设计中的替代方案，暂不引入。

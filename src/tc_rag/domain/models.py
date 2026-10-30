@@ -45,6 +45,7 @@ class DocumentBlock(DomainModel):
     order: int = Field(ge=0)
     content: str
     locator: Locator
+    # ocr 仅兼容历史来源；当前图像解释流程生成 vision 来源。
     origin: Literal["text", "ocr", "vision"] = "text"
     processing_model: str | None = None
     processing_version: str | None = None
@@ -79,6 +80,7 @@ class EvidenceSpan(DomainModel):
     block_id: str = Field(min_length=1)
     locator: Locator
     quote: str = Field(min_length=1)
+    # 保留历史来源值，避免已有 SQLite 证据无法读取；不代表存在独立识别入口。
     origin: Literal["text", "ocr", "vision"] = "text"
     processing_model: str | None = None
     processing_version: str | None = None
@@ -86,7 +88,7 @@ class EvidenceSpan(DomainModel):
 
     @model_validator(mode="after")
     def check_provenance(self) -> "EvidenceSpan":
-        # 模型/OCR 转换结果需要保留处理来源，不与原始文字混为一谈。
+        # 视觉解释及兼容的历史转换证据须保留处理来源，不与原始文字混为一谈。
         if self.origin != "text" and not (self.processing_model and self.processing_version):
             raise ValueError("OCR/vision evidence requires processing model and version")
         if self.origin == "vision":

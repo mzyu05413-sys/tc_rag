@@ -66,6 +66,9 @@ class ContextPayload(DomainModel):
     selection: str
     adopted_ids: list[str] = Field(default_factory=list)
     omitted_ids: list[str] = Field(default_factory=list)
+    # 仅供旧数据库上下文读取；已移除对应运行支路，新序列化结果不携带历史审计字段。
+    code_adopted_ids: list[str] = Field(default_factory=list, exclude=True, repr=False)
+    code_omitted_ids: list[str] = Field(default_factory=list, exclude=True, repr=False)
     generation: dict[str, Any] = Field(default_factory=dict)
 
 

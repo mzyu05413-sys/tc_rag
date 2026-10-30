@@ -98,6 +98,8 @@ class Runtime(Section):
     # 仅约束视觉真实请求的启动间隔；缓存不等待，不代表服务商承诺的配额。
     vision_min_interval_seconds: float = Field(default=0, ge=0, allow_inf_nan=False)
     cache_enabled: bool = True
+    # fail=任一提炼分块失败即中止；skip=记录问题后跳过该分块继续。
+    chunk_failure_policy: Literal["fail", "skip"] = "fail"
     budget: Budget = Field(default_factory=Budget)
 
 
@@ -114,7 +116,8 @@ class Storage(Section):
 
 class Parsing(Section):
     formats: list[Literal["pdf", "docx"]] = ["pdf", "docx"]
-    scan_policy: Literal["report_unsupported", "ocr"] = "report_unsupported"
+    # 保留既有配置与快照字段；扫描页仅报告未解析，不再提供独立识别路线。
+    scan_policy: Literal["report_unsupported"] = "report_unsupported"
     vision_enabled: bool = False
 
 

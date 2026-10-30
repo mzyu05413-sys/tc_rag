@@ -8,7 +8,6 @@ storage:      # 存储配置
 
 parsing:      # 文档解析
   formats: [pdf, docx]
-  scan_policy: report_unsupported     # report_unsupported | ocr
   vision_enabled: false
 
 chunking:     # 分块策略
@@ -82,6 +81,7 @@ runtime:
   request_timeout_seconds: 90
   vision_min_interval_seconds: 0 # 视觉请求启动间隔；限流时可先设 3，具体限额看账户控制台
   cache_enabled: true
+  chunk_failure_policy: fail          # fail | skip；skip 时单个分块失败只记问题
   budget:
     max_calls: null
     max_cost: null

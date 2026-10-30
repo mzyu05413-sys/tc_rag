@@ -6,8 +6,9 @@
 
 输入需求文档路径和提示词，经过解析、提炼、向量检索和增强规划测试点，
 随即结合用例 Skill 与 RAG 上下文生成用例，同目录输出 XMind 和 Excel。
-中间无需人工审核；XMind 是 Excel 的测试点目录，只有模块与测试点，不包含用例步骤和预期。
+中间无需人工审核；XMind 展示全部测试点，按状态、业务维度和功能分组，不包含用例步骤和预期；Excel 展示实际生成的详细用例。
 所有正式生成共用下面的流程。阶段是开发顺序，不能当作独立运行方案。
+输入只保留需求 PDF/DOCX；原文、表格及图片解释参与证据与检索，不再读取代码仓库或建立代码参考索引。
 
 ```mermaid
 flowchart TD
@@ -38,7 +39,7 @@ flowchart TD
 | 原始能力 | 当前实现与代码 | 使用边界 |
 |---|---|---|
 | PDF、Word 路径读取，图文分离 | `infrastructure/parsing/pdf.py`、`docx.py` | 支持文本 PDF、DOCX；保留图片资产、段落和表格位置 |
-| 图片内容转文字、减少噪声 | `providers/vision.py`、`application/services/vision.py`、`prompts/vision/v1.md` | 配置启用后处理已提取图片；保留 vision 来源和不确定性，整页扫描 OCR 尚未实现 |
+| 图片内容转文字、减少噪声 | `providers/vision.py`、`application/services/vision.py`、`prompts/vision/v1.md` | 配置启用后处理已提取图片；保留 vision 来源和不确定性，低文字量或扫描页报告未解析，不自动渲染整页图片 |
 | 通用对话 LLM，提炼模块/功能与增强 | `providers/openai_sdk.py`、`prompts/extract/`、`plan_points/`、`generate/` | OpenAI 兼容协议已实现，可接 DeepSeek；LangChain、Claude SDK 仅有配置声明/扩展位置，尚无可用适配器 |
 | 批量、并发调用向量模型 | `providers/embedding.py`、`bootstrap.py` | 支持批量、并发、响应顺序校验、维度校验和缓存；生成与向量请求共用预算 |
 | 向量库、ID 与功能/原文映射 | `retrieval/context.py`、`index.py`、`faiss_index.py`、SQLite | 默认 NumPy，可选 FAISS；有效证据和原文区间入索引，功能经规则和证据引用追溯，不另造一套事实文件 |
@@ -49,7 +50,7 @@ flowchart TD
 | 框架化、配置化 | `application/ports/`、`core/config.py`、`bootstrap.py` | 端口替换外部实现；模块开关只调整同一 RAG 流程 |
 | XMind、Skill 与用例文档 | `interfaces/workflow.py`、`exporters/`、`prompts/case_skill/` | 默认用例 Skill，可追加 Markdown 规范；XMind 只作输出目录视图 |
 
-上表是实际能力核对，不能把扩展类型、扫描 OCR、自动业务关系推断或多 SDK 名称写成已完成。
+上表是实际能力核对，不能把扩展类型、自动业务关系推断或多 SDK 名称写成已完成。图片处理只保留 Vision 主线，不规划独立 OCR 扫描路线。
 
 ## 只需配置哪些内容
 
@@ -89,8 +90,8 @@ flowchart TD
 
 ```text
 运行ID/
-├─ testpoints.xmind      Excel 中已有用例的模块与测试点目录
-├─ testcases.xlsx        十一列详细用例，以及测试点、规则、覆盖和问题附表
+├─ testpoints_需求名.xmind  全部测试点及状态、维度和功能分组
+├─ testcases_需求名.xlsx    十一列详细用例，以及测试点、规则、覆盖和问题附表
 ├─ testcases.json        可选结构化产物
 ├─ report.md             可选可读报告
 ├─ manifest.json         配置、提示词/Skill 指纹与调用统计
@@ -98,7 +99,7 @@ flowchart TD
 ```
 
 XMind 与 Excel 始终输出；`export.formats` 控制额外的 JSON/Markdown。
-未生成用例的点不写入目录脑图，仍保留在 Excel 测试点表和问题清单。
+未生成用例的点仍保留在目录脑图、Excel 测试点表和问题清单；没有就绪点时用例表可能仅有表头。
 XMind 编辑不反向改变 SQLite 事实，也不作为用例生成输入。
 
 默认使用 `prompts/case_skill/v1.md`，按上传的 testcase Skill 整理命名、粒度和优先级，

@@ -39,8 +39,7 @@ class VisionEvidenceService:
         """并发处理图片；输出仍按原始 block 顺序，单张失败不影响其余。"""
         image_blocks = [block for block in blocks if block.kind == "image"]
         total = len(image_blocks)
-        if total:
-            report(self.progress, ProgressEvent("stage", "vision"))
+        # 阶段边界由编排层统一记录（Pipeline._apply_vision），这里不再发 stage 事件。
 
         completed = failed = cached_count = 0
 

@@ -6,6 +6,34 @@ from tc_rag.interfaces.cli import app
 runner = CliRunner()
 
 
+@pytest.mark.parametrize("command", ["run", "start"])
+@pytest.mark.parametrize("flag", ["--with-code", "--no-code"])
+def test_removed_code_flags_are_not_accepted(tmp_path, command, flag):
+    document = tmp_path / "fixture.docx"
+    document.touch()
+    arguments = [command] + ([str(document)] if command == "run" else [])
+    result = runner.invoke(app, [*arguments, flag, "--preview"])
+    assert result.exit_code == 2
+    assert "No such option" in result.output
+
+
+@pytest.mark.parametrize("origin", ["yaml", "environment"])
+def test_obsolete_sources_configuration_has_safe_migration_message(tmp_path, monkeypatch, origin):
+    document, config = tmp_path / "fixture.docx", tmp_path / "old.yaml"
+    document.touch()
+    private = "private-legacy-reference"
+    if origin == "yaml":
+        config.write_text(f"sources:\n  code:\n    repo: {private}\n", encoding="utf-8")
+    else:
+        config.write_text("{}", encoding="utf-8")
+        monkeypatch.setenv("TC_RAG_SOURCES__CODE__REPO", private)
+    result = runner.invoke(app, ["run", str(document), "--config", str(config), "--preview"])
+    assert result.exit_code == 2
+    assert "代码读取分支已移除" in result.output
+    assert "TC_RAG_SOURCES__*" in result.output
+    assert private not in result.output
+
+
 @pytest.fixture(autouse=True)
 def isolate_env(monkeypatch):
     import os
@@ -80,6 +108,14 @@ def test_help_has_no_route_switch(command):
     assert result.exit_code == 0
     assert "--mode" not in result.output
     assert "direct" not in result.output
+
+
+@pytest.mark.parametrize("command", ["run", "start"])
+def test_retrieval_switches_are_visible(command):
+    result = runner.invoke(app, [command, "--help"])
+    assert result.exit_code == 0
+    assert "--metric" in result.output
+    assert "--normalize" in result.output and "--no-normalize" in result.output
 
 
 def test_removed_comparison_is_not_executable():

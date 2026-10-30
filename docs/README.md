@@ -4,6 +4,7 @@
 
 | 要解决的问题 | 阅读位置 |
 |---|---|
+| 查看详细架构、完整流程、两轮 RAG、证据链和调度图，导入 Boardmix | [交互图集](diagrams/index.html) · [图集与导入说明](diagrams/README.md) |
 | 哪些目录需要维护、workdir 中的文件分别做什么 | [目录结构与文件用途](reference/directory_structure.md) |
 | 一次完整运行的模型分工、架构、数据流，以及历史实测如何失败与恢复 | [完整运行过程与实测记录](full_run_walkthrough.md) |
 | 框架如何分层、证据和 RAG 如何衔接 | [架构设计](design/design_spec.md) |

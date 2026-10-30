@@ -635,6 +635,8 @@ async def test_vision_block_is_preserved_through_extraction_and_retrieval(tmp_pa
         "run_vision",
     )
     await pipeline.points(document, "生成测试点", tmp_path / "out", run_id="run_vision")
+    # 图片解释独立成阶段：解析与视觉各自记录耗时，便于核对控制台与 manifest。
+    assert "parse" in pipeline.stages and "vision" in pipeline.stages
     evidence = pipeline.read("run_vision", "extract")["evidence"]
     assert evidence and all(e["origin"] == "vision" and e["uncertain"] for e in evidence)
     assert all(e["processing_model"] == "fixture-vision" for e in evidence)
