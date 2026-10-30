@@ -70,6 +70,38 @@ def test_defaults_file_matches_builtin():
     assert load_config("config/defaults.yaml", environ={}) == load_config(environ={})
 
 
+@pytest.mark.parametrize("origin", ["yaml", "environment", "override"])
+def test_removed_ocr_policy_cannot_be_enabled(tmp_path, origin):
+    # 所有配置来源都应在创建客户端前拒绝已删除的路线。
+    kwargs = {"environ": {}}
+    if origin == "yaml":
+        path = tmp_path / "old.yaml"
+        path.write_text("parsing:\n  scan_policy: ocr\n", encoding="utf-8")
+        kwargs["path"] = path
+    elif origin == "environment":
+        kwargs["environ"] = {"TC_RAG_PARSING__SCAN_POLICY": "ocr"}
+    else:
+        kwargs["cli_overrides"] = {"parsing": {"scan_policy": "ocr"}}
+    with pytest.raises(ValidationError) as error:
+        load_config(**kwargs)
+    assert [(item["loc"], item["type"]) for item in error.value.errors()] == [
+        (("parsing", "scan_policy"), "literal_error")
+    ]
+
+
+def test_legacy_scan_policy_is_compatible_with_document_vision():
+    config = load_config(
+        environ={},
+        cli_overrides={
+            "parsing": {"scan_policy": "report_unsupported", "vision_enabled": True},
+            "models": {"vision": {"enabled": True, "supports_images": True}},
+        },
+    )
+    assert config.parsing.scan_policy == "report_unsupported"
+    assert config.parsing.vision_enabled
+    assert config.models.vision.enabled and config.models.vision.supports_images
+
+
 def test_override_removes_unneeded_placeholder(tmp_path):
     path = tmp_path / "config.yaml"
     path.write_text("project:\n  name: ${MISSING}\n", encoding="utf-8")
@@ -77,6 +109,26 @@ def test_override_removes_unneeded_placeholder(tmp_path):
         load_config(path, environ={}, cli_overrides={"project": {"name": "override"}}).project.name
         == "override"
     )
+
+
+@pytest.mark.parametrize("origin", ["yaml", "environment", "override"])
+def test_removed_source_branch_cannot_be_enabled(tmp_path, origin):
+    assert "sources" not in load_config(environ={}).model_dump()
+    settings = {"sources": {"enabled": True}}
+    kwargs = {"environ": {}}
+    if origin == "yaml":
+        path = tmp_path / "old.yaml"
+        path.write_text("sources:\n  enabled: true\n", encoding="utf-8")
+        kwargs["path"] = path
+    elif origin == "environment":
+        kwargs["environ"] = {"TC_RAG_SOURCES__ENABLED": "true"}
+    else:
+        kwargs["cli_overrides"] = settings
+    with pytest.raises(ValidationError) as error:
+        load_config(**kwargs)
+    assert [(item["loc"], item["type"]) for item in error.value.errors()] == [
+        (("sources",), "extra_forbidden")
+    ]
 
 
 def test_invalid_root(tmp_path):

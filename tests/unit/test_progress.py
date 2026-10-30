@@ -5,7 +5,7 @@ import asyncio
 import pytest
 
 from tc_rag.application.progress import ProgressEvent, report
-from tc_rag.interfaces.progress import TerminalProgress
+from tc_rag.interfaces.progress import TerminalProgress, format_duration
 
 
 @pytest.mark.asyncio
@@ -202,3 +202,21 @@ async def test_terminal_write_failure_during_summary_preserves_business_error(mo
             monkeypatch.setattr("tc_rag.interfaces.progress.typer.echo", broken)
             raise RuntimeError("business failure")
     assert reporter.task.done()
+
+
+@pytest.mark.parametrize(
+    ("seconds", "expected"),
+    [
+        (0.0796, "80毫秒"),
+        (0.0006, "1毫秒"),
+        (0.9995, "1秒"),
+        (1.0, "1秒"),
+        (10.4, "10秒"),
+        (65.2, "1分5秒"),
+        (0, "0秒"),
+        (-1, "0秒"),
+    ],
+)
+def test_format_duration_keeps_subsecond_stages_visible(seconds, expected):
+    # 快阶段若按整秒显示会被误读成 0 秒，这里固定毫秒与整秒的分界。
+    assert format_duration(seconds) == expected

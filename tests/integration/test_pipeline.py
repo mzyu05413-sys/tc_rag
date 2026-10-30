@@ -210,7 +210,7 @@ async def test_case_failure_can_retry_saved_points_without_reparsing(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_directory_contains_only_points_with_exported_cases(tmp_path):
+async def test_directory_lists_all_points_while_excel_keeps_cases(tmp_path):
     pipeline, doc, _, _ = setup(tmp_path)
     pipeline.config.export.formats = ["json"]
 
@@ -225,7 +225,7 @@ async def test_directory_contains_only_points_with_exported_cases(tmp_path):
     result = await pipeline.generate(doc, "生成边界用例", tmp_path / "out", run_id="run_demo")
     assert result["cases"] == 1 and Path(result["excel"]).is_file()
     topics = point_topics(Path(result["xmind"]))
-    assert len(topics) == 1
+    assert len(topics) == 3  # XMind 展示全部测试点，Excel 只保留已生成用例
     payload = pipeline.read("run_demo", "cases")
     assert len(payload["points"]) == 3
     assert sum(i["kind"] == "coverage" for i in payload["issues"]) == 2
@@ -245,7 +245,7 @@ async def test_empty_generation_exports_empty_directory_and_gap_report(tmp_path)
     pipeline.llm = Empty()
     result = await pipeline.generate(doc, "生成用例", tmp_path / "out", run_id="run_demo")
     assert result["cases"] == 0 and result["issues"] > 0
-    assert point_topics(Path(result["xmind"])) == []
+    assert len(point_topics(Path(result["xmind"]))) == 3
     assert load_workbook(result["excel"]).active.max_row == 1
 
 
@@ -488,3 +488,37 @@ async def test_truncated_batch_splits_instead_of_repairing_incomplete_json(tmp_p
     output = await pipeline._generate_batch("生成边界用例", points, extraction)
     assert len(output.cases) == 3
     assert seen == [3, 1, 2, 1, 1]
+
+
+@pytest.mark.asyncio
+async def test_extract_chunk_failure_skip_records_issue_and_continues(tmp_path):
+    pipeline, doc, _, _ = setup(tmp_path)
+
+    class Failing(FixtureLLM):
+        async def generate(self, request, schema):
+            if request["stage"] == "extract":
+                raise RuntimeError("fixture-chunk-failure")
+            return await super().generate(request, schema)
+
+    pipeline.llm = Failing()
+    pipeline.config.runtime.chunk_failure_policy = "skip"
+    result = await pipeline.generate(doc, "生成用例", tmp_path / "out", run_id="run_skip")
+    assert result["cases"] == 0
+    issues = pipeline.read("run_skip", "issues")["items"]
+    assert any("提炼失败" in item["description"] for item in issues)
+
+
+@pytest.mark.asyncio
+async def test_extract_chunk_failure_fail_policy_stops_run(tmp_path):
+    pipeline, doc, _, _ = setup(tmp_path)
+
+    class Failing(FixtureLLM):
+        async def generate(self, request, schema):
+            if request["stage"] == "extract":
+                raise RuntimeError("fixture-chunk-failure")
+            return await super().generate(request, schema)
+
+    pipeline.llm = Failing()
+    pipeline.config.runtime.chunk_failure_policy = "fail"
+    with pytest.raises(RuntimeError, match="fixture-chunk-failure"):
+        await pipeline.generate(doc, "生成用例", tmp_path / "out", run_id="run_fail")

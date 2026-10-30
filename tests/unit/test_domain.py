@@ -166,7 +166,7 @@ def test_fingerprint_and_identity():
 
 
 def test_domain_has_no_external_io_imports():
-    allowed = {"typing", "pydantic", "hashlib", "json", "re", "uuid"}
+    allowed = {"typing", "pydantic", "hashlib", "json", "re", "uuid", "collections", "enum"}
     for path in Path("src/tc_rag/domain").glob("*.py"):
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.Import):

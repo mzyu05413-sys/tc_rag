@@ -9,14 +9,14 @@ from PIL import Image
 
 from tc_rag.application.ports.contracts import ParseState
 from tc_rag.application.services.ingest import ingest_document
-from tc_rag.infrastructure.parsing.pdf import PdfParser
+from tc_rag.infrastructure.parsing.pdf import PdfParser, text_quality_ok
 from tc_rag.infrastructure.storage.files import LocalArtifactStore
 from tc_rag.infrastructure.storage.sqlite import SqliteRepository
 
 
-def image_bytes():
+def image_bytes(size=(50, 50)):
     stream = BytesIO()
-    Image.new("RGB", (50, 50), "blue").save(stream, format="PNG")
+    Image.new("RGB", size, "blue").save(stream, format="PNG")
     return stream.getvalue()
 
 
@@ -59,7 +59,8 @@ def test_text_table_image_and_unsupported_pages(tmp_path):
     asset = ingest_document(path, store, repo).asset
     parsed = PdfParser(store).parse(asset)
     assert parsed.blocks[0].kind == "heading"
-    assert all(block.locator.page == 1 for block in parsed.blocks)
+    # 第2页无正文，但仍提取其局部插图，因此只要求文字块来自第1页。
+    assert all(block.locator.page == 1 for block in parsed.blocks if block.kind != "image")
     assert all(block.locator.bbox is not None for block in parsed.blocks)
     assert [block.order for block in parsed.blocks] == list(range(len(parsed.blocks)))
     text = "\n".join(block.content for block in parsed.blocks if block.kind == "paragraph")
@@ -69,18 +70,18 @@ def test_text_table_image_and_unsupported_pages(tmp_path):
     assert len(tables) == 1
     assert json.loads(tables[0].content)["rows"] == [["Field", "Constraint"], ["Amount", "> 0 USD"]]
     assert "Field" not in text  # 表格文字不会再作为独立正文重复输出。
-    assert len(parsed.assets) == 1
+    # 第2页无正文但图片只占部分版面，仍按插图提取；整页扫描图才会跳过。
+    assert len(parsed.assets) == 2
     assert store.read(parsed.assets[0]).startswith(b"\x89PNG")
+    assert any(block.kind == "image" and block.locator.page == 2 for block in parsed.blocks)
     assert any("第2页" in issue.description for issue in parsed.issues)
     assert any("第3页" in issue.description for issue in parsed.issues)
     assert any("图片文字未解析" in issue.description for issue in parsed.issues)
     assert PdfParser(store).parse(asset).blocks == parsed.blocks
 
 
-def test_scan_policy_and_quality_threshold(tmp_path):
+def test_quality_threshold_preserves_unparsed_pages(tmp_path):
     store = LocalArtifactStore(tmp_path / "managed")
-    with pytest.raises(ValueError, match="OCR"):
-        PdfParser(store, scan_policy="ocr")
     with pytest.raises(ValueError):
         PdfParser(store, min_text_chars=0)
     path = tmp_path / "short.pdf"
@@ -89,7 +90,14 @@ def test_scan_policy_and_quality_threshold(tmp_path):
         doc.save(path)
     repo = SqliteRepository(tmp_path / "data.sqlite")
     asset = ingest_document(path, store, repo).asset
-    assert PdfParser(store).parse(asset).blocks == []
+    parsed = PdfParser(store).parse(asset)
+    assert parsed.blocks == []
+    assert any(
+        problem.kind == "unparsed"
+        and "第1页" in problem.description
+        and "请提供可提取文字的文档" in problem.description
+        for problem in parsed.issues
+    )
     assert PdfParser(store, min_text_chars=5).parse(asset).blocks
 
 
@@ -145,3 +153,30 @@ def test_paged_session_matches_whole_document(tmp_path):
 
     assert paged == whole.blocks
     assert ParseState.from_payload(state.to_payload()) == state
+
+
+def test_zero_width_spaces_do_not_mark_page_low_quality():
+    # 真实 PDF 每行常带 U+200B，若按不可打印统计会把正常页判成低质量。
+    text = "订单编号\u200b\n关联客户\u200b\n单价\u200b\n数量\u200b\n金额\u200b\n"
+    assert text_quality_ok(text, 10)
+    assert not text_quality_ok("短\u200b", 20)
+    assert not text_quality_ok("正常文字" * 10 + "\ufffd" * 20, 20)
+
+
+def test_full_page_scan_is_skipped_but_partial_figure_is_kept(tmp_path):
+    path = tmp_path / "scan.pdf"
+    with pymupdf.open() as doc:
+        scan = doc.new_page()
+        scan.insert_image(pymupdf.Rect(0, 0, 595, 842), stream=image_bytes((595, 842)))
+        figure = doc.new_page()
+        figure.insert_image(pymupdf.Rect(40, 40, 300, 300), stream=image_bytes())
+        doc.save(path)
+    store = LocalArtifactStore(tmp_path / "managed")
+    repo = SqliteRepository(tmp_path / "data.sqlite")
+    asset = ingest_document(path, store, repo).asset
+    parsed = PdfParser(store).parse(asset)
+
+    images = [block for block in parsed.blocks if block.kind == "image"]
+    assert [block.locator.page for block in images] == [2]
+    assert len(parsed.assets) == 1
+    assert any("疑似扫描页" in problem.description for problem in parsed.issues)

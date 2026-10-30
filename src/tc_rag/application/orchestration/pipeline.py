@@ -36,7 +36,13 @@ from tc_rag.application.services.vision import VisionEvidenceService
 from tc_rag.core.config import AppConfig
 from tc_rag.domain import models as m
 from tc_rag.domain.identity import fingerprint, new_id
-from tc_rag.domain.pipeline import CaseBatch, Extraction, PointBatch, StageSnapshot
+from tc_rag.domain.pipeline import (
+    CaseBatch,
+    Extraction,
+    PointBatch,
+    StageSnapshot,
+    case_batch_schema,
+)
 from tc_rag.domain.rag import RagRecord
 from tc_rag.domain.review import PointNode, PointTree
 
@@ -48,6 +54,73 @@ def save_objects(repository: Repository, collection: str, values: list[Any], key
 
 
 _INVALID_FILENAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+
+STATUS_ORDER = ("ready", "needs_context", "needs_clarification", "not_applicable")
+STATUS_LABELS = {
+    "ready": "已就绪",
+    "needs_context": "待补充上下文",
+    "needs_clarification": "待澄清",
+    "not_applicable": "不适用",
+}
+CATEGORY_ORDER = ("入口", "权限", "业务逻辑", "字段校验", "异常", "安全", "其他")
+SECURITY_HINTS = ("安全", "越权", "未授权", "注入", "xss", "csrf", "绕过", "脱敏", "敏感")
+ENTRY_HINTS = ("入口", "菜单", "导航", "页面", "列表", "按钮", "弹窗", "tab", "详情", "可见")
+
+
+def point_feature(
+    point: m.TestPoint,
+    rule_feature: dict[str, str],
+    feature_names: dict[str, str],
+) -> str:
+    for rule_id in sorted(point.rule_ids):
+        name = feature_names.get(rule_feature.get(rule_id, ""))
+        if name:
+            return name
+    return "未归类"
+
+
+def sort_points(points: list[m.TestPoint], extraction: Extraction) -> list[m.TestPoint]:
+    """与 XMind 一致的顺序：状态 → 业务维度 → 功能 → 测试目标。"""
+    rule_map = {rule.rule_id: rule for rule in extraction.rules}
+    rule_feature = {rule.rule_id: rule.feature_id for rule in extraction.rules}
+    feature_names = {feature.feature_id: feature.name for feature in extraction.features}
+
+    def key(point: m.TestPoint) -> tuple[int, int, str, str]:
+        status = STATUS_ORDER.index(point.status) if point.status in STATUS_ORDER else 99
+        category = point_category(point, rule_map)
+        return (
+            status,
+            CATEGORY_ORDER.index(category),
+            point_feature(point, rule_feature, feature_names),
+            point.objective,
+        )
+
+    return sorted(points, key=key)
+
+
+def point_category(point: m.TestPoint, rules: dict[str, m.RequirementRule]) -> str:
+    """按业务维度归类；安全与入口用原文关键词识别，其余依据规则类型。"""
+    statements = [point.objective]
+    kinds: set[str] = set()
+    for rule_id in point.rule_ids:
+        rule = rules.get(rule_id)
+        if rule is not None:
+            statements.append(rule.statement)
+            kinds.add(rule.kind)
+    text = " ".join(statements).lower()
+    if any(hint in text for hint in SECURITY_HINTS):
+        return "安全"
+    if "permission" in kinds:
+        return "权限"
+    if "field_constraint" in kinds:
+        return "字段校验"
+    if "error_behavior" in kinds:
+        return "异常"
+    if any(hint in text for hint in ENTRY_HINTS):
+        return "入口"
+    if kinds & {"business_condition", "state_transition", "workflow"}:
+        return "业务逻辑"
+    return "其他"
 
 
 def safe_document_stem(name: str) -> str:
@@ -74,12 +147,12 @@ class Pipeline:
         *,
         retriever: RetrievalContext,
         max_context_tokens: int = 12000,
+        prompt_versions: dict[str, str] | None = None,
     ) -> None:
-        if config.parsing.scan_policy != "report_unsupported":
-            raise ValueError("整页 OCR 属于 P4，请使用 report_unsupported")
         self.config, self.repository, self.store = config, repository, store
         self.parser, self.llm, self.maps, self.exporter = parser, llm, maps, exporter
         self.counter, self.prompts, self.max_context = counter, prompts, max_context_tokens
+        self.prompt_versions = prompt_versions or {}
         self.stages: dict[str, float] = {}
         self.previous_stage: str | None = None
         self.previous_started = perf_counter()
@@ -165,14 +238,21 @@ class Pipeline:
         if document.suffix.lower() == ".pdf" and callable(session_factory):
             return await self._parse_pdf_pages(run_id, session_factory, asset)
         parsed = parser.parse(asset)
-        blocks = list(parsed.blocks)
-        issues = list(parsed.issues)
-        if self.config.parsing.vision_enabled:
-            if self.vision is None:
-                raise ValueError("启用图片解释但缺少视觉适配器")
-            blocks, vision_issues = await self.vision.process(blocks)
-            issues.extend(vision_issues)
-        return blocks, list(parsed.assets), issues
+        # 图片解释由 _apply_vision 在独立阶段执行，解析阶段只做抽取与定位。
+        return list(parsed.blocks), list(parsed.assets), list(parsed.issues)
+
+    async def _apply_vision(
+        self, run_id: str, blocks: list[m.DocumentBlock]
+    ) -> tuple[list[m.DocumentBlock], list[m.Issue]]:
+        """图片解释单独计时，避免视觉耗时被算进解析阶段。"""
+        if not self.config.parsing.vision_enabled or not blocks:
+            return blocks, []
+        if not any(block.kind == "image" for block in blocks):
+            return blocks, []
+        if self.vision is None:
+            raise ValueError("启用图片解释但缺少视觉适配器")
+        self._stage(run_id, "vision")
+        return await self.vision.process(blocks)
 
     async def _parse_pdf_pages(
         self, run_id: str, session_factory: Callable[[m.Asset], Any], asset: m.Asset
@@ -224,12 +304,7 @@ class Pipeline:
                     ),
                 )
             )
-        if self.config.parsing.vision_enabled and blocks:
-            if self.vision is None:
-                raise ValueError("启用图片解释但缺少视觉适配器")
-            blocks, vision_issues = await self.vision.process(blocks)
-            parse_issues.extend(vision_issues)
-        # 视觉派生块会重编号，合并后统一恢复全局阅读顺序。
+        # 图片解释由 _apply_vision 在独立阶段执行；这里只恢复全局阅读顺序。
         ordered = [block.model_copy(update={"order": i}) for i, block in enumerate(blocks)]
         return ordered, assets, parse_issues
 
@@ -294,6 +369,8 @@ class Pipeline:
                         run_id, document, ingested.asset
                     )
                     issues.extend(parse_issues)
+                    blocks, vision_issues = await self._apply_vision(run_id, blocks)
+                    issues.extend(vision_issues)
                     save_objects(self.repository, "assets", assets, "asset_id")
                     save_objects(self.repository, "document_blocks", blocks, "block_id")
                     stage = "chunk"
@@ -320,6 +397,8 @@ class Pipeline:
                     run_id, document, ingested.asset
                 )
                 issues.extend(parse_issues)
+                blocks, vision_issues = await self._apply_vision(run_id, blocks)
+                issues.extend(vision_issues)
                 save_objects(self.repository, "assets", assets, "asset_id")
                 save_objects(self.repository, "document_blocks", blocks, "block_id")
                 stage = "chunk"
@@ -371,6 +450,24 @@ class Pipeline:
             stage = "plan_points"
             self._stage(run_id, stage)
             points = plan_points(result.rules, self.config.planning.methods)
+            missing_boundary = [
+                rule.rule_id
+                for rule in result.rules
+                if rule.kind == "field_constraint"
+                and (
+                    rule.structured_constraint is None
+                    or rule.structured_constraint.boundary is None
+                )
+            ]
+            if missing_boundary:
+                issues.append(
+                    issue(
+                        "gap",
+                        f"{len(missing_boundary)} 条字段约束没有可计算边界，未生成边界测试点",
+                        missing_boundary,
+                        severity="info",
+                    )
+                )
 
             async def plan_batch(rule_batch: list[m.RequirementRule]) -> PointBatch:
                 allowed = {r.rule_id for r in rule_batch}
@@ -574,7 +671,20 @@ class Pipeline:
             item: tuple[m.Chunk, list[m.DocumentBlock], dict[str, Any]],
         ) -> Extraction:
             chunk, blocks, request = item
-            return await self._extract_chunk(chunk, blocks, request, run_id)
+            try:
+                return await self._extract_chunk(chunk, blocks, request, run_id)
+            except Exception as exc:
+                if self.config.runtime.chunk_failure_policy == "fail":
+                    raise
+                # skip 策略只记录固定类型，不把模型响应或原文写入终端。
+                return Extraction(
+                    issues=[
+                        issue(
+                            "other",
+                            f"分块 {chunk.chunk_id} 提炼失败，已跳过：{type(exc).__name__}",
+                        )
+                    ]
+                )
 
         return await self._batches(requests, extract, "extract")
 
@@ -680,7 +790,10 @@ class Pipeline:
             "mode": "rag",
             "config": self._run(run_id).config_snapshot,
             "prompts": {
-                key: {"version": "v1", "fingerprint": fingerprint(value)}
+                key: {
+                    "version": self.prompt_versions.get(key, "v1"),
+                    "fingerprint": fingerprint(value),
+                }
                 for key, value in self.prompts.items()
             },
             "input": self.read(run_id, "input"),
@@ -763,32 +876,81 @@ class Pipeline:
     def _tree(
         run_id: str, checksum: str, extraction: Extraction, points: list[m.TestPoint]
     ) -> PointTree:
+        """目录按 状态 → 业务维度 → 功能 分层，便于按入口/权限/逻辑等集中审批。"""
         root = new_id("node")
         nodes = [PointNode(node_id=root, title="需求测试点", kind="group", order=0)]
-        assigned: set[str] = set()
-        for index, feature in enumerate(extraction.features):
-            group = new_id("node")
+        rule_map = {rule.rule_id: rule for rule in extraction.rules}
+        rule_feature = {rule.rule_id: rule.feature_id for rule in extraction.rules}
+        feature_names = {feature.feature_id: feature.name for feature in extraction.features}
+
+        def feature_of(point: m.TestPoint) -> str:
+            return point_feature(point, rule_feature, feature_names)
+
+        order = 0
+        for status in STATUS_ORDER:
+            status_points = [point for point in points if point.status == status]
+            if not status_points:
+                continue
+            status_node = new_id("node")
             nodes.append(
                 PointNode(
-                    node_id=group, parent_id=root, title=feature.name, kind="group", order=index
+                    node_id=status_node,
+                    parent_id=root,
+                    title=f"{STATUS_LABELS[status]}（{len(status_points)}）",
+                    kind="group",
+                    order=order,
                 )
             )
-            rules = {r.rule_id for r in extraction.rules if r.feature_id == feature.feature_id}
-            for order, point in enumerate(
-                p for p in points if set(p.rule_ids) & rules and p.point_id not in assigned
-            ):
-                assigned.add(point.point_id)
+            order += 1
+            for category in CATEGORY_ORDER:
+                category_points = [
+                    point
+                    for point in status_points
+                    if point_category(point, rule_map) == category
+                ]
+                if not category_points:
+                    continue
+                category_node = new_id("node")
                 nodes.append(
                     PointNode(
-                        node_id=new_id("node"),
-                        parent_id=group,
-                        title=point.objective,
-                        kind="point",
-                        point_id=point.point_id,
-                        technique=point.technique,
+                        node_id=category_node,
+                        parent_id=status_node,
+                        title=f"{category}（{len(category_points)}）",
+                        kind="group",
                         order=order,
                     )
                 )
+                order += 1
+                by_feature: dict[str, list[m.TestPoint]] = {}
+                for point in category_points:
+                    by_feature.setdefault(feature_of(point), []).append(point)
+                for feature_name in sorted(by_feature):
+                    feature_points = sorted(
+                        by_feature[feature_name], key=lambda point: point.objective
+                    )
+                    feature_node = new_id("node")
+                    nodes.append(
+                        PointNode(
+                            node_id=feature_node,
+                            parent_id=category_node,
+                            title=f"{feature_name}（{len(feature_points)}）",
+                            kind="group",
+                            order=order,
+                        )
+                    )
+                    order += 1
+                    for point_order, point in enumerate(feature_points):
+                        nodes.append(
+                            PointNode(
+                                node_id=new_id("node"),
+                                parent_id=feature_node,
+                                title=point.objective,
+                                kind="point",
+                                point_id=point.point_id,
+                                technique=point.technique,
+                                order=point_order,
+                            )
+                        )
         return PointTree(
             tree_id=new_id("tree"),
             version=1,
@@ -896,12 +1058,19 @@ class Pipeline:
                 for link in links
             )
             save_objects(self.repository, "issues", issues, "issue_id")
+            rule_map = {rule.rule_id: rule for rule in extracted.rules}
             payload = {
                 "schema_version": "1.0",
                 "run_id": run.run_id,
                 "mode": "rag",
                 "cases": [c.model_dump(mode="json") for c in cases],
-                "points": [p.model_dump(mode="json") for p in baseline],
+                "points": [
+                    {
+                        **point.model_dump(mode="json"),
+                        "category": point_category(point, rule_map),
+                    }
+                    for point in sort_points(baseline, extracted)
+                ],
                 "evidence": [e.model_dump(mode="json") for e in extracted.evidence],
                 "features": [f.model_dump(mode="json") for f in extracted.features],
                 "rules": [r.model_dump(mode="json") for r in extracted.rules],
@@ -914,8 +1083,8 @@ class Pipeline:
                     "semantic_review": "not_performed",
                 },
             }
-            # XMind 是 Excel 用例的目录：只保留实际导出用例所对应的测试点及其分组。
-            directory_tree = self._case_directory(tree, {p for c in cases for p in c.point_ids})
+            # XMind 展示全部测试点（含待澄清）；Excel 仍是全量用例视图。
+            directory_tree = tree
             payload["tree"] = directory_tree.model_dump(mode="json")
             self.snapshot(run.run_id, "cases", payload)
             stage = "export_cases"
@@ -955,6 +1124,9 @@ class Pipeline:
                 "excel": str(target / excel_name),
                 "cases": len(cases),
                 "issues": len(issues),
+                "points_total": len(baseline),
+                "points_ready": len(points),
+                "points_with_cases": len({pid for case in cases for pid in case.point_ids}),
             }
         except BaseException as exc:
             self.snapshot(run.run_id, "failure", {"stage": stage, "error_type": type(exc).__name__})
@@ -978,7 +1150,11 @@ class Pipeline:
         return tree.model_copy(update={"nodes": [n for n in tree.nodes if n.node_id in keep]})
 
     async def _supplement(
-        self, request: dict[str, Any], direct_ids: set[str], query: str, schema: type[T]
+        self,
+        request: dict[str, Any],
+        direct_ids: set[str],
+        query: str,
+        schema: type[T],
     ) -> None:
         started = perf_counter()
         bundle = await self.retriever.retrieve(query, direct_ids)
@@ -1052,6 +1228,8 @@ class Pipeline:
         extracted: Extraction,
     ) -> CaseBatch:
         rule_ids = {r for p in points for r in p.rule_ids}
+        # 在模型输出和缓存写入前校验当前批次 ID，复用适配器的有界修复而不放宽引用。
+        output_schema = case_batch_schema([point.point_id for point in points])
         rules = [r for r in extracted.rules if r.rule_id in rule_ids]
         # 规则绑定的原文证据优先；补齐所属功能和关联规则的证据，保留条件与例外。
         feature_ids = {r.feature_id for r in rules}
@@ -1070,7 +1248,7 @@ class Pipeline:
             ],
         }
         try:
-            self._check_budget({**request, "output_schema": CaseBatch.model_json_schema()})
+            self._check_budget({**request, "output_schema": output_schema.model_json_schema()})
         except ValueError:
             if len(points) == 1:
                 raise
@@ -1079,10 +1257,13 @@ class Pipeline:
             right = await self._generate_batch(instruction, points[middle:], extracted)
             return CaseBatch(cases=left.cases + right.cases, issues=left.issues + right.issues)
         await self._supplement(
-            request, evidence_ids, "\n".join(p.objective for p in points), CaseBatch
+            request,
+            evidence_ids,
+            "\n".join(p.objective for p in points),
+            output_schema,
         )
         try:
-            model_result = await self._model(request, CaseBatch)
+            model_result = await self._model(request, output_schema)
         except OutputTruncatedError:
             if len(points) == 1:
                 raise
@@ -1090,7 +1271,7 @@ class Pipeline:
             left = await self._generate_batch(instruction, points[:middle], extracted)
             right = await self._generate_batch(instruction, points[middle:], extracted)
             return CaseBatch(cases=left.cases + right.cases, issues=left.issues + right.issues)
-        candidate = CaseBatch.model_validate(model_result.output.model_dump())
+        candidate = CaseBatch.model_validate(model_result.output.model_dump(mode="json"))
         if len(candidate.cases) > len(points) * self.config.generation.max_cases_per_point:
             raise WorkflowError("模型返回用例超过当前批次数量上限")
         allowed = {p.point_id for p in points}

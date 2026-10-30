@@ -1,8 +1,9 @@
-"""解析文字PDF，提取页码、坐标、图片和表格候选；不执行OCR或模型调用。"""
+"""解析文字PDF，提取页码、坐标、图片和表格候选；图片交由独立视觉服务解释。"""
 
 import hashlib
 import json
 import logging
+import unicodedata
 from collections import Counter
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -23,6 +24,15 @@ from tc_rag.domain.models import Asset, DocumentBlock, Issue, Locator
 
 BlockKind = Literal["heading", "paragraph", "table", "image", "other"]
 Box = tuple[float, float, float, float]
+# 无正文且图片覆盖率达到该比例，按扫描页处理，不把整页图片送进视觉模型。
+FULL_PAGE_IMAGE_RATIO = 0.8
+
+
+def text_quality_ok(text: str, min_chars: int) -> bool:
+    """判断本页是否可提取到足够正文；零宽空格等格式字符不计为噪声。"""
+    visible = [char for char in text if not char.isspace() and unicodedata.category(char) != "Cf"]
+    good = sum(char.isprintable() and char != "�" for char in visible)
+    return len(visible) >= min_chars and good / max(1, len(visible)) >= 0.85
 
 
 class _FontWarningSummary(logging.Filter):
@@ -95,14 +105,34 @@ class _PdfSession:
             state.issue_count += 1
 
         text = page.get_text()
-        visible = [char for char in text if not char.isspace()]
-        good = sum(char.isprintable() and char != "�" for char in visible)
-        # 扫描页即使带少量页码文字也不能当成正文已解析；本页不生成业务块。
-        if len(visible) < self.parser.min_text_chars or good / max(1, len(visible)) < 0.85:
-            issue("文本缺失或质量低，整页暂不进入后续处理；需要人工核对或OCR")
-        else:
-            items: list[tuple[Box, BlockKind, str, float]] = []
-            table_boxes: list[Box] = []
+        # 扫描页即使带少量页码文字也不能当成正文已解析；本页不生成业务文字块。
+        text_ok = text_quality_ok(text, self.parser.min_text_chars)
+        if not text_ok:
+            issue("文本缺失或质量低，本页未解析；请提供可提取文字的文档")
+        items: list[tuple[Box, BlockKind, str, float]] = []
+        table_boxes: list[Box] = []
+        # 图片与文字质量无关：文字缺失页上的局部插图仍可作为可解释的证据来源。
+        # 只有"无正文且图片铺满整页"才按扫描页跳过，避免把整页图送进视觉模型。
+        for block in page.get_text("dict")["blocks"]:
+            if block["type"] != 1:
+                continue
+            box = _box(block["bbox"])
+            coverage = (box[2] - box[0]) * (box[3] - box[1]) / max(
+                1.0, page.rect.width * page.rect.height
+            )
+            if not text_ok and coverage >= FULL_PAGE_IMAGE_RATIO:
+                issue("整页图片疑似扫描页，未提取；请提供可提取文字的文档")
+                continue
+            image_content = block["image"]
+            checksum = hashlib.sha256(image_content).hexdigest()
+            image = self.parser.store.put(
+                f"assets/{self.asset.checksum}/images/{checksum}.{block['ext']}",
+                image_content,
+            )
+            assets.append(image)
+            items.append((box, "image", image.model_dump_json(), self.body_size))
+            issue(f"图片 {image.asset_id} 已提取定位，但图片文字未解析")
+        if text_ok:
             if self.tables_document is None or page.rotation:
                 issue("表格候选未提取（解析库不可用或页面旋转），保留原文字块")
             else:
@@ -133,18 +163,8 @@ class _PdfSession:
                     # 不输出异常原文，避免库异常携带整页业务文本。
                     issue("表格候选提取不完整，请人工检查；原文字块继续保留")
             for block in page.get_text("dict")["blocks"]:
-                box = _box(block["bbox"])
                 if block["type"] == 1:
-                    image_content = block["image"]
-                    checksum = hashlib.sha256(image_content).hexdigest()
-                    image = self.parser.store.put(
-                        f"assets/{self.asset.checksum}/images/{checksum}.{block['ext']}",
-                        image_content,
-                    )
-                    assets.append(image)
-                    items.append((box, "image", image.model_dump_json(), self.body_size))
-                    issue(f"图片 {image.asset_id} 已提取定位，但图片文字未解析")
-                    continue
+                    continue  # 图片已由上方独立循环提取
                 for line in block.get("lines", []):
                     spans = line["spans"]
                     line_text = "".join(span["text"] for span in spans)
@@ -157,30 +177,31 @@ class _PdfSession:
                     size = max(span["size"] for span in spans)
                     kind: BlockKind = "heading" if size > self.body_size * 1.2 else "paragraph"
                     items.append((line_box, kind, line_text, round(size, 1)))
-            # 先上后下、同高度从左到右，仅为简单单栏阅读顺序的启发式。
-            for box, kind, value, size in sorted(items, key=lambda item: (item[0][1], item[0][0])):
-                if kind == "heading":
-                    if size not in state.heading_sizes:
-                        state.heading_sizes.append(size)
-                        state.heading_sizes.sort(reverse=True)
-                    level = state.heading_sizes.index(size) + 1
-                    state.headings = {
-                        key: title for key, title in state.headings.items() if key < level
-                    }
-                    state.headings[level] = value
-                order = state.order
-                blocks.append(
-                    DocumentBlock(
-                        block_id=f"{self.document_id}_pdf_block_{order}",
-                        document_id=self.document_id,
-                        kind=kind,
-                        order=order,
-                        content=value,
-                        heading_path=[state.headings[key] for key in sorted(state.headings)],
-                        locator=Locator(page=page_no, bbox=box),
-                    )
+        # 先上后下、同高度从左到右，仅为简单单栏阅读顺序的启发式。
+        # 文字不合格的页面也会走到这里，确保已提取的插图仍生成块。
+        for box, kind, value, size in sorted(items, key=lambda item: (item[0][1], item[0][0])):
+            if kind == "heading":
+                if size not in state.heading_sizes:
+                    state.heading_sizes.append(size)
+                    state.heading_sizes.sort(reverse=True)
+                level = state.heading_sizes.index(size) + 1
+                state.headings = {
+                    key: title for key, title in state.headings.items() if key < level
+                }
+                state.headings[level] = value
+            order = state.order
+            blocks.append(
+                DocumentBlock(
+                    block_id=f"{self.document_id}_pdf_block_{order}",
+                    document_id=self.document_id,
+                    kind=kind,
+                    order=order,
+                    content=value,
+                    heading_path=[state.headings[key] for key in sorted(state.headings)],
+                    locator=Locator(page=page_no, bbox=box),
                 )
-                state.order += 1
+            )
+            state.order += 1
 
         delta = self.summary.count - self._last_font_count
         self._last_font_count = self.summary.count
@@ -192,11 +213,8 @@ class PdfParser:
     def __init__(
         self,
         store: ArtifactStore,
-        scan_policy: Literal["report_unsupported", "ocr"] = "report_unsupported",
         min_text_chars: int = 20,
     ) -> None:
-        if scan_policy != "report_unsupported":
-            raise ValueError("当前阶段尚未实现OCR，请使用report_unsupported")
         if min_text_chars < 1:
             raise ValueError("文本质量阈值必须为正整数")
         self.store = store

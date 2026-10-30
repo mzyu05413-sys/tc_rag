@@ -20,12 +20,26 @@
 应用层命名空间转换仍保留同类型防御校验；不会自动丢弃对象或猜测引用。
 修复耗尽仍失败；通过 ID 检查不代表引文、关联引用或业务语义已通过后续校验。
 
+### 用例批次的测试点引用
+
+生成时使用 `case_batch_schema(point_ids)`，把当前批次允许的测试点 ID 绑定为运行时字符串枚举。
+用例的 `point_ids` 非空且只能取这些值；引用其他批次或不存在的测试点会直接触发 Schema 错误，
+由模型适配器在现有 `generation.schema_repair_attempts` 预算内修复，耗尽仍失败。
+修复信息只含过滤后的字段路径、错误类型及输入契约的允许值，不回放错误模型正文。
+不会按标题猜测 ID、丢弃错误用例或放宽后续规则和证据校验。
+
+运行时契约沿用 `CaseBatch` / `TestCase` 的字段与严格校验，转回标准领域对象后保存；
+不改变持久化结构、数据库字段或导出格式。允许值排序后进入 Schema 和缓存指纹，
+不同批次以及旧通用 Schema 的缓存不能混用。此约束适用于 cosine、dot、euclidean，
+与是否归一化无关。回归见 `tests/unit/test_case_scope_contract.py`、
+`tests/integration/test_case_scope_repair.py`，覆盖修复成功、预算耗尽和缓存安全。
+
 ## 来源和位置
 
 - PDF 页码和 CoverageLink.step_no 从 1 开始；DOCX 段落/表格/行列索引、块 order 和字符偏移从 0 开始。
 - ChunkSource 为 Block 内 `[start_char, end_char)`；加载 Block 后还要校验是否越界。
 - Locator 容纳页码、坐标及 DOCX 结构位置；允许字段缺失以记录解析局限，缺定位不能视为已可追溯。
-- EvidenceSpan 的引文必须属于输入来源。OCR/vision 来源须记录 processing_model 和 processing_version；vision 证据强制 uncertain=true。
+- EvidenceSpan 的引文必须属于输入来源。vision 来源须记录 processing_model 和 processing_version，并强制 uncertain=true；origin=ocr 仅保留为历史证据兼容类型，旧数据仍须保留处理模型和版本，不代表当前提供独立 OCR 识别。
 - 未知数值、单位、精度和条件保留 None，不按常识填充业务要求。
 
 ## 常用状态
@@ -46,7 +60,7 @@
 用例至少有一步，每步同时记录 action、expected、rule_ids、evidence_ids。CoverageLink 对应具体步骤和规则/测试点，其关联存在不等于断言正确。
 
 CasesRequest 只需要 run_id、生成指令和输出目录，不接受审核 ID、XMind 输入或文件校验和。
-PointTree 的正式节点绑定 point_id；导出 XMind 仅列实际用例所对应的测试点。
+PointTree 的正式节点绑定 point_id；导出 XMind 展示全部测试点，按状态、业务维度和功能分层，包含待澄清点。Excel 展示实际生成用例，二者数量不要求一致。
 历史 ReviewSnapshot 及数据库表保留以兼容旧数据，当前不读写批准记录。
 详见 [目录与联合导出](../learn/P1/11_测试点目录与联合导出.md) 及 [RAG 总览](../learn/P2/README.md)。
 
@@ -57,5 +71,12 @@ PointTree 的正式节点绑定 point_id；导出 XMind 仅列实际用例所对
 Run.config_snapshot 是普通数据容器，调用方须传入无密钥配置。ModelInvocation 的 usage 未知为 None，不能填 0 冒充无消耗。
 
 RAG 空间绑定服务、模型、维度、归一化与模板版本；manifest 的业务 ID/int64 映射须唯一且等长。ContextPayload 保存范围、索引版本、命中、重排、采用/省略证据及耗时。`direct_ids` 指本规则的原文依据 ID，与生成路线无关。
+
+上下文仅使用需求文档的直接证据与检索补充资料。`source_*` 标识仍指 Chunk 字符区间对应的原文片段，不是源码引用，不因移除代码读取而删除。
+
+历史兼容边界：`ContextPayload` 的 `code_adopted_ids` / `code_omitted_ids` 仅用于读取旧记录，
+从新序列化和对象展示中排除，不进入新请求或生成流程；旧 `RagRecord.payload` 保持原样。
+不增加数据库列、不改写迁移或已有运行快照。旧运行仍可 status/inspect，已有用例可离线 export；
+旧配置不符合当前契约时，cases/resume 需要新建运行，不强行复用旧输入配置。
 
 参考测试：`tests/unit/test_domain.py`、`test_review.py` 与 `tests/integration/test_sqlite.py`、`test_rag.py`。具体语义和业务覆盖仍须人工审核。

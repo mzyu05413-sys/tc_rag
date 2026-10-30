@@ -1,8 +1,10 @@
 """证据核验、保守归并与确定性测试设计；无法确定的语义留待人工。"""
 
 import re
+import unicodedata
 from collections.abc import Sequence
 from decimal import Decimal, InvalidOperation
+from typing import Any
 
 from tc_rag.application.services.chunking import normalized_quote, verify_evidence
 from tc_rag.domain.identity import fingerprint, new_id
@@ -13,21 +15,65 @@ from tc_rag.domain.models import (
     Feature,
     Issue,
     RequirementRule,
+    StructuredConstraint,
     TestCase,
     TestPoint,
 )
 from tc_rag.domain.pipeline import Extraction
 
 
-def issue(kind: str, description: str, ids: list[str] | None = None) -> Issue:
+def issue(
+    kind: str,
+    description: str,
+    ids: list[str] | None = None,
+    severity: str = "warning",
+) -> Issue:
     return Issue.model_validate(
         dict(
             issue_id=new_id("issue"),
             kind=kind,
-            severity="warning",
+            severity=severity,
             description=description,
             object_ids=ids or [],
         )
+    )
+
+
+_NUMBER = r"(\d+(?:\.\d+)?)"
+# 只从证据原文提取，且要求同一段文本里只有一个明确的数值约束。
+_CONSTRAINT_PATTERNS = (
+    (rf"(?:最多|不超过|至多|不大于|上限(?:为|是)?|最大(?:值|数)?(?:为|是)?)\s*{_NUMBER}", "<="),
+    (rf"(?:至少|不少于|不低于|下限(?:为|是)?|最小(?:值|数)?(?:为|是)?)\s*{_NUMBER}", ">="),
+    (rf"(?:大于|超过|高于)\s*{_NUMBER}", ">"),
+    (rf"(?:小于|低于|少于)\s*{_NUMBER}", "<"),
+    (rf"长度(?:限制|上限)?\s*(?:为|是)?\s*{_NUMBER}", "<="),
+    (rf"{_NUMBER}\s*(?:个)?字符", "<="),
+    (rf"{_NUMBER}\s*(?:位|个|条|次|天|元)", "<="),
+)
+
+
+def derive_constraint(quote: str) -> StructuredConstraint | None:
+    """从原文引文提取单一数值约束；多个不同数值视为冲突，不猜测。"""
+    text = unicodedata.normalize("NFKC", quote)
+    found: set[tuple[str, str]] = set()
+    for pattern, operator in _CONSTRAINT_PATTERNS:
+        for match in re.finditer(pattern, text):
+            found.add((operator, match.group(1)))
+    if len(found) != 1:
+        return None
+    operator, value = next(iter(found))
+    precision = len(value.split(".", 1)[1]) if "." in value else 0
+    unit = next(
+        (
+            candidate
+            for candidate in ("字符", "位", "个", "条", "次", "天", "元")
+            if candidate in text
+        ),
+        None,
+    )
+    boundary: Any = Decimal(value) if "." in value else int(value)
+    return StructuredConstraint(
+        operator=operator, boundary=boundary, precision=precision, unit=unit
     )
 
 
@@ -61,6 +107,23 @@ def check_extraction(candidate: Extraction, blocks: list[DocumentBlock]) -> Extr
             quote = "\n".join(
                 e.quote for e in result.evidence if e.evidence_id in rule.evidence_ids
             )
+            derived = False
+            if rule.kind == "field_constraint" and (
+                constraint is None or constraint.boundary is None
+            ):
+                inferred = derive_constraint(quote)
+                if inferred is not None:
+                    checked.structured_constraint = inferred
+                    constraint = inferred
+                    derived = True
+                    result.issues.append(
+                        issue(
+                            "other",
+                            "程序从原文补充数值约束",
+                            [rule.rule_id],
+                            severity="info",
+                        )
+                    )
             if constraint is not None:
                 if constraint.boundary is not None and str(constraint.boundary) not in quote:
                     constraint.boundary = None
@@ -70,7 +133,7 @@ def check_extraction(candidate: Extraction, blocks: list[DocumentBlock]) -> Extr
                 if constraint.unit and constraint.unit not in quote:
                     constraint.unit = None
                     result.issues.append(issue("gap", "结构化单位缺少引文依据", [rule.rule_id]))
-                if constraint.precision is not None:
+                if constraint.precision is not None and not derived:
                     reliable = (
                         bool(re.search(r"整数|[个条项字符]", quote))
                         if constraint.precision == 0
@@ -236,6 +299,11 @@ def plan_points(rules: list[RequirementRule], methods: Sequence[str]) -> list[Te
             if method not in methods and method not in {"workflow", "error_behavior", "other"}:
                 continue
             values = boundary_values(rule) if method == "boundary" else []
+            if method == "boundary":
+                constraint = rule.structured_constraint
+                # 必填/格式类约束没有数值边界，不生成无意义的边界测试点。
+                if not values and (constraint is None or constraint.boundary is None):
+                    continue
             objectives = (
                 [f"{rule.statement}；边界输入={v}" for v in values]
                 if values
@@ -309,11 +377,23 @@ def validate_cases(
         for number, step in enumerate(case.steps, 1):
             expected_evidence = {e for r in step.rule_ids for e in rm[r].evidence_ids}
             quote = "\n".join(em[e].quote for e in step.evidence_ids)
-            # 只对预期断言检查数值，不把299/301等合法边界测试输入误认为需求事实。
-            numbers = re.findall(r"(?<!\w)\d+(?:\.\d+)?", step.expected)
-            if not set(step.evidence_ids) <= expected_evidence or any(
-                n not in quote for n in numbers
-            ):
+            # 只对预期断言检查数值；动作里出现的边界输入值不算无依据。
+            number_pattern = r"(?<![A-Za-z0-9_])\d+(?:\.\d+)?"
+            expected_numbers = re.findall(number_pattern, step.expected)
+            action_numbers = set(re.findall(number_pattern, step.action))
+            # 属于该规则边界推导值(如 299/300/301)的不算无依据，它们是程序推的不是模型编的。
+            # 需求文档只写"最多300"，模型预期写"输入301个提示错误"时不应误报。
+            rule_boundaries: set[str] = set()
+            for rule_id in step.rule_ids:
+                rule = rm.get(rule_id)
+                if rule is not None:
+                    rule_boundaries.update(boundary_values(rule))
+            unsupported_numbers = [
+                n
+                for n in expected_numbers
+                if n not in quote and n not in action_numbers and n not in rule_boundaries
+            ]
+            if not set(step.evidence_ids) <= expected_evidence or unsupported_numbers:
                 issues.append(
                     issue(
                         "unsupported_expectation", "预期数值或证据范围缺乏直接依据", [case.case_id]
@@ -321,12 +401,13 @@ def validate_cases(
                 )
                 flagged = True
             if normalized_quote(step.expected) not in normalized_quote(quote):
-                flagged = True
+                # 业务化预期通常不会逐字出现在原文中，只作提示，不阻断自动校验状态。
                 issues.append(
                     issue(
                         "unsupported_expectation",
-                        "预期为解释性断言，需人工核对语义",
+                        "预期为业务表达，未逐字出现在原文中，建议人工确认",
                         [case.case_id],
+                        severity="info",
                     )
                 )
             for rule_id in step.rule_ids:

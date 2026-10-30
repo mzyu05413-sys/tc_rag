@@ -36,10 +36,6 @@ def validate_runtime_config(
     reranker: Reranker | None = None,
 ) -> None:
     """先检查整组配置，避免创建了生成客户端后才发现检索根本无法启用。"""
-    if config.parsing.scan_policy != "report_unsupported":
-        raise StartupConfigurationError(
-            "整页 OCR 尚未实现，请将 parsing.scan_policy 设为 report_unsupported"
-        )
     required = [("llm", config.models.llm, "openai_sdk", llm is not None)]
     required.append(("embedding", config.models.embedding, "openai_sdk", embedder is not None))
     for enabled, package in (
@@ -79,6 +75,21 @@ def validate_runtime_config(
             )
 
 
+PROMPT_STAGES = ("extract", "plan_points", "generate", "rag_context", "vision", "case_skill")
+
+
+def load_prompts(prompt_root: Path) -> tuple[dict[str, str], dict[str, str]]:
+    """只装载需求 RAG 使用的版本，保留实际版本及文本指纹用于审计。"""
+    prompts: dict[str, str] = {}
+    versions: dict[str, str] = {}
+    for stage in PROMPT_STAGES:
+        chosen = "v1"
+        path = prompt_root / stage / f"{chosen}.md"
+        prompts[stage] = path.read_text(encoding="utf-8")
+        versions[stage] = chosen
+    return prompts, versions
+
+
 def build_pipeline(
     config: AppConfig,
     run_id: str,
@@ -111,10 +122,7 @@ def build_pipeline(
             if target_root.exists()
             else Path(sys.prefix) / "share" / "tc_rag" / "prompts"
         )
-    prompts = {
-        stage: (prompt_root / stage / "v1.md").read_text(encoding="utf-8")
-        for stage in ("extract", "plan_points", "generate", "rag_context", "vision", "case_skill")
-    }
+    prompts, prompt_versions = load_prompts(prompt_root)
     # 规划和生成共用 RAG 证据约束，检索结果不能覆盖原文事实。
     for stage in ("plan_points", "generate"):
         prompts[stage] += "\n" + prompts["rag_context"]
@@ -182,17 +190,18 @@ def build_pipeline(
     from tc_rag.infrastructure.retrieval.context import RagContext
 
     embedding = embedder or OpenAIEmbedder(config.models.embedding, config.runtime, run_id, record)
+    embedding_space = EmbeddingSpace(
+        provider=config.models.embedding.base_url or "openai",
+        model=config.models.embedding.model,
+        dimension=config.retrieval.embedding_dimension,
+        normalize=config.retrieval.normalize,
+    )
     retrieval_context = RagContext(
         # 两种模型共用同一预算，检索不能绕过生成阶段的调用上限。
         repository,
         store,
         embedding,
-        EmbeddingSpace(
-            provider=config.models.embedding.base_url or "openai",
-            model=config.models.embedding.model,
-            dimension=config.retrieval.embedding_dimension,
-            normalize=config.retrieval.normalize,
-        ),
+        embedding_space,
         config.retrieval.metric,
         config.retrieval.vector_top_k,
         run_id,
@@ -223,6 +232,7 @@ def build_pipeline(
         prompts,
         retriever=retrieval_context,
         max_context_tokens=config.runtime.max_context_tokens,
+        prompt_versions=prompt_versions,
     )
     if config.parsing.vision_enabled:
         from tc_rag.application.services.vision import VisionEvidenceService

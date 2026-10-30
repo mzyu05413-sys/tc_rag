@@ -23,6 +23,56 @@ DEFAULT_COLUMNS = [
     ("edit_mode", "编辑模式"),
 ]
 
+TECHNIQUE_LABELS = {
+    "equivalence": "等价类",
+    "boundary": "边界值",
+    "decision_table": "判定表",
+    "state": "状态转换",
+    "permission": "权限",
+    "workflow": "流程",
+    "error_behavior": "异常行为",
+    "other": "其他",
+}
+POINT_STATUS_LABELS = {
+    "ready": "已就绪",
+    "needs_context": "待补充上下文",
+    "needs_clarification": "待澄清",
+    "not_applicable": "不适用",
+}
+RULE_KIND_LABELS = {
+    "field_constraint": "字段约束",
+    "business_condition": "业务条件",
+    "permission": "权限",
+    "state_transition": "状态流转",
+    "error_behavior": "异常行为",
+    "workflow": "流程",
+    "other": "其他",
+}
+RULE_STATUS_LABELS = {
+    "supported": "有依据",
+    "ambiguous": "含义不明",
+    "conflicting": "存在冲突",
+    "needs_review": "待审核",
+}
+VALIDATION_LABELS = {
+    "pending": "待校验",
+    "validated": "已校验",
+    "invalid": "无效",
+    "needs_review": "需人工核实",
+}
+ISSUE_KIND_LABELS = {
+    "gap": "需求缺口",
+    "conflict": "需求冲突",
+    "validation": "校验问题",
+    "unsupported": "无依据",
+    "unsupported_expectation": "无依据预期",
+    "duplicate": "疑似重复",
+    "coverage": "覆盖缺口",
+    "unparsed": "未解析",
+    "other": "其他",
+}
+SEVERITY_LABELS = {"info": "提示", "warning": "警告", "error": "错误"}
+
 
 def _excel_value(value: Any) -> Any:
     """仅改变 Excel 展示：控制字符可见转义，原始事实及换行、制表符不变。"""
@@ -122,12 +172,27 @@ class ReportExporter:
         assert sheet is not None
         sheet.title = "模版"
         columns = columns or DEFAULT_COLUMNS
+        issue_reasons: dict[str, list[tuple[str, str]]] = {}
+        for item in (payload or {}).get("issues", []):
+            description = item.get("description")
+            if not description:
+                continue
+            severity = str(item.get("severity") or "warning")
+            for object_id in item.get("object_ids", []) or []:
+                issue_reasons.setdefault(str(object_id), []).append((severity, str(description)))
         sheet.append([_excel_value(header) for _, header in columns])
         for case in cases:
             steps = case["steps"]
             remarks = case.get("remarks") or ""
+            reasons = issue_reasons.get(str(case.get("case_id")), [])
+            blocking = list(dict.fromkeys(d for s, d in reasons if s != "info"))
             if case.get("status") != "validated":
-                remarks += "\n[需核实：自动校验发现风险，详见问题清单]"
+                if blocking:
+                    remarks += "\n[需核实] " + "；".join(blocking[:2])
+                else:
+                    remarks += "\n[需核实] 自动校验未通过，详见问题清单"
+            # 备注只反映需人工核实的风险（warning/error）；info 级提示不进每条用例备注，
+            # 避免已自动通过的用例也显示"建议人工确认"，降低自动化价值的观感。
             values = {
                 **case,
                 "preconditions": "\n".join(case.get("preconditions", [])),
@@ -153,35 +218,148 @@ class ReportExporter:
         sheet.freeze_panes = "A2"
         sheet.auto_filter.ref = sheet.dimensions
         payload = payload or {}
-        for title, key, fields in (
-            ("测试点", "points", ["point_id", "objective", "technique", "rule_ids", "status"]),
-            ("规则", "rules", ["rule_id", "statement", "evidence_ids", "status"]),
+        point_map = {item.get("point_id"): item for item in payload.get("points", [])}
+        rule_map = {item.get("rule_id"): item for item in payload.get("rules", [])}
+        evidence_map = {item.get("evidence_id"): item for item in payload.get("evidence", [])}
+        case_map = {item.get("case_id"): item for item in payload.get("cases", [])}
+
+        def short(value: Any, limit: int = 80) -> str:
+            text = "" if value is None else str(value)
+            return text if len(text) <= limit else text[: limit - 1] + "…"
+
+        def rule_text(rule_id: str) -> str:
+            rule = rule_map.get(rule_id)
+            return short(rule.get("statement"), 60) if rule else str(rule_id)
+
+        def point_text(point_id: str) -> str:
+            point = point_map.get(point_id)
+            return short(point.get("objective"), 60) if point else str(point_id)
+
+        def object_text(object_id: str) -> str:
+            if object_id in case_map:
+                return "用例：" + short(case_map[object_id].get("title"), 40)
+            if object_id in point_map:
+                return "测试点：" + point_text(object_id)
+            if object_id in rule_map:
+                return "规则：" + rule_text(object_id)
+            evidence_item = evidence_map.get(object_id)
+            if evidence_item:
+                return "证据：" + short(evidence_item.get("quote"), 40)
+            return str(object_id)
+
+        sheets: list[tuple[str, list[str], list[list[Any]]]] = [
+            (
+                "阅读说明",
+                ["工作表", "用途"],
+                [
+                    ["模版", "测试用例主表，步骤与预期一一对应，可导入测试管理平台"],
+                    ["测试点", "按分类和方法整理的测试点清单"],
+                    ["规则", "从需求原文提炼的规则及证据摘要"],
+                    ["覆盖矩阵", "用例步骤与规则、测试点的对应关系"],
+                    ["问题清单", "自动校验发现的缺口、冲突和待确认项"],
+                    ["未解析范围", "未能解析的图片或页面，需要人工补充"],
+                ],
+            ),
+            (
+                "测试点",
+                ["分类", "测试方法", "测试目标", "关联规则", "状态", "参考ID"],
+                [
+                    [
+                        point.get("category", ""),
+                        TECHNIQUE_LABELS.get(
+                            point.get("technique"), point.get("technique", "")
+                        ),
+                        point.get("objective", ""),
+                        "；".join(rule_text(rid) for rid in (point.get("rule_ids") or [])[:2]),
+                        POINT_STATUS_LABELS.get(point.get("status"), point.get("status", "")),
+                        point.get("point_id", ""),
+                    ]
+                    for point in payload.get("points", [])
+                ],
+            ),
+            (
+                "规则",
+                ["规则类型", "规则内容", "证据摘要", "状态", "参考ID"],
+                [
+                    [
+                        RULE_KIND_LABELS.get(rule.get("kind"), rule.get("kind", "")),
+                        rule.get("statement", ""),
+                        short(
+                            "；".join(
+                                short(evidence_map[eid].get("quote"), 50)
+                                for eid in (rule.get("evidence_ids") or [])[:1]
+                                if eid in evidence_map
+                            ),
+                            120,
+                        ),
+                        RULE_STATUS_LABELS.get(rule.get("status"), rule.get("status", "")),
+                        rule.get("rule_id", ""),
+                    ]
+                    for rule in payload.get("rules", [])
+                ],
+            ),
             (
                 "覆盖矩阵",
-                "coverage",
-                ["case_id", "step_no", "rule_id", "point_id", "validation_status"],
-            ),
-            ("问题清单", "issues", ["issue_id", "kind", "description", "object_ids"]),
-            ("未解析范围", "issues", ["issue_id", "description", "object_ids"]),
-        ):
-            appendix = book.create_sheet(title)
-            appendix.append(fields)
-            for item in payload.get(key, []):
-                if title == "未解析范围" and item.get("kind") != "unparsed":
-                    continue
-                appendix.append(
+                ["用例名称", "步骤", "规则内容", "测试目标", "校验状态"],
+                [
                     [
-                        _excel_value(
-                            json.dumps(item.get(f), ensure_ascii=False)
-                            if isinstance(item.get(f), (dict, list))
-                            else item.get(f)
-                        )
-                        for f in fields
+                        short(case_map.get(link.get("case_id"), {}).get("title"), 50),
+                        link.get("step_no", ""),
+                        rule_text(link.get("rule_id", "")),
+                        point_text(link.get("point_id", "")),
+                        VALIDATION_LABELS.get(
+                            link.get("validation_status"),
+                            link.get("validation_status", ""),
+                        ),
                     ]
-                )
+                    for link in payload.get("coverage", [])
+                ],
+            ),
+            (
+                "问题清单",
+                ["类型", "严重程度", "说明", "涉及对象"],
+                [
+                    [
+                        ISSUE_KIND_LABELS.get(item.get("kind"), item.get("kind", "")),
+                        SEVERITY_LABELS.get(item.get("severity"), item.get("severity", "")),
+                        item.get("description", ""),
+                        short(
+                            "；".join(
+                                object_text(oid) for oid in (item.get("object_ids") or [])[:2]
+                            ),
+                            120,
+                        ),
+                    ]
+                    for item in payload.get("issues", [])
+                ],
+            ),
+            (
+                "未解析范围",
+                ["说明", "涉及对象"],
+                [
+                    [
+                        item.get("description", ""),
+                        short(
+                            "；".join(
+                                object_text(oid) for oid in (item.get("object_ids") or [])[:2]
+                            ),
+                            120,
+                        ),
+                    ]
+                    for item in payload.get("issues", [])
+                    if item.get("kind") == "unparsed"
+                ],
+            ),
+        ]
+        for title, headers, rows in sheets:
+            appendix = book.create_sheet(title)
+            appendix.append(headers)
+            for row in rows:
+                appendix.append([_excel_value(value) for value in row])
                 for cell in appendix[appendix.max_row]:
                     if isinstance(cell.value, str):
                         cell.data_type = "s"
                     cell.alignment = Alignment(wrap_text=True, vertical="top")
             appendix.freeze_panes = "A2"
+            appendix.auto_filter.ref = appendix.dimensions
         book.save(destination)

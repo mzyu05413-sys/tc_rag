@@ -8,7 +8,6 @@ storage:
 
 parsing:
   formats: [pdf, docx]
-  scan_policy: report_unsupported     # report_unsupported | ocr
   vision_enabled: false
 
 chunking:
@@ -70,6 +69,7 @@ runtime:
   request_timeout_seconds: 90
   vision_min_interval_seconds: 0 # 仅作用于视觉；缓存命中不等待
   cache_enabled: true
+  chunk_failure_policy: fail          # fail | skip
   budget:
     max_calls: null
     max_cost: null
