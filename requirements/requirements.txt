@@ -1,0 +1,18 @@
+# 核心依赖清单；版本约束与 pyproject.toml 保持一致，不是锁文件。
+pydantic>=2           # 领域对象与配置校验
+pydantic-settings     # 配置管理支持
+pyyaml                # YAML 配置读取
+openai                # OpenAI 兼容模型接口
+httpx                 # HTTP 请求与 rerank 适配
+tenacity              # 有限重试
+aiolimiter            # 异步请求限流
+pymupdf               # PDF 文字、图片和坐标提取
+pdfplumber            # PDF 表格提取
+python-docx           # Word 文档解析
+pillow                # 图片预处理
+numpy                 # 向量计算与精确检索
+openpyxl              # Excel 导出
+loguru                # 日志
+typer                 # CLI 命令
+rich                  # 终端展示
+tiktoken              # token 数量近似估计

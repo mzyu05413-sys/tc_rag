@@ -1,0 +1,8 @@
+# 开发环境：pip install -r requirements/requirements-dev.txt
+-r requirements.txt
+pytest                # 单元测试与集成测试
+pytest-asyncio        # 异步测试
+respx                 # 模拟 HTTP 调用
+ruff                  # 静态检查与格式化
+mypy                  # 类型检查
+types-PyYAML          # YAML 类型声明
