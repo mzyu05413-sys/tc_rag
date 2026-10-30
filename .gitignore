@@ -6,7 +6,9 @@ __pycache__/
 .pytest_tmp/
 .ruff_cache/
 .mypy_cache/
-workdir/
+# 只提交无密钥配置示例；真实配置及全部运行/开发资料继续忽略。
+/workdir/*
+!/workdir/local.example.yaml
 .env
 .env.*
 *.sqlite

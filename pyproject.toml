@@ -43,6 +43,19 @@ where = ["src"]
 "share/tc_rag/prompts/rag_context" = ["prompts/rag_context/v1.md"]
 "share/tc_rag/prompts/vision" = ["prompts/vision/v1.md"]
 
+# PyMuPDF 2.x 的 macOS wheel 仅支持 ARM；Intel Mac 保留 1.x。
+# 仅约束该平台，不限制其他平台或可选本地模型依赖。
+[tool.uv]
+constraint-dependencies = [
+  "pymupdf<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+]
+
+# uv 默认使用阿里云镜像；default = true 替换内置 PyPI 默认源。
+[[tool.uv.index]]
+name = "aliyun"
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
+
 # pytest初始化配置
 [tool.pytest.ini_options]
 testpaths = ["tests"]

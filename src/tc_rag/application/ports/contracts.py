@@ -221,6 +221,8 @@ class RetrievalContext(Protocol):
 
     async def retrieve(self, query: str, direct_ids: set[str]) -> dict[str, Any]: ...
 
+    async def vector(self, text: str) -> tuple[list[float], bool]: ...
+
 
 class Exporter(Protocol):
     # 导出只是事实数据的视图，不应反向修改业务事实。

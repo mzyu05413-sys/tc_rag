@@ -107,6 +107,16 @@ def _error(exc: Exception) -> None:
         e["loc"] == ("planning", "llm_supplement") for e in exc.errors()
     ):
         typer.echo("RAG 规划已固定启用，请删除 planning.llm_supplement。", err=True)
+    elif isinstance(exc, ValidationError):
+        typer.echo("配置校验失败（不显示配置值）：", err=True)
+        for error in exc.errors(include_input=False, include_url=False):
+            field = ".".join(str(part) for part in error["loc"])
+            reason = (
+                "当前版本不支持此字段，请删除"
+                if error["type"] == "extra_forbidden"
+                else "类型或取值不符合配置约束"
+            )
+            typer.echo(f"  {field}：{reason}", err=True)
     elif isinstance(exc, StartupConfigurationError):
         typer.echo(f"启动配置错误：{exc}", err=True)
     elif isinstance(exc, EmbeddingProviderError):

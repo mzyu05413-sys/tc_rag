@@ -115,3 +115,29 @@ def test_merged_nested_and_empty_content_reported(tmp_path):
     result = DocxParser(store).parse(ingest_document(path, store, repo).asset)
     assert any("合并单元格" in issue.description for issue in result.issues)
     assert any("嵌套表格" in issue.description for issue in result.issues)
+
+
+def test_size_and_bold_heading_levels(tmp_path):
+    """未使用 Word Heading 样式、改用字号+加粗表达层级时也能建立 heading_path。"""
+    from docx.shared import Pt
+
+    path = tmp_path / "sized.docx"
+    doc = Document()
+    for text in ("正文一", "正文二", "正文三"):
+        doc.add_paragraph(text).runs[0].font.size = Pt(11)
+    first = doc.add_paragraph().add_run("产品列表")
+    first.bold = True
+    first.font.size = Pt(14)
+    second = doc.add_paragraph().add_run("列表搜索")
+    second.bold = True
+    second.font.size = Pt(12)
+    doc.add_paragraph("支持通过产品名称搜索").runs[0].font.size = Pt(11)
+    doc.save(path)
+
+    store = LocalArtifactStore(tmp_path / "managed")
+    repo = SqliteRepository(tmp_path / "data.sqlite")
+    result = DocxParser(store).parse(ingest_document(path, store, repo).asset)
+    body = next(b for b in result.blocks if "支持通过产品名称搜索" in b.content)
+    assert body.heading_path == ["产品列表", "列表搜索"]
+    headings = [b.content for b in result.blocks if b.kind == "heading"]
+    assert headings == ["产品列表", "列表搜索"]

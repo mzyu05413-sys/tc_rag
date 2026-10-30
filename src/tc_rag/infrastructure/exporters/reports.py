@@ -23,6 +23,65 @@ DEFAULT_COLUMNS = [
     ("edit_mode", "编辑模式"),
 ]
 
+_CHINESE_HEADERS = {
+    "point_id": "测试点ID", "objective": "测试目标", "technique": "测试方法",
+    "rule_ids": "关联规则ID", "rule_id": "规则ID", "statement": "规则说明",
+    "evidence_ids": "引用证据ID", "status": "技术状态", "applicability": "适用性",
+    "kind": "规则类型",
+    "case_id": "用例ID", "step_no": "步骤序号", "validation_status": "校验状态",
+    "issue_id": "问题ID", "description": "问题说明", "object_ids": "关联对象ID",
+    "severity": "严重程度", "display_category": "问题性质",
+}
+_CHINESE_ENUMS = {
+    "technique": {
+        "equivalence": "等价类", "boundary": "边界值", "decision_table": "判定表",
+        "state": "状态迁移", "permission": "权限", "workflow": "业务流程",
+        "error_behavior": "异常行为", "other": "其他",
+    },
+    "kind": {
+        "field_constraint": "字段约束", "business_condition": "业务条件",
+        "permission": "权限", "state_transition": "状态迁移", "error_behavior": "异常行为",
+        "workflow": "业务流程", "other": "其他",
+        "gap": "需求缺漏", "conflict": "需求冲突", "validation": "校验问题",
+        "unsupported": "暂不支持", "unparsed": "未解析内容",
+        "unsupported_expectation": "预期依据待核对", "duplicate": "重复内容",
+        "coverage": "覆盖问题",
+    },
+    "status": {
+        "supported": "有证据支持", "ambiguous": "存在歧义", "conflicting": "存在冲突",
+        "needs_review": "待复核", "ready": "可进入生成", "needs_context": "待补充上下文",
+        "needs_clarification": "待澄清", "not_applicable": "不适用",
+    },
+    "applicability": {
+        "applicable": "适用", "not_applicable": "不适用", "undetermined": "待确定",
+    },
+    "validation_status": {
+        "pending": "待校验", "validated": "自动校验通过", "invalid": "校验未通过",
+        "needs_review": "待复核",
+    },
+    "severity": {"info": "提示", "warning": "警告", "error": "错误"},
+}
+
+
+def _appendix_value(item: dict[str, Any], field: str, chinese: bool) -> Any:
+    value = item.get(field)
+    if chinese:
+        if isinstance(value, str):
+            value = _CHINESE_ENUMS.get(field, {}).get(value, value)
+        elif isinstance(value, list):
+            value = "\n".join(str(part) for part in value)
+    if isinstance(value, (dict, list)):
+        value = json.dumps(value, ensure_ascii=False)
+    return _excel_value(value)
+
+
+def _semantic_notice(item: dict[str, Any]) -> bool:
+    """历史逐步骤词面提醒不是已证实的语义错误；仅在展示层区分。"""
+    return (
+        item.get("kind") == "unsupported_expectation"
+        and item.get("description") == "预期为解释性断言，需人工核对语义"
+    )
+
 
 def _excel_value(value: Any) -> Any:
     """仅改变 Excel 展示：控制字符可见转义，原始事实及换行、制表符不变。"""
@@ -123,11 +182,22 @@ class ReportExporter:
         sheet.title = "模版"
         columns = columns or DEFAULT_COLUMNS
         sheet.append([_excel_value(header) for _, header in columns])
+        payload = payload or {}
+        issues = payload.get("issues", [])
+        concrete = [item for item in issues if not _semantic_notice(item)]
+        by_object: dict[str, list[dict[str, Any]]] = {}
+        for item in concrete:
+            for object_id in item.get("object_ids", []):
+                by_object.setdefault(object_id, []).append(item)
         for case in cases:
             steps = case["steps"]
             remarks = case.get("remarks") or ""
-            if case.get("status") != "validated":
-                remarks += "\n[需核实：自动校验发现风险，详见问题清单]"
+            # 不把所有 needs_review 统一翻译成“发现风险”。共享需求问题在追溯表显示；
+            # 主表备注仅列此用例自身的具体问题，避免通用声明淹没可执行内容。
+            for description in dict.fromkeys(
+                item["description"] for item in by_object.get(case.get("case_id", ""), [])
+            ):
+                remarks += f"\n[用例问题] {description}"
             values = {
                 **case,
                 "preconditions": "\n".join(case.get("preconditions", [])),
@@ -152,30 +222,39 @@ class ReportExporter:
             )
         sheet.freeze_panes = "A2"
         sheet.auto_filter.ref = sheet.dimensions
-        payload = payload or {}
         for title, key, fields in (
-            ("测试点", "points", ["point_id", "objective", "technique", "rule_ids", "status"]),
-            ("规则", "rules", ["rule_id", "statement", "evidence_ids", "status"]),
+            ("测试点", "points", ["point_id", "objective", "technique", "rule_ids", "status",
+                                  "applicability"]),
+            ("规则", "rules", ["rule_id", "statement", "evidence_ids", "status", "kind"]),
             (
                 "覆盖矩阵",
                 "coverage",
                 ["case_id", "step_no", "rule_id", "point_id", "validation_status"],
             ),
-            ("问题清单", "issues", ["issue_id", "kind", "description", "object_ids"]),
+            ("问题清单", "issues", ["issue_id", "kind", "description", "object_ids",
+                                   "severity", "display_category"]),
             ("未解析范围", "issues", ["issue_id", "description", "object_ids"]),
         ):
             appendix = book.create_sheet(title)
-            appendix.append(fields)
+            chinese = True
+            appendix.append([
+                "问题类型" if f == "kind" and title == "问题清单"
+                else _CHINESE_HEADERS.get(f, f)
+                for f in fields
+            ])
             for item in payload.get(key, []):
                 if title == "未解析范围" and item.get("kind") != "unparsed":
                     continue
+                if title == "问题清单":
+                    item = {
+                        **item,
+                        "display_category": (
+                            "通用语义复核提醒" if _semantic_notice(item) else "具体问题或需求待明确"
+                        ),
+                    }
                 appendix.append(
                     [
-                        _excel_value(
-                            json.dumps(item.get(f), ensure_ascii=False)
-                            if isinstance(item.get(f), (dict, list))
-                            else item.get(f)
-                        )
+                        _appendix_value(item, f, chinese)
                         for f in fields
                     ]
                 )
@@ -184,4 +263,65 @@ class ReportExporter:
                         cell.data_type = "s"
                     cell.alignment = Alignment(wrap_text=True, vertical="top")
             appendix.freeze_panes = "A2"
+            appendix.auto_filter.ref = appendix.dimensions
+            for cell in appendix[1]:
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill("solid", fgColor="305496")
+            for index, field in enumerate(fields, 1):
+                appendix.column_dimensions[get_column_letter(index)].width = (
+                    75 if field in {"description", "objective", "statement"} else 28
+                )
+
+        trace = book.create_sheet("用例追溯")
+        trace.append(["用例ID", "用例名称", "技术状态", "测试点ID", "规则ID", "证据ID",
+                      "关联需求问题（不含通用语义提醒）"])
+        related_count = 0
+        for case in cases:
+            rule_ids = sorted({r for step in case["steps"] for r in step.get("rule_ids", [])})
+            evidence_ids = sorted(
+                {e for step in case["steps"] for e in step.get("evidence_ids", [])}
+            )
+            source_ids = {*case.get("point_ids", []), *rule_ids, *evidence_ids}
+            related = list(dict.fromkeys(
+                item["description"] for object_id in sorted(source_ids)
+                for item in by_object.get(object_id, [])
+            ))
+            related_count += bool(related)
+            trace.append([
+                _excel_value(value) for value in (
+                    case.get("case_id"), case.get("title"), case.get("status"),
+                    "\n".join(case.get("point_ids", [])), "\n".join(rule_ids),
+                    "\n".join(evidence_ids), "\n".join(related),
+                )
+            ])
+        summary = book.create_sheet("质量说明")
+        for row in [
+            ("项目", "说明 / 数量"),
+            ("用例数量", len(cases)),
+            ("问题记录总数", len(issues)),
+            ("通用语义复核提醒（按步骤累计）", len(issues) - len(concrete)),
+            ("其余问题记录（含需求缺漏、来源局限、拒绝用例和覆盖问题）", len(concrete)),
+            ("用例自身关联具体问题的数量", sum(
+                bool(by_object.get(case.get("case_id", ""))) for case in cases
+            )),
+            ("关联需求或来源问题的用例数量", related_count),
+            ("如何使用主表", "备注仅列用例自身的具体问题；共享需求/来源问题见用例追溯。"),
+            ("提醒的含义", "预期非逐字原文不等于错误；通用语义复核提醒不能计作已证实缺陷。"),
+            ("状态含义", "技术状态与问题记录完整保留。空备注不代表人工批准或已证明语义正确。"),
+            ("问题查看", "问题清单保留全部记录，可按性质和类型筛选；问题数不等于缺陷或用例数。"),
+        ]:
+            summary.append([_excel_value(value) for value in row])
+        for appendix in (trace, summary):
+            appendix.freeze_panes = "A2"
+            appendix.auto_filter.ref = appendix.dimensions
+            for cell in appendix[1]:
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill("solid", fgColor="305496")
+            for row in appendix:
+                for cell in row:
+                    if isinstance(cell.value, str):
+                        cell.data_type = "s"
+                    cell.alignment = Alignment(wrap_text=True, vertical="top")
+            for index in range(1, appendix.max_column + 1):
+                appendix.column_dimensions[get_column_letter(index)].width = 48 if index > 1 else 30
         book.save(destination)

@@ -10,8 +10,54 @@
 
 ```powershell
 uv sync --extra dev
-rag
 ```
+
+首次使用时需要准备 `workdir` 目录，将仓库中的
+[`workdir/local.example.yaml`](workdir/local.example.yaml) 复制为 `workdir/local.yaml`，
+再填写模型配置。示例文件不会自动加载；已有 `local.yaml` 时不要覆盖。
+
+macOS / Linux：
+
+```bash
+mkdir -p workdir
+cp -n workdir/local.example.yaml workdir/local.yaml
+```
+
+Windows PowerShell：
+
+```powershell
+New-Item -ItemType Directory -Force workdir | Out-Null
+if (-not (Test-Path workdir/local.yaml)) {
+    Copy-Item workdir/local.example.yaml workdir/local.yaml
+}
+```
+
+编辑 `workdir/local.yaml`，按实际服务填写以下参数：
+
+| 配置 | 必填内容与作用 |
+| --- | --- |
+| `models.llm` | 必需：`base_url`、`model`、`api_key` 或 `api_key_env`；`concurrency` 控制提炼、规划和用例生成的批次并发，示例为 3 |
+| `models.embedding` | 必需：地址、模型、密钥；`batch_size` 为单批文本数，示例 16；`concurrency` 为向量批次并发，示例 2 |
+| `retrieval.embedding_dimension` | 必须与 embedding 模型实际输出维度一致，示例 1536 不是所有模型的通用值 |
+| `models.vision` | 可选：启用时配置地址、模型、密钥、`supports_images: true` 及并发数，同时设 `parsing.vision_enabled: true` |
+| `models.rerank` | 可选：启用时填写模型、密钥和完整重排 REST 地址；当前随上层批次并发，单独设置其 `concurrency` 不会产生独立并发限制 |
+
+生成模型的 `response_format` 按服务能力选择 `json_schema` 或 `json_object`；
+`thinking_mode` 仅在服务支持时设置。并发数应按服务商实际限额调整，遇到限流先降低并发；
+视觉还可以用 `runtime.vision_min_interval_seconds` 控制请求启动间隔。
+密钥可以填在被 Git 忽略的 `local.yaml` 中，非空值优先，否则读取 `api_key_env` 指定的环境变量。
+不要将真实密钥写入 `local.example.yaml`。
+
+配置完成后，在项目根目录执行：
+
+```powershell
+uv run rag doctor
+uv run rag
+```
+
+`doctor` 只做离线配置检查，不证明服务连通；`doctor --live` 会调用真实模型并可能产生费用。
+配置选择顺序：显式 `--config` → `workdir/local.yaml` → `config/defaults.yaml` → 内置默认；
+选中一份 YAML 后再叠加环境变量和 CLI 覆盖，不会自动合并所有 YAML 文件。
 
 `rag` 会提示输入需求文档路径（PDF/DOCX），回车后自动使用内置生成目标：
 
@@ -155,6 +201,12 @@ SQLite 保存业务事实；向量索引、JSON/Markdown、XMind 和 Excel 都�
 
 ## 安装与验证
 
+项目已在 `pyproject.toml` 中将阿里云 PyPI 镜像配置为 uv 默认源，
+在项目根目录执行以下命令即可，无需另加镜像参数。
+`uv.lock` 已记录阿里云镜像来源；未来修改镜像配置后执行普通 `uv sync` 更新锁文件，
+不要用 `--frozen` 跳过更新。镜像配置仅影响 uv，不影响 pip。
+Intel Mac（macOS x86_64）使用 PyMuPDF 1.x，避免 2.x 缺少该平台 wheel 及其新增依赖的兼容问题。
+
 ```powershell
 uv sync --extra dev
 uv run pytest -q
@@ -173,6 +225,8 @@ FAISS、中文关键词等扩展按需安装，主线不因此分叉。默认离
 - [文档入口](docs/README.md)
 - [目录结构与文件用途](docs/reference/directory_structure.md)
 - [架构设计](docs/design/design_spec.md)
+- [架构图（draw.io）](docs/reference/tc_rag_architecture_atlas.drawio)
+- [架构图核对记录](docs/reference/architecture_atlas_review.md)
 - [开发指南](docs/design/dev_guide.md)
 - [按模块学习](docs/learn/README.md)
 - [完整运行说明](docs/full_run_walkthrough.md)

@@ -8,6 +8,7 @@ from tc_rag.application.services.chunking import structural_chunks, verify_evide
 from tc_rag.application.services.design import (
     boundary_values,
     check_extraction,
+    deduplicate_semantic,
     plan_points,
     validate_cases,
 )
@@ -271,3 +272,104 @@ def test_precision_not_in_quote_is_removed():
     checked = check_extraction(candidate, [original])
     assert checked.rules[0].structured_constraint.precision is None
     assert checked.issues[0].kind == "gap"
+
+
+def _srule(
+    rid,
+    statement,
+    feature_id="f",
+    kind="field_constraint",
+    evidence=None,
+    status="needs_review",
+    constraint=None,
+):
+    return m.RequirementRule(
+        rule_id=rid,
+        feature_id=feature_id,
+        kind=kind,
+        statement=statement,
+        evidence_ids=evidence or [f"e{rid}"],
+        status=status,
+        structured_constraint=constraint,
+    )
+
+
+_SAME = [1.0, 0.0, 0.0, 0.0]
+
+
+def test_semantic_dedup_merges_similar_in_same_group():
+    rules = [
+        _srule("a", "产品图片大小限制为5MB内", evidence=["e1", "e2"]),
+        _srule("b", "产品图片大小需在5MB以内", evidence=["e3"]),
+    ]
+    out = deduplicate_semantic(rules, {"a": _SAME, "b": _SAME})
+    assert [r.rule_id for r in out.rules] == ["a"]
+    assert out.rule_mapping == {"a": "a", "b": "a"}
+    assert out.rules[0].evidence_ids == ["e1", "e2", "e3"]
+
+
+def test_semantic_dedup_keeps_three_way_with_one_canonical():
+    rules = [
+        _srule("a", "X", evidence=["e1"]),
+        _srule("b", "X", evidence=["e2"]),
+        _srule("c", "X", evidence=["e3"]),
+    ]
+    out = deduplicate_semantic(rules, {"a": _SAME, "b": _SAME, "c": _SAME})
+    assert len(out.rules) == 1
+    assert out.rules[0].rule_id == "a"
+    assert out.rules[0].evidence_ids == ["e1", "e2", "e3"]
+
+
+def test_semantic_dedup_never_merges_across_features():
+    rules = [_srule("a", "X", feature_id="fA"), _srule("b", "X", feature_id="fB")]
+    out = deduplicate_semantic(rules, {"a": _SAME, "b": _SAME})
+    assert {r.rule_id for r in out.rules} == {"a", "b"}
+
+
+def test_semantic_dedup_never_merges_across_kinds():
+    rules = [_srule("a", "X", kind="field_constraint"), _srule("b", "X", kind="state_transition")]
+    out = deduplicate_semantic(rules, {"a": _SAME, "b": _SAME})
+    assert {r.rule_id for r in out.rules} == {"a", "b"}
+
+
+def test_semantic_dedup_never_merges_across_different_constraints():
+    c1 = m.StructuredConstraint(field_path="f", operator="<=", boundary=5, precision=0)
+    c2 = m.StructuredConstraint(field_path="f", operator="<=", boundary=10, precision=0)
+    rules = [_srule("a", "X", constraint=c1), _srule("b", "X", constraint=c2)]
+    out = deduplicate_semantic(rules, {"a": _SAME, "b": _SAME})
+    assert {r.rule_id for r in out.rules} == {"a", "b"}
+
+
+def test_semantic_dedup_excludes_ambiguous_and_conflicting():
+    rules = [
+        _srule("a", "Y", status="ambiguous"),
+        _srule("b", "Y", status="needs_review"),
+    ]
+    out = deduplicate_semantic(rules, {"a": _SAME, "b": _SAME})
+    assert {r.rule_id for r in out.rules} == {"a", "b"}
+    assert out.rule_mapping == {"a": "a", "b": "b"}
+
+
+def test_semantic_dedup_excluded_rule_is_not_merge_target():
+    rules = [
+        _srule("a", "M", status="ambiguous"),
+        _srule("b", "M", status="needs_review"),
+        _srule("c", "M", status="needs_review"),
+    ]
+    out = deduplicate_semantic(rules, {"a": _SAME, "b": _SAME, "c": _SAME})
+    assert {r.rule_id for r in out.rules} == {"a", "b"}
+    assert out.rule_mapping["a"] == "a"
+    assert out.rule_mapping["b"] == "b"
+    assert out.rule_mapping["c"] == "b"
+
+
+def test_semantic_dedup_keeps_missing_vector_rule():
+    rules = [_srule("a", "Z"), _srule("b", "Z")]
+    out = deduplicate_semantic(rules, {})
+    assert {r.rule_id for r in out.rules} == {"a", "b"}
+
+
+def test_semantic_dedup_respects_threshold():
+    rules = [_srule("a", "A"), _srule("b", "B")]
+    out = deduplicate_semantic(rules, {"a": [1.0, 0.0, 0.0, 0.0], "b": [0.5, 0.866, 0.0, 0.0]})
+    assert {r.rule_id for r in out.rules} == {"a", "b"}

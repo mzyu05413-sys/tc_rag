@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+from collections import Counter
 from io import BytesIO
 from typing import Any, Literal
 
@@ -93,15 +94,35 @@ class DocxParser:
                     )
             flush()
 
+        # 预扫描字号与加粗：部分需求文档用字号表达标题层级而不使用 Word Heading 样式。
+        # 若不识别这类标题，heading_path 会为空，测试点目录无法按功能层级组织。
+        profiles: list[tuple[float | None, bool]] = []
+        for child in document.element.body:
+            if child.tag != qn("w:p"):
+                continue
+            value = Paragraph(child, document)
+            if not value.text.strip():
+                continue
+            profiles.append((self._max_run_size(value), self._is_bold(value)))
+        body_sizes = [size for size, _ in profiles if size is not None]
+        body_size = Counter(body_sizes).most_common(1)[0][0] if body_sizes else None
+        title_sizes = {
+            size
+            for size, bold in profiles
+            if size is not None and bold and body_size is not None and size > body_size + 0.05
+        }
+        size_levels = {
+            size: index + 1 for index, size in enumerate(sorted(title_sizes, reverse=True))
+        }
+
         paragraph_index = table_index = 0
         for child in document.element.body:
             if child.tag == qn("w:p"):
                 value = Paragraph(child, document)
                 style = value.style.name if value.style else ""
-                heading = re.fullmatch(r"Heading (\d+)", style)
                 locator = Locator(paragraph_index=paragraph_index)
-                if heading:
-                    level = int(heading.group(1))
+                level = self._heading_level(value, style, size_levels)
+                if level is not None:
                     headings = {key: text for key, text in headings.items() if key < level}
                     headings[level] = value.text
                     add("heading", value.text, locator)
@@ -148,3 +169,30 @@ class DocxParser:
         if not result.blocks:
             issue("主文档没有可解析正文")
         return result
+
+    @staticmethod
+    def _max_run_size(value: Paragraph) -> float | None:
+        sizes = [
+            run.font.size.pt
+            for run in value.runs
+            if run.font.size is not None and run.text.strip()
+        ]
+        return max(sizes) if sizes else None
+
+    @staticmethod
+    def _is_bold(value: Paragraph) -> bool:
+        return any(run.bold for run in value.runs if run.text.strip())
+
+    def _heading_level(
+        self, value: Paragraph, style: str, size_levels: dict[float, int]
+    ) -> int | None:
+        """优先使用 Word Heading 样式；否则按字号档位识别可视标题层级。"""
+        heading = re.fullmatch(r"Heading (\d+)", style)
+        if heading:
+            return int(heading.group(1))
+        if not value.text.strip():
+            return None
+        size = self._max_run_size(value)
+        if size is not None and self._is_bold(value) and size in size_levels:
+            return size_levels[size]
+        return None

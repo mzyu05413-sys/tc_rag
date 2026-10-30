@@ -49,3 +49,7 @@ tc-rag inspect RUN_ID --stage manifest --config workdir/local.yaml
 检索字段为 query_embedding_ms、candidate_search_ms、rerank_ms、context_build_ms；组装时间包含补充证据预算处理。缓存命中的耗时仍记录，但不计为新模型调用。并发请求累计耗时和阶段墙钟要分别解释，未知 usage/费用不能推成零。
 
 `tests/unit/test_timer.py` 覆盖同步/异步、异常/取消、隔离、并发墙钟、百分位及空汇总；检索与运行指标由 RAG 集成测试验证。`scripts/bench_similarity.py` 提供固定数据的算法基准，不代表实际网络模型性能或业务准确率。
+
+终端阶段耗时使用单调时钟记录墙钟时间，不足 1 秒时显示毫秒，避免被整数秒舍入为零。普通批次、图片进度与等待心跳共享 20 秒更新间隔；阶段开始、完成、重试、结构修复和图片失败即时显示。
+
+模型调用记录新增可选 `validation_errors`（默认空列表），保存按输出契约过滤后的字段路径、错误类型和固定约束说明，不保存错误输出值。修复提示最多显示前三条安全诊断；完整诊断可通过 `inspect RUN_ID --stage invocations` 查看。历史记录缺失该字段时读作空列表，无法据此还原历史修复原因。

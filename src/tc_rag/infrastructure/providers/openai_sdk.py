@@ -162,7 +162,13 @@ class OpenAIStructuredLLM:
                 report(
                     self.progress,
                     ProgressEvent(
-                        "repair", str(request.get("stage", "unknown")), attempt=repair + 1
+                        "repair", str(request.get("stage", "unknown")), attempt=repair + 1,
+                        validation_errors=tuple(
+                            (".".join(map(str, detail["path"])) or "<root>")
+                            + ": " + detail["error"]
+                            + ("; " + detail["constraint"] if "constraint" in detail else "")
+                            for detail in exc.details
+                        ),
                     ),
                 )
         raise AssertionError("unreachable")
@@ -189,6 +195,7 @@ class OpenAIStructuredLLM:
                 )
                 usage = Usage()
                 error: str | None = None
+                validation_errors: list[dict[str, Any]] = []
                 delay = min(2**attempt + random.random(), 30)
                 try:
                     # 动态 schema 通过 SDK 传递；输出仍在本地执行严格领域校验。
@@ -281,6 +288,10 @@ class OpenAIStructuredLLM:
                     except ValidationError as exc:
                         raise SchemaOutputError(_schema_errors(exc, schema)) from None
                     return str(content), usage, str(request_id)
+                except SchemaOutputError as exc:
+                    error = type(exc).__name__
+                    validation_errors = exc.details
+                    raise
                 except APIStatusError as exc:
                     error = f"HTTP_{exc.status_code}"
                     if exc.status_code not in {408, 409, 429} and exc.status_code < 500:
@@ -318,6 +329,7 @@ class OpenAIStructuredLLM:
                             usage=usage,
                             timing=Timing(duration_ms=(perf_counter() - started) * 1000),
                             error=error,
+                            validation_errors=validation_errors,
                         )
                     )
                 report(

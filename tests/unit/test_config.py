@@ -26,6 +26,36 @@ def test_missing_variable():
         load_config("config/example.yaml", environ={})
 
 
+def test_workdir_example_is_valid_and_can_configure_all_model_roles_offline():
+    from tc_rag.bootstrap import validate_runtime_config
+
+    template = load_config("workdir/local.example.yaml", environ={})
+    for role in ("llm", "embedding", "vision", "rerank"):
+        assert getattr(template.models, role).api_key is None
+    assert template.models.llm.concurrency == 3
+    assert template.models.embedding.batch_size == 16
+    assert template.models.embedding.concurrency == 2
+    assert template.models.vision.concurrency == 2
+    assert "xlsx" in template.export.formats
+    roles = {
+        role: {
+            "base_url": "https://fixture.invalid/rerank" if role == "rerank"
+            else "https://fixture.invalid/v1",
+            "model": "fixture-model",
+            "api_key": "fake-offline-key",
+            "enabled": True,
+        }
+        for role in ("llm", "embedding", "vision", "rerank")
+    }
+    roles["vision"]["supports_images"] = True
+    config = load_config(
+        "workdir/local.example.yaml", environ={},
+        cli_overrides={"models": roles, "parsing": {"vision_enabled": True}},
+    )
+    validate_runtime_config(config)
+    assert "fake-offline-key" not in config.model_dump_json()
+
+
 def test_example_and_no_secret_in_snapshot():
     env = {
         f"TC_RAG_{role}_{field}": value

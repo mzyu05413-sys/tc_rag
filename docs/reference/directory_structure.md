@@ -35,6 +35,7 @@ RAG/
 
 ```text
 workdir/
+├─ local.example.yaml         可提交的无密钥示例，复制后配置，不自动加载
 ├─ local.yaml                 唯一默认本地配置，模型与密钥填这里
 ├─ data.sqlite                文档、证据、规则、审核、用例和运行记录
 ├─ data.sqlite-wal            SQLite 日志文件，运行时可能出现
@@ -67,6 +68,7 @@ workdir/
 | 文件                               | 用途                                  |
 | ---------------------------------- | ------------------------------------- |
 | `workdir/local.yaml`             | 实际使用的模型、密钥、检索及导出参数  |
+| `workdir/local.example.yaml`     | 可提交的配置示例，复制为 local.yaml 后填写，不自动加载 |
 | `config/defaults.yaml`           | 公共默认配置模板                      |
 | `config/example.yaml`            | 公共示例，不会被自动选中              |
 | `workdir/dev/backups/` 中的 YAML | 历史备份，不参与正常启动              |

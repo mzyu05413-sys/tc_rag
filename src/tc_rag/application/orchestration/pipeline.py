@@ -26,6 +26,7 @@ from tc_rag.application.requests import CasesRequest
 from tc_rag.application.services.chunking import TokenCounter, structural_chunks
 from tc_rag.application.services.design import (
     check_extraction,
+    deduplicate_semantic,
     issue,
     plan_points,
     reconcile,
@@ -354,6 +355,8 @@ class Pipeline:
                     extraction_requests.append((chunk, relevant, request))
                 extracted = await self._extract_concurrently(extraction_requests, run_id)
                 result = reconcile(extracted)
+                if self.config.planning.semantic_dedupe_enabled:
+                    result = await self._deduplicate_rules_semantically(result)
             self.snapshot(run_id, "extract", result.model_dump(mode="json"))
             stage = "index"
             self._stage(run_id, stage)
@@ -443,7 +446,7 @@ class Pipeline:
             if not points:
                 issues.append(issue("gap", "没有得到测试点，请检查解析和模型输出"))
             save_objects(self.repository, "test_points", points, "point_id")
-            tree = self._tree(run_id, doc.content_hash, result, points)
+            tree = self._tree(run_id, doc.content_hash, result, points, blocks)
             self.repository.save("point_trees", tree.tree_id, tree)
             self.snapshot(
                 run_id,
@@ -577,6 +580,53 @@ class Pipeline:
             return await self._extract_chunk(chunk, blocks, request, run_id)
 
         return await self._batches(requests, extract, "extract")
+
+    async def _deduplicate_rules_semantically(self, result: Extraction) -> Extraction:
+        """显式开启时，对归并后的规则做严格保守的语义去重。
+
+        每条规则的 statement 编码一次向量（走向量缓存，不重复请求），在
+        同功能/同类型/同结构化约束内按余弦相似度合并近似重复并合并证据并集。
+        仅记录被合并的规则映射和一条提示，不改变 evidence/features/entities。
+        """
+        rules = result.rules
+        threshold = float(self.config.planning.semantic_dedupe_threshold)
+        # 并发取向量；失败只跳过该规则的合并（保留原样），不影响主流程。
+        vectors: dict[str, list[float]] = {}
+
+        async def embed_one(rule: m.RequirementRule) -> None:
+            try:
+                vector, _ = await self.retriever.vector(rule.statement)
+                vectors[rule.rule_id] = vector
+            except Exception:
+                # 缺向量的规则直接跳过合并，保守保留，不因单个失败中断运行。
+                return
+
+        if rules:
+            await asyncio.gather(*(embed_one(r) for r in rules))
+        deduped = deduplicate_semantic(rules, vectors, threshold)
+        if len(deduped.rules) != len(rules):
+            merged_count = len(rules) - len(deduped.rules)
+            result = result.model_copy(
+                update={
+                    "rules": deduped.rules,
+                    "rule_mapping": {
+                        **result.rule_mapping,
+                        **{
+                            k: v
+                            for k, v in deduped.rule_mapping.items()
+                            if k != v
+                        },
+                    },
+                    "issues": result.issues
+                    + [
+                        issue(
+                            "validation",
+                            f"语义去重合并 {merged_count} 条近似规则，保留证据并集",
+                        )
+                    ],
+                }
+            )
+        return result
 
     async def _batches(
         self, requests: list[B], operation: Callable[[B], Awaitable[T]], stage: str
@@ -761,34 +811,83 @@ class Pipeline:
 
     @staticmethod
     def _tree(
-        run_id: str, checksum: str, extraction: Extraction, points: list[m.TestPoint]
+        run_id: str,
+        checksum: str,
+        extraction: Extraction,
+        points: list[m.TestPoint],
+        blocks: list[m.DocumentBlock],
     ) -> PointTree:
+        """按原文章节 heading_path 组织功能层级；同一路径复用节点，重复功能自然合并。
+
+        测试点经 rule→evidence→block 找到所在章节路径，挂到最深层分组下；
+        原文没有标题层级时回退到按功能名分组，保持扁平但可读。
+        """
         root = new_id("node")
         nodes = [PointNode(node_id=root, title="需求测试点", kind="group", order=0)]
-        assigned: set[str] = set()
-        for index, feature in enumerate(extraction.features):
-            group = new_id("node")
+        block_heading = {b.block_id: b.heading_path for b in blocks}
+        evidence_block = {e.evidence_id: e.block_id for e in extraction.evidence}
+        rule_evidence = {r.rule_id: r.evidence_ids for r in extraction.rules}
+        feature_name = {f.feature_id: f.name for f in extraction.features}
+        rule_feature = {r.rule_id: r.feature_id for r in extraction.rules}
+        path_nodes: dict[tuple[str, ...], str] = {(): root}
+        next_order: dict[str, int] = {root: 0}
+
+        def new_group(parent_id: str, title: str) -> str:
+            order = next_order.get(parent_id, 0)
+            node_id = new_id("node")
             nodes.append(
                 PointNode(
-                    node_id=group, parent_id=root, title=feature.name, kind="group", order=index
+                    node_id=node_id, parent_id=parent_id, title=title, kind="group", order=order
                 )
             )
-            rules = {r.rule_id for r in extraction.rules if r.feature_id == feature.feature_id}
-            for order, point in enumerate(
-                p for p in points if set(p.rule_ids) & rules and p.point_id not in assigned
-            ):
-                assigned.add(point.point_id)
-                nodes.append(
-                    PointNode(
-                        node_id=new_id("node"),
-                        parent_id=group,
-                        title=point.objective,
-                        kind="point",
-                        point_id=point.point_id,
-                        technique=point.technique,
-                        order=order,
-                    )
+            next_order[parent_id] = order + 1
+            next_order[node_id] = 0
+            return node_id
+
+        def ensure_group(path: tuple[str, ...]) -> str:
+            parent = root
+            prefix: tuple[str, ...] = ()
+            for title in path:
+                prefix = prefix + (title,)
+                node_id = path_nodes.get(prefix)
+                if node_id is None:
+                    node_id = new_group(parent, title)
+                    path_nodes[prefix] = node_id
+                parent = node_id
+            return parent
+
+        def point_path(point: m.TestPoint) -> tuple[str, ...]:
+            for rule_id in point.rule_ids:
+                for evidence_id in rule_evidence.get(rule_id, []):
+                    block_id = evidence_block.get(evidence_id)
+                    heading = block_heading.get(block_id, []) if block_id else []
+                    if heading:
+                        return tuple(heading)
+            for rule_id in point.rule_ids:
+                name = feature_name.get(rule_feature.get(rule_id, ""), "")
+                if name:
+                    return (name,)
+            return ()
+
+        assigned: set[str] = set()
+        for point in points:
+            if point.point_id in assigned:
+                continue
+            assigned.add(point.point_id)
+            parent = ensure_group(point_path(point))
+            order = next_order.get(parent, 0)
+            nodes.append(
+                PointNode(
+                    node_id=new_id("node"),
+                    parent_id=parent,
+                    title=point.objective,
+                    kind="point",
+                    order=order,
+                    point_id=point.point_id,
+                    technique=point.technique,
                 )
+            )
+            next_order[parent] = order + 1
         return PointTree(
             tree_id=new_id("tree"),
             version=1,

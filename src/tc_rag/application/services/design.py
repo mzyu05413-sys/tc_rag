@@ -1,5 +1,7 @@
 """证据核验、保守归并与确定性测试设计；无法确定的语义留待人工。"""
 
+import json
+import math
 import re
 from collections.abc import Sequence
 from decimal import Decimal, InvalidOperation
@@ -155,6 +157,92 @@ def reconcile(extractions: list[Extraction]) -> Extraction:
             )
             for rule in rules:
                 rule.status = "conflicting"
+    return merged
+
+
+def _cosine(a: Sequence[float], b: Sequence[float]) -> float:
+    """纯 Python 余弦相似度；为空或零向量时视为不可比（返回 -1）。"""
+    if len(a) != len(b) or not a:
+        return -1.0
+    dot: float = 0.0
+    for x, y in zip(a, b):
+        dot += x * y
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(x * x for x in b))
+    if na == 0 or nb == 0:
+        return -1.0
+    return dot / (na * nb)
+
+
+def _constraint_key(rule: RequirementRule) -> str | None:
+    """结构化约束严格规范化后作为分组键；None 与无约束区分开。"""
+    c = rule.structured_constraint
+    if c is None:
+        return None
+    return json.dumps(c.model_dump(mode="json"), sort_keys=True, ensure_ascii=False)
+
+
+def deduplicate_semantic(
+    rules: list[RequirementRule],
+    vectors: dict[str, list[float]],
+    threshold: float = 0.92,
+) -> Extraction:
+    """严格保守的语义重复合并。
+
+    仅在同功能、同规则类型、同结构化约束的规则之间比较 statement 向量相似度，
+    达到阈值才保留一条并合并证据并集；绝不合并状态为 ambiguous/conflicting 的
+    规则，也不跨功能或类型合并。输入向量缺失的规则不被合并，保留原样。
+    返回去重后的 Extraction，rule_mapping 记录被合并规则到保留规则的映射。
+    """
+    merged = Extraction()
+    # 分组：仅同键内才有合并可能，避免把不同适用条件的功能误判为等价。
+    groups: dict[tuple[str, str, str | None], list[RequirementRule]] = {}
+    for rule in rules:
+        key = (rule.feature_id, rule.kind, _constraint_key(rule))
+        groups.setdefault(key, []).append(rule)
+
+    final_rules: list[RequirementRule] = []
+    mapping: dict[str, str] = {}
+    for group in groups.values():
+        stable = sorted(group, key=lambda r: r.rule_id)
+        # 语义不确定或约束冲突的规则不参与合并，也不作为其他规则的合并目标。
+        excluded = {r.rule_id for r in stable if r.status in {"ambiguous", "conflicting"}}
+        representatives: list[RequirementRule] = []
+        for rule in stable:
+            if rule.rule_id in excluded:
+                representatives.append(rule)
+                mapping[rule.rule_id] = rule.rule_id
+                continue
+            vector = vectors.get(rule.rule_id)
+            if vector is None:
+                representatives.append(rule)
+                mapping[rule.rule_id] = rule.rule_id
+                continue
+            merged_into: RequirementRule | None = None
+            for rep in representatives:
+                if rep.rule_id in excluded:
+                    continue
+                rep_vector = vectors.get(rep.rule_id)
+                if rep_vector is None:
+                    continue
+                if _cosine(vector, rep_vector) >= threshold:
+                    merged_into = rep
+                    break
+            if merged_into is None:
+                representatives.append(rule)
+                mapping[rule.rule_id] = rule.rule_id
+            else:
+                combined = sorted(set(merged_into.evidence_ids) | set(rule.evidence_ids))
+                idx = representatives.index(merged_into)
+                representatives[idx] = merged_into.model_copy(
+                    update={"evidence_ids": combined}, deep=True
+                )
+                mapping[rule.rule_id] = merged_into.rule_id
+        final_rules.extend(representatives)
+
+    merged.rules = final_rules
+    merged.rule_mapping = mapping
+    # 证据、功能、实体保持原样：语义合并只变更规则，不删除仍可能被引用的证据。
     return merged
 
 

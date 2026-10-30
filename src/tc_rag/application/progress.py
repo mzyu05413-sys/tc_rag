@@ -29,6 +29,8 @@ class ProgressEvent:
     duration_ms: float = 0
     attempt: int = 0
     error: str | None = None
+    # 仅传递按输出契约过滤后的字段路径和错误类型，不携带模型输出值。
+    validation_errors: tuple[str, ...] = ()
     failed: int = 0
     cached: int = 0
     # pacing=本地请求间隔；cooldown=429/重试后的冷却。

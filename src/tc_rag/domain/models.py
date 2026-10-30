@@ -238,6 +238,8 @@ class ModelInvocation(DomainModel):
     usage: Usage = Field(default_factory=Usage)
     timing: Timing = Field(default_factory=Timing)
     error: str | None = None
+    # 适配器按契约过滤后的结构诊断；禁止包含响应正文或字段输入值。
+    validation_errors: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class BusinessEntity(DomainModel):

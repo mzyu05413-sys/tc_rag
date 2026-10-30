@@ -128,6 +128,10 @@ class Planning(Section):
         "permission",
     ]
     relation_enabled: bool = False
+    # 语义去重默认关闭：开启后会对规则 statement 编码向量并按相似度合并，属于
+    # 推断语义等价，会额外调用 embedding 并改变运行结果，须显式启用。
+    semantic_dedupe_enabled: bool = False
+    semantic_dedupe_threshold: float = Field(default=0.92, ge=0.5, le=1.0)
 
 
 class Generation(Section):

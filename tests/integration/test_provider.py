@@ -147,9 +147,16 @@ async def test_schema_repair_has_safe_field_details_without_echoing_invalid_cont
         return httpx.Response(200, json=completion(content))
 
     adapter = provider(handler, records)
+    events = []
+    adapter.progress = events.append
     try:
         await adapter.generate({"stage": "generate"}, CaseBatch)
         details = calls[1]["validation_errors"]
+        assert records[0].validation_errors == details
+        assert records[-1].validation_errors == []
+        repair_event = next(event for event in events if event.kind == "repair")
+        assert "cases: list_type" in repair_event.validation_errors
+        assert "private-" not in str(repair_event)
         assert {"path": ["cases"], "error": "list_type", "expected_type": "array"} in details
         assert any(
             item["path"] == ["<unknown_field>"]

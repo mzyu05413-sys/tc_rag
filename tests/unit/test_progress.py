@@ -5,7 +5,76 @@ import asyncio
 import pytest
 
 from tc_rag.application.progress import ProgressEvent, report
-from tc_rag.interfaces.progress import TerminalProgress
+from tc_rag.interfaces.progress import TerminalProgress, format_duration
+
+
+@pytest.mark.parametrize(
+    ("seconds", "expected"),
+    [(0, "0秒"), (0.00001, "<0.1毫秒"), (0.0123, "12.3毫秒"),
+     (0.49, "490.0毫秒"), (2, "2秒"), (65, "1分5秒")],
+)
+def test_duration_preserves_subsecond_precision(seconds, expected):
+    assert format_duration(seconds) == expected
+
+
+def test_batch_updates_are_throttled_but_completion_and_repair_are_immediate(monkeypatch, capsys):
+    clock = [0.0]
+    monkeypatch.setattr("tc_rag.interfaces.progress.perf_counter", lambda: clock[0])
+    reporter = TerminalProgress()
+    assert reporter.interval == 20
+    reporter(ProgressEvent("stage", "extract"))
+    reporter(ProgressEvent("batch_started", "extract", current=1, total=15))
+    for completed in range(1, 15):
+        clock[0] = float(completed)
+        reporter(ProgressEvent("batch_completed", "extract", completed=completed, total=15))
+    assert "· 进度" not in capsys.readouterr().err
+    clock[0] = 20.0
+    reporter(ProgressEvent("batch_completed", "extract", completed=14, total=15))
+    reporter(ProgressEvent("repair", "extract", attempt=1,
+                           validation_errors=("rules.0.kind: literal_error",)))
+    clock[0] = 20.1
+    reporter(ProgressEvent("batch_completed", "extract", completed=15, total=15))
+    output = capsys.readouterr().err
+    assert output.count("· 进度") == 2
+    assert "14/15" in output and "15/15" in output
+    assert "rules.0.kind: literal_error" in output
+
+
+def test_fast_stage_finish_displays_measured_milliseconds(monkeypatch, capsys):
+    clock = [10.0]
+    monkeypatch.setattr("tc_rag.interfaces.progress.perf_counter", lambda: clock[0])
+    reporter = TerminalProgress()
+    reporter(ProgressEvent("stage", "parse"))
+    clock[0] += 0.125
+    reporter(ProgressEvent("stage", "chunk"))
+    assert "解析文档｜用时 125.0毫秒" in capsys.readouterr().err
+    assert reporter.history[0][2] == 0.125
+
+
+@pytest.mark.asyncio
+async def test_heartbeat_reschedules_after_batch_update(monkeypatch, capsys):
+    clock = [0.0]
+    monkeypatch.setattr("tc_rag.interfaces.progress.perf_counter", lambda: clock[0])
+    reporter = TerminalProgress()
+    reporter(ProgressEvent("stage", "extract"))
+    sleeps = []
+
+    async def sleep(delay):
+        sleeps.append(delay)
+        if len(sleeps) == 1:
+            # 心跳等待期间在第 5 秒有一条进度更新，原第 20 秒应跳过。
+            reporter.last_update = 5.0
+            clock[0] = 20.0
+        elif len(sleeps) == 2:
+            clock[0] += delay
+        else:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr("tc_rag.interfaces.progress.asyncio.sleep", sleep)
+    with pytest.raises(asyncio.CancelledError):
+        await reporter._heartbeat()
+    assert sleeps == [20, 5, 20]
+    assert capsys.readouterr().err.count("[等待]") == 1
 
 
 @pytest.mark.asyncio

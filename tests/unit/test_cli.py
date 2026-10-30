@@ -22,6 +22,19 @@ def test_help():
         assert command in result.output
 
 
+def test_doctor_reports_invalid_field_without_config_values(tmp_path):
+    config = tmp_path / "invalid.yaml"
+    secret = "private-config-value-must-not-appear"
+    config.write_text(
+        f"runtime:\n  chunk_failure_policy: {secret}\n", encoding="utf-8"
+    )
+    result = runner.invoke(app, ["doctor", "--config", str(config)])
+    assert result.exit_code == 2
+    assert "runtime.chunk_failure_policy" in result.output
+    assert "当前版本不支持此字段，请删除" in result.output
+    assert secret not in result.output
+
+
 def test_no_args_prints_help_when_not_interactive():
     result = runner.invoke(app, [])
     assert result.exit_code == 0

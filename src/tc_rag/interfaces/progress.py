@@ -79,20 +79,22 @@ for _code in range(1316, 1322):
 
 def format_duration(seconds: float) -> str:
     """把秒数转成用户可读的时长，避免长任务只显示大数字。"""
+    if 0 < seconds < 1:
+        return f"{seconds * 1000:.1f}毫秒" if seconds >= 0.0001 else "<0.1毫秒"
     total = max(0, int(round(seconds)))
     minutes, secs = divmod(total, 60)
     return f"{minutes}分{secs}秒" if minutes else f"{secs}秒"
 
 
 class TerminalProgress:
-    def __init__(self, *, interval: float = 10, stage_total: int | None = None) -> None:
+    def __init__(self, *, interval: float = 20, stage_total: int | None = None) -> None:
         self.interval = interval
         self.stage_total = stage_total
         self.stage = ""
         self.started = perf_counter()
         self.stage_started = self.started
+        self.last_update = self.started
         self.completed = self.total = self.active = 0
-        self.report_every = 1
         self.task: asyncio.Task[None] | None = None
         self.run_started = self.started
         self.stage_number = 0
@@ -153,12 +155,12 @@ class TerminalProgress:
             self._finish_stage()
             self.stage, self.started = event.stage, perf_counter()
             self.stage_started = self.started
+            self.last_update = self.started
             self.completed = self.total = self.active = 0
             self.retrieved = self.reranked = self.fallbacks = 0
             self.rerank_disabled = False
             self.pacing_warned = False
             self.cached = self.retries = self.repairs = 0
-            self.report_every = 1
             if event.stage in CONTROL_STAGES:
                 # completed 后仍有 manifest 等收尾操作，整体成功在上下文正常退出后显示。
                 if event.stage == "points_ready":
@@ -179,13 +181,12 @@ class TerminalProgress:
         elif event.kind == "batch_started":
             if event.total != self.total:
                 self.total = event.total
-                # 批次很多时只报告里程碑，避免刷屏。
-                self.report_every = max(1, event.total // 10)
             if event.current == 1:
                 message = f"       · 共 {event.total} 批，开始处理"
         elif event.kind == "batch_completed":
             self.completed, self.total = event.completed, event.total
-            if self.completed == self.total or self.completed % self.report_every == 0:
+            if self.completed == self.total or perf_counter() - self.last_update >= self.interval:
+                self.last_update = perf_counter()
                 percent = self.completed / self.total * 100 if self.total else 0
                 if self.total >= 10:
                     message = (
@@ -239,8 +240,12 @@ class TerminalProgress:
             )
         elif event.kind == "image_completed":
             self.completed, self.total = event.completed, event.total
-            step = max(1, self.total // 10) if self.total else 1
-            if self.completed == self.total or self.completed % step == 0:
+            if (
+                self.completed == self.total
+                or event.error
+                or perf_counter() - self.last_update >= self.interval
+            ):
+                self.last_update = perf_counter()
                 outcome = "失败，已列为待确认" if event.error else "成功"
                 if event.error in VISION_ERRORS:
                     outcome = VISION_ERRORS[event.error] + "，失败，已列为待确认"
@@ -262,6 +267,8 @@ class TerminalProgress:
                 f"[{label}] 返回结构不合要求，正在进行第 {event.attempt} 次结构修复",
                 "33",
             )
+            for detail in event.validation_errors[:3]:
+                message += f"\n       · 校验：{detail}"
         elif event.kind == "cache":
             # 命中很多时逐批输出会刷屏，统一进入心跳和阶段汇总。
             self.cached += 1
@@ -271,9 +278,17 @@ class TerminalProgress:
 
     async def _heartbeat(self) -> None:
         while True:
-            await asyncio.sleep(self.interval)
+            # 批次事件也会更新时间；按最近一次普通更新计算下次唤醒，
+            # 避免固定周期跳过后变成接近 40 秒才显示一次。
+            delay = self.interval
+            if self.stage not in {"", "completed", "points_ready"}:
+                delay = max(0, self.interval - (perf_counter() - self.last_update))
+            await asyncio.sleep(delay)
             if self.stage in {"", "completed", "points_ready"}:
                 continue
+            if perf_counter() - self.last_update < self.interval:
+                continue
+            self.last_update = perf_counter()
             label = STAGE_NAMES.get(self.stage, "处理中")
             unit = "张图片" if self.stage == "vision" else "批"
             if self.total:
