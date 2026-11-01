@@ -37,6 +37,21 @@ float64 数值，`query_vectors.npy` 保留查询缓存的 float64 数值。它�
 `prepare_retrieval.py` 只负责材料准备，不计算完整评分与性能结果；不能把导出材料写成实验完成。
 目录中的其他实验脚本属于独立入口，指标、标注和真实采集需分别按其使用说明验收。
 
+## 工具目录与依赖边界
+
+Python 脚本仍保留原入口，避免已有实验命令失效；网页静态资源集中到 `templates/`。
+
+| 类别 | 文件 | 用途 |
+|---|---|---|
+| 材料准备 | `prepare_retrieval.py`、`resample_raw_vectors.py` | 导出已保存事实；真实重采向量需另行授权 |
+| 评分与算法对照 | `run_eval.py`、`run_experiments.py`、`experiment_metrics.py` | 按对应金标格式计算指标，不把部分候选标注当成完整金标 |
+| 历史重排审核 | `reviewed_rerank.py` | 保留未知项并按可确定查询配对评分 |
+| 后端测量 | `e3_bench.py`、`verify_e3.py` | NumPy/可选 FAISS 对照；e3_bench 还直接使用 psutil，当前主依赖清单未声明，不属于默认可保证运行的核心入口 |
+| 标注页面 | `build_annotation_ui.py`、`templates/annotation_ui.html` | 生成含私有材料的离线标注页面 |
+| 标签转换 | `expand_group_labels.py` | 分组标签展开；正式评分前核对审核范围与未知项是否保留 |
+
+真实材料、网页产物、人工标签、评分和向量矩阵均放 `workdir/dev/`，不放本目录或提交 Git。
+
 ## 本地网页标注
 
 已有分组标注可生成单文件页面，不安装前端依赖，不连接模型或外部网站：
@@ -85,8 +100,8 @@ Hit@5 可由已知正例确定；MRR@10 要求首个正例之前无未知项；n
 
 首次配置可将 `workdir/local.example.yaml` 复制为 `workdir/local.yaml`，示例不会自动加载。
 真实密钥只填 local.yaml；不要覆盖已存在配置，也不要移动数据库、资产和索引。
-`parsing.infer_docx_headings` 默认 false；`export.point_tree_layout` 默认为 feature，可选 chapter。
-后者仍保留状态、业务维度、功能和全部测试点，只增加原文章节层级。
+`parsing.infer_docx_headings` 默认 false；`export.point_tree_layout` 默认为 `module`，可选 `feature`、`chapter`。
+module 按原文章节/模块、维度、功能组织并保留状态标签；旧布局保留状态分组。三者均输出全部保存的测试点。
 修改影响解析或目录结果的配置后，须按运行快照兼容规则重新运行，不能强制让旧结果对应新配置。
 
 离线回归覆盖完整材料包导出、源库不变、缺失/损坏拒绝、查询重建和禁止覆盖标注；

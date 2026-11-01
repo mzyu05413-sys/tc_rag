@@ -2,7 +2,7 @@
 
 核对日期：2026-10-31。图集来自本轮评审的远端 main 提交
 `ffb93dbad94760dafed2d6f50d48839cbae113b3`，已按本地契约校正。
-打开 [五页 Draw.io 架构图](tc_rag_architecture_atlas.drawio)，可查看分层、完整流程、
+打开 [五页 Draw.io 架构图](../diagrams/tc_rag_architecture_atlas.drawio)，可查看分层、完整流程、
 两轮检索、证据链及并发/缓存/失败处理；现有 [交互图集](../diagrams/README.md) 继续保留。
 
 | 图中位置 | 本地核对结果 |

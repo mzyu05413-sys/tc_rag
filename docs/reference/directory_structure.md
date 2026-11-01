@@ -14,12 +14,12 @@ RAG/
 ├─ AGENTS.md                  Codex 开发协作约定
 ├─ config/                    公共默认配置和示例，不放真实密钥
 ├─ requirements/              运行、开发、可选依赖及用途
-├─ prompts/                   各阶段的版本化提示词
+├─ prompts/                   生效阶段提示词；candidates/ 为未启用草案
 ├─ src/tc_rag/                框架代码
 ├─ tests/                     自动化测试代码
 ├─ docs/                      架构、开发指南、学习和参考资料
 ├─ scripts/                   可复用的开发辅助脚本
-├─ eval/                      评估入口与离线检索材料准备，见该目录 README
+├─ eval/                      实验脚本与标注页模板 templates/；私有数据放 workdir/dev
 ├─ workdir/                   本机配置、业务/开发数据；仅无密钥 local.example.yaml 可进 Git
 ├─ .venv/                     Python 虚拟环境
 ├─ pyproject.toml             项目、依赖和检查工具配置
@@ -30,6 +30,31 @@ RAG/
 不属于业务流程。pytest、Ruff 和 mypy 的默认缓存已经集中到 `workdir/dev/cache/`。
 本机原有根目录 `.pytest_cache/` 因系统访问权限限制保留原位，后续默认测试使用新缓存目录。
 
+## 文档、提示词与评估工具的归类
+
+```text
+docs/
+├─ README.md           总导航
+├─ design/             架构设计与分阶段开发指南
+├─ learn/              P0/P1/P2 学习资料
+├─ reference/          当前运行、契约、目录、提示词、计时说明
+├─ diagrams/           图集、查看器与唯一当前 Draw.io
+│  └─ archive/         同名旧图归档，不作为当前说明
+└─ reviews/            按日期保存质量评估、变更采纳和核对记录
+
+prompts/
+├─ <stage>/<version>.md  已发布的阶段资源，装配版本由 bootstrap 决定
+└─ candidates/v3/        未装配、未打包的候选草案
+
+eval/
+├─ *.py                 保留兼容命令入口的实验脚本
+└─ templates/           静态标注页模板，不放真实标注产物
+```
+
+2026-11-01 仅整理上述可维护资料；同名 Draw.io 内容不同，因此保留旧版归档而不删除。
+移动清单见 [本轮评估](../reviews/quality_review_20261101.md)。
+已有 `workdir` 运行路径、配置、数据库和输出均不移动，隐藏工具配置也不按名称擅自删除。
+
 ## workdir：日常运行与开发资料
 
 下面展示的是目录约定；`indexes/`、`output/` 等会在执行到对应阶段后生成。
@@ -38,7 +63,7 @@ RAG/
 workdir/
 ├─ local.yaml                 唯一默认本地配置，模型与密钥填这里
 ├─ local.example.yaml         可跟踪的无密钥示例，不自动加载，不覆盖现有 local.yaml
-├─ data.sqlite                文档、证据、规则、审核、用例和运行记录
+├─ data.sqlite                文档、证据、规则、用例与运行记录及历史兼容事实
 ├─ data.sqlite-wal            SQLite 日志文件，运行时可能出现
 ├─ data.sqlite-shm            SQLite 共享内存文件，运行时可能出现
 ├─ assets/                    原始文档副本及提取图片

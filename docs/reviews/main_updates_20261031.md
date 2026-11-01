@@ -19,7 +19,7 @@
 | Excel 追溯与质量说明 | `src/tc_rag/infrastructure/exporters/reports.py` | 主表十一列及中文摘要保留；新增用例追溯与质量说明，区分自身风险和共享来源问题 |
 | 离线材料准备 | `eval/prepare_retrieval.py`、`eval/README.md` | 只读一致事务、缓存/索引/空间/查询指纹核验、不覆盖标注；导出材料不等于实验评分 |
 | 无密钥配置示例 | `workdir/local.example.yaml`、`.gitignore`、`config/defaults.yaml`、`config/example.yaml` | 仅无密钥示例可跟踪，真实配置与运行数据继续忽略；默认不开启标题推断或章节布局 |
-| 架构图与契约说明 | `docs/reference/tc_rag_architecture_atlas.drawio`、`architecture_atlas_review.md`、`contracts.md`、`timing.md` | 五页原生图已按全量 XMind、诊断快照与有界修复校正，客户端排版待核对 |
+| 架构图与契约说明 | `docs/diagrams/tc_rag_architecture_atlas.drawio`、`architecture_atlas_review.md`、`contracts.md`、`timing.md` | 五页原生图已按全量 XMind、诊断快照与有界修复校正，客户端排版待核对 |
 | 文档入口 | `README.md`、`docs/design/`、`docs/reference/full_run_walkthrough.md`、`directory_structure.md`、`docs/learn/P1/13_终端交互与调试.md` | 首次配置、开关、字段诊断与当前流程一致，不恢复代码输入、OCR 或人工审核门禁 |
 
 这里 `application/`、`domain/`、`core/`、`interfaces/` 的省略路径均位于 `src/tc_rag/` 下。

@@ -6,7 +6,7 @@
 
 输入需求文档路径和提示词，经过解析、提炼、向量检索和增强规划测试点，
 随即结合用例 Skill 与 RAG 上下文生成用例，同目录输出 XMind 和 Excel。
-中间无需人工审核；XMind 展示全部测试点，按状态、业务维度和功能分组，不包含用例步骤和预期；Excel 展示实际生成的详细用例。
+中间无需人工审核；XMind 展示策略处理后保存的全部测试点，默认按模块/章节、业务维度和功能分组，点状态以标签保留，不包含用例步骤和预期；Excel 展示实际生成的详细用例。
 所有正式生成共用下面的流程。阶段是开发顺序，不能当作独立运行方案。
 输入只保留需求 PDF/DOCX；原文、表格及图片解释参与证据与检索，不再读取代码仓库或建立代码参考索引。
 
@@ -44,7 +44,7 @@ flowchart TD
 | 批量、并发调用向量模型 | `providers/embedding.py`、`bootstrap.py` | 支持批量、并发、响应顺序校验、维度校验和缓存；生成与向量请求共用预算 |
 | 向量库、ID 与功能/原文映射 | `retrieval/context.py`、`index.py`、`faiss_index.py`、SQLite | 默认 NumPy，可选 FAISS；有效证据和原文区间入索引，功能经规则和证据引用追溯，不另造一套事实文件 |
 | 查找相关功能上下文 | `Pipeline._supplement()`、`RagContext.retrieve()` | 遍历功能对应的规则批次和测试点批次；查询向量化后召回相关证据，业务关系图仍待后续确认 |
-| rerank 模型 | `providers/rerank.py` | HTTP 重排能力保留；开启后重排召回候选，失败有降级记录；默认关闭以待实际评估 |
+| rerank 模型 | `providers/rerank.py` | HTTP 重排能力保留；按 `models.rerank.enabled` 启用，失败有降级记录；是否有业务增益须评估 |
 | 距离、余弦、math/NumPy 批量算法 | `retrieval/metrics.py`、`scripts/bench_similarity.py` | 保留 math/NumPy 余弦、平方 L2、内积，以及排序方向与跨后端验证 |
 | 通用耗时装饰器与每次匹配耗时 | `infrastructure/runtime/timer.py`、`retrieval/context.py` | 保留同步/异步计时；每次查询记录向量化、搜索、重排及上下文耗时 |
 | 框架化、配置化 | `application/ports/`、`core/config.py`、`bootstrap.py` | 端口替换外部实现；模块开关只调整同一 RAG 流程 |
@@ -80,7 +80,7 @@ flowchart TD
 .\.venv\Scripts\python.exe -m tc_rag.interfaces.cli start
 ```
 
-输入路径与提示词，等待连续完成。也可以直接给参数：
+交互入口只输入路径，使用默认生成目标；自定义目标通过 `run -i` 指定：
 
 ```powershell
 .\.venv\Scripts\python.exe -m tc_rag.interfaces.cli run "需求.docx" -i "覆盖正常、异常和边界，依据需求生成测试用例" --config workdir/local.yaml --output-dir workdir/output
@@ -90,7 +90,7 @@ flowchart TD
 
 ```text
 运行ID/
-├─ testpoints_需求名.xmind  全部测试点及状态、维度和功能分组
+├─ testpoints_需求名.xmind  全部保存点；默认模块/维度/功能，状态标签保留
 ├─ testcases_需求名.xlsx    十一列详细用例，以及测试点、规则、覆盖和问题附表
 ├─ testcases.json        可选结构化产物
 ├─ report.md             可选可读报告

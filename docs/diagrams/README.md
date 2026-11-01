@@ -1,8 +1,8 @@
 # 项目架构与流程图集
 
-[文档入口](../README.md) · [完整运行说明](../full_run_walkthrough.md) · [打开交互图集](index.html)
+[文档入口](../README.md) · [完整运行说明](../reference/full_run_walkthrough.md) · [打开交互图集](index.html)
 
-本图集依据 **2026-10-29 当前工作区源码**绘制，表达已实现行为。源码与旧设计文档有差别时，以当前实现为准；图示不代表真实模型和业务质量已验收。
+Mermaid / SVG / 离线 HTML 是 **2026-10-29 版本的流程概览**；当前可编辑 Draw.io 采用 **2026-10-31 核对版**，旧同名文件已放入 [archive](archive/README.md)。各格式并非逐字同步的新版本。最新图片点策略、模块默认布局与有限覆盖补生成以 [运行说明](../reference/full_run_walkthrough.md) 为准。源码与旧设计文档有差别时，以当前实现为准；图示不代表真实模型和业务质量已验收。
 图表不含密钥、私有服务地址、真实需求内容或运行数据库数据。
 
 ## 怎样查看
@@ -12,7 +12,7 @@
 | 图 | 重点内容 | 查看 / 导入 | 可维护源码 |
 |---|---|---|---|
 | 01 分层架构 | CLI、配置、装配、application / domain / infrastructure、端口与实际依赖 | [SVG](01_architecture.svg) | [Mermaid](01_architecture.mmd) |
-| 02 完整流程 | 文档接入、图文分离、提炼、可选代码、两轮 RAG、校验与联合导出 | [SVG](02_workflow.svg) | [Mermaid](02_workflow.mmd) |
+| 02 完整流程 | 文档接入、图文分离、提炼、两轮 RAG、校验与联合导出 | [SVG](02_workflow.svg) | [Mermaid](02_workflow.mmd) |
 | 03 RAG 展开 | 索引材料、向量缓存、空间、召回、RRF、重排、核心 / 补充证据上下文 | [SVG](03_rag.svg) | [Mermaid](03_rag.mmd) |
 | 04 证据与数据流 | 原件 → 区间 → 证据 → 规则 → 点 → 用例步骤 → 覆盖与风险 → 派生视图 | [SVG](04_traceability.svg) | [Mermaid](04_traceability.mmd) |
 | 05 调度与失败处理 | 有界工人、缓存、HTTP 重试、Schema 修复、批次二分、各模型失败策略 | [SVG](05_reliability.svg) | [Mermaid](05_reliability.mmd) |
@@ -58,13 +58,14 @@ Boardmix 官方帮助说明支持直接拖入 SVG，见 [导入说明](https://b
 | 规划 / 生成候选重排 | `models.rerank`，按开关 | HttpReranker；失败沿用召回顺序 |
 | RAG 测试点规划 | `models.llm` | 与提炼共用生成配置，检索后补充意图 |
 | RAG + Skill 生成用例 | `models.llm` | Skill 是提示词规范，不执行脚本或写 Excel |
-| 用例校验、覆盖统计、XMind / Excel 导出 | 不调用模型 | design、ReportExporter、XMindAdapter |
+| 用例校验与覆盖 | 主要为本地逻辑 | 覆盖缺口触发有限补生成时再次检索并调用模型 |
+| XMind / Excel 导出 | 不调用模型 | ReportExporter、XMindAdapter |
 
 ## 需要按当前实现理解的边界
 
 1. 主线始终经过 RAG，不存在无检索生成回退，也没有中间人工审批或 XMind 回读。
 2. SQLite 是唯一结构化事实源；XMind、Excel、JSON / Markdown 和索引是派生视图或产物。
-3. XMind 展示全部测试点，默认按“模块/章节 → 业务维度 → 功能 → 目标”组织，含待澄清；Excel 展示实际生成的用例，两者数量不要求一致。
+3. XMind 展示策略处理后保存的全部测试点，默认按“模块/章节 → 业务维度 → 功能 → 目标”组织，以标签保留待补充/待澄清等状态；Excel 展示实际用例，两者数量不要求一致。
 4. 没有就绪点也可能正常完成导出，此时 Excel 可只有表头，不能把文件存在当成有效覆盖。
 5. 需求索引材料含有效引文及 Chunk 原文区间；检索限制在当前文档版本，不是自动查询全库历史需求。
 6. 两轮分别用规则陈述与测试点目标查询；直接证据按规则加载，补充资料不能覆盖原文事实。
@@ -87,7 +88,7 @@ Boardmix 官方帮助说明支持直接拖入 SVG，见 [导入说明](https://b
 
 修改流程或契约时，同步维护对应 `.mmd`，并重新导出 SVG / Draw.io，避免同名图的内容分叉。
 
-## 本次验证
+## 历史图集生成验证（2026-10-29，不代表本轮重测）
 
 - 五张 Mermaid 均使用本地渲染器实际生成 SVG，XML 结构、文字、图形尺寸检查通过；没有 HTML `foreignObject` 标签。
 - 离线浏览器实测五图切换、图片加载、源码展示、放大、100% 与整图适应均通过，JavaScript 语法检查通过。

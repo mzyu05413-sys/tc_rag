@@ -2,7 +2,7 @@
 
 [参考导航](README.md) · [项目 README](../../README.md) · [交互图集](../diagrams/index.html) · [领域契约](contracts.md) · [目录职责](directory_structure.md)
 
-更新日期：2026-10-29。本文依据当前实现，框架只以 PDF/DOCX 需求文档为输入，连续完成提炼、检索、规划、生成、校验和联合导出。项目代码读取与 UI 参考支路已删除。
+更新日期：2026-11-01。本文依据当前实现，框架只以 PDF/DOCX 需求文档为输入，连续完成提炼、检索、规划、生成、校验和联合导出。项目代码读取与 UI 参考支路已删除。
 历史运行保留在文末，与当前流程、模型配置及验收结果分开阅读。
 
 ## 1. 启动与配置
@@ -50,7 +50,8 @@ CLI 先选择一份配置：显式 `--config` → `workdir/local.yaml` → `conf
 | 候选重排 | `models.rerank`，按开关 | HttpReranker；失败记录 fallback，沿用召回顺序 |
 | 第一轮检索后的测试点规划 | `models.llm` | 在程序基础点上补充测试意图，输出 PointBatch |
 | 第二轮检索与 Skill 之后生成用例 | `models.llm` | 输出 CaseBatch；同提炼、规划共用一个生成端点配置 |
-| 引用核验、覆盖、导出 | 不调用模型 | 本地领域与应用逻辑；导出器负责 XMind / Excel / 报告 |
+| 引用核验与覆盖 | 主要为本地逻辑 | 对覆盖缺口有限补生成时，再次检索并调用生成模型 |
+| 导出 | 不调用模型 | 导出器负责 XMind / Excel / 报告 |
 
 生成与 embedding 是主线必需能力，视觉和重排按配置启用。索引或检索失败就停止，不切换为无检索生成。
 配置声明和自动校验不证明供应商效果、业务语义或账户可用性；真实模型验收须单独授权。
@@ -89,7 +90,7 @@ SQLite 是结构化事实源；原件和图片为资产，向量索引及导出�
 | 6 | `plan_points` | 本地基础点 + 第一轮 RAG → 全部测试点与 PointTree | Embedding / 可选 Rerank / LLM |
 | 7 | `index` | 核验并准备第二轮检索输入；符合条件时复用 | Embedding 缺失时 |
 | 8 | `generate` | 就绪点 + 第二轮 RAG + Skill → 用例批次 | Embedding / 可选 Rerank / LLM |
-| 9 | `validate` | 引用、步骤、边界、风险校验 → 有效用例、覆盖和问题 | 无 |
+| 9 | `validate` | 引用、步骤、边界、风险与覆盖检查；必要时有限补生成 → 有效用例、覆盖和问题 | 通常本地；补生成使用 Embedding / 可选 Rerank / LLM |
 | 10 | `export_cases` | SQLite 事实 → 联合 XMind / Excel 及报告 | 无 |
 
 Pipeline.generate 调用 `points(publish=False)` 保存测试点事实后直接进入 `cases()`，不从 XMind 回读，也不生成批准记录。
@@ -107,6 +108,21 @@ Vision 仅处理已提取图片。缓存命中不重复请求，失败图片记�
 边界点由本地 `boundary_values()` 推导：明确“整数个数最多 300”时分别生成 **299 / 300 / 301**，不合成一个点或一条边界用例。
 缺少可靠精度、单位或适用条件时不猜测。模型补充的 boundary 点不代替程序边界；其他补点仍需核验规则范围和数量上限。
 仅文案或实现细节未明确时，不必一律阻断为待澄清；真正缺少可执行点所必需的参数时记录缺口，按当前规划提示词处理。
+
+### 4.1 分块与图片点策略
+
+当前仅实现 `chunking.strategy=structural`。章节路径限定组合范围，以完整段落/表格行为基本单位，
+默认 `target_tokens=900`、`overlap_tokens=100` 为近似预算，不是每 900 字符硬切。
+显式条件/例外尽量与相邻内容保持关联；超长完整段落保留并告警，孤立大表按行拆分并重复首行。
+字符区间和 Locator 保留，结构合理仍不代表所有语义关系都已识别。
+
+`planning.ui_display_policy=merge` 默认合并同功能的纯图片界面展示点。
+`planning.vision_policy=aggregate` 默认将普通纯图片点移出点列表、按功能记录待补充文字依据的信息问题；
+展示汇总点仍保留，纯图片边界点保留但设为 `needs_context + undetermined`。
+`downgrade` 保留普通纯图片点并降为待补上下文，已有待澄清/不适用状态保留；`keep` 保留原点。
+因此“全部测试点”指策略处理后持久化的点，不包含被汇总掉的所有候选。
+四种点状态为 `ready`、`needs_context`、`needs_clarification`、`not_applicable`，
+只有 `ready` 且 `applicable` 才进入用例生成。
 
 ## 5. 事实流转与两轮 RAG
 
@@ -163,8 +179,10 @@ Rerank 只重排前 `rerank_top_n` 个候选，其余接在后面；失败记录
 
 <a id="26-内置-v1-提示词修订记录"></a>
 
-六阶段统一装载 `prompts/<stage>/v1.md`：`extract`、`plan_points`、`generate`、`rag_context`、`vision`、`case_skill`。
-用户此前授权的 v1 精简、空值与最短引文规范保留；运行 manifest 记录实际组合文本指纹，仅看 v1 名称不能判断输入一致。
+`bootstrap.PROMPT_VERSIONS` 当前选择 `extract/v2.md`、`plan_points/v2.md`、`generate/v2.md`，
+以及 `rag_context/v1.md`、`vision/v1.md`、`case_skill/v1.md`。
+运行 manifest 记录实际组合文本指纹，仅看版本名称不能判断输入一致。
+`prompts/candidates/v3/` 是未启用的候选草案，不会自动替代生效版本。
 版本修订记录见[提示词参考](prompt_versions.md)。
 
 `bootstrap.py` 将 rag_context 追加到规划与生成，将 case_skill 追加到生成。`--skill-file` 或 `generation.skill_file` 可追加非空 UTF-8 Markdown，最大 256 KiB。
@@ -223,11 +241,12 @@ Skill 只约束命名、步骤、粒度、优先级和内容表达，不执行�
 ## 8. 输出和数量解释
 
 `parsing.infer_docx_headings` 默认 false：启用后补认整段大字号粗体短标题，保留显式 Heading 父层级，
-推断会记录提醒，不修改原文和定位。`export.point_tree_layout` 默认 feature，chapter 在状态/业务维度与
-功能之间补充共同章节；跨章与未定位情况单列，仍输出所有点，包括待澄清点。
+推断会记录提醒，不修改原文和定位。`export.point_tree_layout` 默认 `module`：按原文章节/模块 → 业务维度 → 功能 → 目标组织，
+无定位回退功能，跨模块单列，状态保留为点标签；`feature` 采用状态 → 维度 → 功能，`chapter` 在其功能层之前补共同章节。
+三种布局都保留策略处理后保存的全部点，包括待补上下文、待澄清与不适用点。
 启用影响解析或目录的开关后应新建运行。Excel 仍以十一列主表展示实际用例，新增“用例追溯”与
 “质量说明”附表，区分自身具体风险、共享需求问题及通用语义复核提醒。
-本轮变更、兼容边界与审核清单见 [更新采纳记录](main_updates_20261031.md)。
+本轮变更、兼容边界与审核清单见 [更新采纳记录](../reviews/main_updates_20261031.md)。
 
 ```text
 workdir/
@@ -248,10 +267,10 @@ XMind / Excel 联合导出；JSON / Markdown 按 export.formats 控制。质量�
 文件名取登记的文档名并去除非法字符、限制长度；同内容复用首次文档登记时可能沿用原名称。
 已有成功 cases_output 后再次生成使用 `<run_id>/batch_.../`；此前导出中途失败时不保证自动另建目录。
 
-- **XMind**：全部规划点，按“状态 → 业务维度 → 功能 → 目标”组织，含待澄清 / 不适用，叶子绑定 point_id，不包含完整步骤，不回读。
+- **XMind**：策略处理后保存的全部规划点；默认按模块/章节组织，其他布局见上文。叶子绑定 point_id，保留状态标签，不包含完整步骤，不回读。
 - **Excel**：实际保留的用例。主表“模版”十一列及测试点、规则、覆盖、问题附表由导出器排版，不由模型写文件。
 - **四类计数**：points_total 是全部点；points_ready 同时 ready/applicable；points_with_cases 是有效用例覆盖的去重点数；cases 是实际用例数。不能相互当作百分之百覆盖。
-- 没有就绪点或全部用例被校验拒绝时，仍可能导出 XMind 与仅表头 Excel，并登记缺口；有 Issue 可标记 partial_failed，文件存在不代表业务验收通过。
+- 没有就绪点或全部用例被校验拒绝时，仍可能导出 XMind 与仅表头 Excel，并登记缺口；有未关闭 warning/error Issue 时标记 partial_failed；仅 info 不必然触发，文件存在不代表业务验收通过。
 
 ## 9. 查询、恢复和离线重导
 
@@ -319,9 +338,10 @@ evaluate 需要人工规则 / 相关性标注，默认不调用模型；具体�
 
 ## 12. 验证与代码入口
 
-2026-10-29 本轮默认离线检查：**390 passed，2 skipped**；`ruff check .` 通过，`mypy src` 通过（54 个源文件）。
-两项跳过均未计为通过。验证覆盖需求两轮 RAG、联合导出、旧配置拒绝、历史查询及离线重导；未调用真实模型。
-五张 Mermaid 已重新生成 SVG / Draw.io，离线浏览器切图、缩放、源码展示和图形结构检查通过；未在 Boardmix 账号内验证导入。
+2026-11-01 改动前后默认离线检查均为 **628 passed，2 skipped**；`ruff check .` 通过，`mypy src` 严格检查通过（57 个源文件）。
+当前风险、整改与检查证据见 [质量评估](../reviews/quality_review_20261101.md)。
+两项跳过为未安装可选 jieba 的测试和显式启用的 live 测试，均未计为通过。验证覆盖需求两轮 RAG、联合导出、旧配置拒绝、历史查询及离线重导；未调用真实模型。
+图集的 SVG / 浏览器交互验证属于 2026-10-29 历史记录，本轮未重新渲染或验证客户端；当前 Draw.io 采用 2026-10-31 核对版，未在 Boardmix 账号内验证导入。
 
 | 代码 | 阅读重点 |
 |---|---|

@@ -107,7 +107,8 @@ def build_payload(labels_dir: Path, dataset: Path | None = None) -> dict[str, An
 
 def render_page(payload: dict[str, Any], template: Path | None = None) -> str:
     """数据只作为 JSON 和纯文字呈现，原文中的 HTML/脚本不允许执行。"""
-    source = (template or Path(__file__).with_name("annotation_ui.html")).read_text(
+    # 默认模板与 Python 入口分开存放；显式传入的模板路径仍优先。
+    source = (template or Path(__file__).parent / "templates" / "annotation_ui.html").read_text(
         encoding="utf-8"
     )
     marker = "__ANNOTATION_DATA__"

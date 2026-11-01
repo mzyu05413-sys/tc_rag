@@ -6,9 +6,10 @@
 - [领域契约](contracts.md)：字段、来源、状态、引用、审核和向量记录约定。
 - [计时与指标](timing.md)：装饰器、并发统计及实际阶段/检索耗时口径。
 - [提示词版本](prompt_versions.md)：提炼、检索增强、生成、视觉提示词及审计约束。
-- [五页 Draw.io 架构图](tc_rag_architecture_atlas.drawio)及[核对记录](architecture_atlas_review.md)：按当前全量测试点与诊断契约校正的原生图。
-- [2026-10-31 更新采纳与故障修复](main_updates_20261031.md)：改动文件、离线验证及审核重点。
+- [五页 Draw.io 架构图](../diagrams/tc_rag_architecture_atlas.drawio)及[核对记录](../reviews/architecture_atlas_review.md)：按当前全量测试点与诊断契约校正的原生图。
+- [2026-10-31 更新采纳与故障修复](../reviews/main_updates_20261031.md)：改动文件、离线验证及审核重点。
 
 本目录存放需要查询的约定；完整使用流程见 [RAG 总览](../learn/P2/README.md)，代码学习见 [学习导航](../learn/README.md)。
+日期性评审统一在 [reviews](../reviews/README.md)，当前质量与验证结论见 [2026-11-01 评估](../reviews/quality_review_20261101.md)。
 
 [返回文档入口](../README.md)

@@ -352,7 +352,7 @@
         <mxCell id="CLI" value="rag / tc-rag · Typer CLI&#10;cli.py + workflow.py" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
           <mxGeometry x="1662.47" y="143.0" as="geometry" width="243.16" height="74.6" />
         </mxCell>
-        <mxCell id="CFG" value="core/config.py · Pydantic&#10;复制 workdir/local.example.yaml 为 local.yaml&#10;默认值 → 选定 YAML → 环境变量 → CLI" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+        <mxCell id="CFG" value="core/config.py · Pydantic&#10;默认值 → 选定 YAML → 环境变量 → CLI" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
           <mxGeometry x="1129.45" y="509.2" as="geometry" width="365.19" height="74.6" />
         </mxCell>
         <mxCell id="BOOT" value="bootstrap.py · build_pipeline&#10;校验配置、装配并注入具体适配器" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
@@ -370,7 +370,7 @@
         <mxCell id="PORT" value="ports/contracts.py · Protocol&#10;解析、模型、存储、检索、导出接口" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
           <mxGeometry x="1524.72" y="1660.89" as="geometry" width="329" height="74.6" />
         </mxCell>
-        <mxCell id="PROGRESS" value="application/progress.py → 终端&#10;普通进度 20 秒节流，完成 / 异常即时提示&#10;短阶段显示毫秒，修复带安全字段诊断" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+        <mxCell id="PROGRESS" value="application/progress.py&#10;阶段事件 → 终端心跳、批次、耗时" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
           <mxGeometry x="2242.66" y="1660.89" as="geometry" width="322.47" height="74.6" />
         </mxCell>
         <mxCell id="DFACT" value="models.py / pipeline.py&#10;Block、Chunk、Evidence、Rule&#10;Point、Case、Step、Issue、Coverage" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
@@ -382,7 +382,7 @@
         <mxCell id="DTREE" value="review.py · PointTree&#10;测试点目录；旧审核对象仅兼容" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
           <mxGeometry x="1364.12" y="1948.89" as="geometry" width="297" height="74.6" />
         </mxCell>
-        <mxCell id="PARSE" value="parsing · DocxParser / PdfParser&#10;图文分离、定位、PDF 按页检查点&#10;DOCX 字体标题推断可选，默认关闭" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
+        <mxCell id="PARSE" value="parsing&#10;DocxParser / PdfParser&#10;图文分离、定位、PDF 按页检查点" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
           <mxGeometry x="391.65" y="790.8" as="geometry" width="315.22" height="92.2" />
         </mxCell>
         <mxCell id="MODELS" value="providers&#10;StructuredLLM / Embedder&#10;VisionReader / Reranker" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
@@ -394,7 +394,7 @@
         <mxCell id="STORE" value="storage&#10;SqliteRepository&#10;LocalArtifactStore" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
           <mxGeometry x="1057.48" y="790.8" as="geometry" width="207.61" height="92.2" />
         </mxCell>
-        <mxCell id="EXPORT" value="exporters · XMindAdapter / ReportExporter&#10;全部点目录 + 中文 Excel 与追溯附表&#10;JSON / Markdown 保留原始字段" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
+        <mxCell id="EXPORT" value="exporters&#10;XMindAdapter / ReportExporter&#10;XMind、Excel、JSON / Markdown" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
           <mxGeometry x="1315.09" y="790.8" as="geometry" width="333.48" height="92.2" />
         </mxCell>
         <mxCell id="RUNTIME" value="runtime&#10;Token 估算、计时装饰器" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
@@ -682,7 +682,7 @@
         <mxCell id="POINTS" value="11 核验并保存全部测试点与 PointTree&#10;SQLite 是事实源；XMind 不作为下一阶段输入" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
           <mxGeometry x="326.19" y="2181.4" as="geometry" width="405.44" height="74.6" />
         </mxCell>
-        <mxCell id="READY" value="12 筛选 ready 且 applicable 生成用例&#10;其余点保留在 SQLite / Excel 附表&#10;最终 XMind 保留全部点（含待澄清）" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+        <mxCell id="READY" value="12 筛选 ready 且 applicable&#10;其余点保留在目录与问题报告" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
           <mxGeometry x="388.41" y="2296.0" as="geometry" width="281" height="74.6" />
         </mxCell>
         <mxCell id="INDEX2" value="13 再次准备检索上下文&#10;符合条件时复用，仍核验空间 / manifest / 文件" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
@@ -697,7 +697,7 @@
         <mxCell id="SAVE" value="16 保存 TestCase / Step / CoverageLink / Issue&#10;运行状态、检索审计、ModelInvocation、阶段耗&#10;时" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
           <mxGeometry x="315.64" y="2789.6" as="geometry" width="426.52" height="92.2" />
         </mxCell>
-        <mxCell id="XM" value="17a XMind · 全量测试点目录&#10;状态 → 业务维度 → 功能，可选章节&#10;不含用例步骤，不作为生成输入" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+        <mxCell id="XM" value="17a XMind · 全部测试点目录&#10;状态 → 业务维度 → 功能 → 目标&#10;含待澄清；不含完整用例步骤" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
           <mxGeometry x="38" y="2921.8" as="geometry" width="310.41" height="92.2" />
         </mxCell>
         <mxCell id="XL" value="17b Excel · 实际生成的用例&#10;生成内容及附表由导出器排版&#10;无就绪点时可能只有表头" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
@@ -1325,7 +1325,7 @@
         <mxCell id="ISSUE" value="Issue&#10;歧义、冲突、未解析、缺口&#10;无依据预期和重复风险" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#fff7ed;strokeColor=#d97706;" vertex="1" parent="1">
           <mxGeometry x="3003.02" y="285.2" as="geometry" width="264" height="92.2" />
         </mxCell>
-        <mxCell id="RUN" value="Run / StageSnapshot / ModelInvocation&#10;配置与 Prompt 指纹、调用及阶段耗时&#10;安全结构诊断另存 invocations 快照" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+        <mxCell id="RUN" value="Run / StageSnapshot / ModelInvocation&#10;无密钥配置、Prompt / Skill 指纹&#10;阶段、调用、消耗、耗时和失败位置" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
           <mxGeometry x="2974.32" y="143.0" as="geometry" width="378.8" height="92.2" />
         </mxCell>
         <mxCell id="CTX" value="RAG ContextPayload&#10;scope / space / index_version&#10;hits、rerank、采用 / 省略 ID" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
@@ -1334,10 +1334,10 @@
         <mxCell id="DB" value="SQLite · 唯一结构化事实源&#10;文档 / 规则 / 点 / 用例 / 风险 / 运行" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
           <mxGeometry x="3541.12" y="365.1" as="geometry" width="331.56" height="74.6" />
         </mxCell>
-        <mxCell id="XM" value="XMind：全部点（含待澄清）目录&#10;状态 → 业务维度 → 功能，可选章节&#10;不含用例步骤，不回读" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+        <mxCell id="XM" value="XMind：全部点与状态目录&#10;不含用例步骤；不回读" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
           <mxGeometry x="3932.69" y="240.5" as="geometry" width="268.3" height="74.6" />
         </mxCell>
-        <mxCell id="EXCEL" value="Excel：实际生成用例 + 中文附表&#10;具体问题备注、用例追溯与质量说明&#10;技术状态不等于人工批准" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+        <mxCell id="EXCEL" value="Excel：实际生成用例&#10;目录点数与用例数可不同" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
           <mxGeometry x="3932.69" y="365.1" as="geometry" width="248" height="74.6" />
         </mxCell>
         <mxCell id="REPORT" value="JSON / Markdown / 覆盖报告&#10;indexes 为可重建派生产物" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
@@ -1748,13 +1748,13 @@
         <mxCell id="SCHEMA" value="JSON / Schema 校验&#10;同类提炼 ID 唯一&#10;用例 point_ids 仅限当前批次枚举" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
           <mxGeometry x="1858.3" y="1375.2" as="geometry" width="312.02" height="92.2" />
         </mxCell>
-        <mxCell id="REPAIR" value="generation.schema_repair_attempts 内修复&#10;引用与单点数量限制先校验，再缓存&#10;安全字段诊断存快照，不回放错误正文" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+        <mxCell id="REPAIR" value="generation.schema_repair_attempts 内修复&#10;只发安全字段路径、类型和允许值&#10;不回放错误正文，不猜测 ID" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
           <mxGeometry x="1233.72" y="1576.4" as="geometry" width="398.03" height="92.2" />
         </mxCell>
         <mxCell id="SPLIT" value="多测试点批次二分后依次执行&#10;直接输入超预算也可二分&#10;单点仍超限则失败" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#fff7ed;strokeColor=#d97706;" vertex="1" parent="1">
           <mxGeometry x="2220.32" y="1375.2" as="geometry" width="281" height="92.2" />
         </mxCell>
-        <mxCell id="VISION" value="Vision：独立图片工人 + 信号量&#10;最小间隔、限流冷却、缓存&#10;单图失败继续；账户阻断停发未缓存图" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+        <mxCell id="VISION" value="Vision：独立图片工人 + 信号量&#10;最小间隔、限流冷却、缓存&#10;单图失败记 Issue，其余继续" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
           <mxGeometry x="424.22" y="717.4" as="geometry" width="302.12" height="92.2" />
         </mxCell>
         <mxCell id="EMBEDDING" value="Embedding：batch_size + concurrency&#10;按 index 恢复顺序，校验向量空间&#10;空间 / 缓存损坏或检索失败阻断 RAG" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
@@ -1766,10 +1766,10 @@
         <mxCell id="FAIL" value="重试 / 修复耗尽或不可恢复错误&#10;保存 failure 阶段和类型，终端提示 run_id" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#fff7ed;strokeColor=#d97706;" vertex="1" parent="1">
           <mxGeometry x="1397.72" y="1871.47" as="geometry" width="374.44" height="74.6" />
         </mxCell>
-        <mxCell id="CHECK" value="检索完成后校验引用、依据风险与覆盖&#10;XMind 全部点，Excel 实际生成用例&#10;有 Issue 可 partial_failed，仍需语义验收" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+        <mxCell id="CHECK" value="检索完成后校验，拒绝无效用例并记 Issue&#10;仍可导出全部点和有效用例，用例可为空&#10;有 Issue 可 partial_failed，不代表业务正确" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
           <mxGeometry x="1822.16" y="1865.6" as="geometry" width="383.81" height="92.2" />
         </mxCell>
-        <mxCell id="RECOVER" value="status / inspect 定位阶段&#10;生成事实已保存时 export 可离线重导&#10;恢复需核对输入、配置和阶段绑定" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+        <mxCell id="RECOVER" value="status / inspect 定位阶段&#10;生成事实已保存时 inspect 可离线重导&#10;恢复需核对输入、配置和阶段绑定" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
           <mxGeometry x="1414.63" y="1981.8" as="geometry" width="340.62" height="92.2" />
         </mxCell>
       </root>
