@@ -1,0 +1,43 @@
+%%{init: {"theme": "base", "securityLevel": "strict", "htmlLabels": false, "look": "classic", "fontFamily": "Microsoft YaHei, Segoe UI, sans-serif", "fontSize": 16, "themeVariables": {"background": "#FFFFFF", "primaryColor": "#EFF6FF", "primaryTextColor": "#0F172A", "primaryBorderColor": "#2563EB", "lineColor": "#334155", "textColor": "#0F172A", "clusterBkg": "#F8FAFC", "clusterBorder": "#94A3B8", "edgeLabelBackground": "#FFFFFF", "fontFamily": "Microsoft YaHei, Segoe UI, sans-serif"}, "flowchart": {"htmlLabels": false, "curve": "linear", "nodeSpacing": 34, "rankSpacing": 62, "padding": 18, "useMaxWidth": false, "wrappingWidth": 360}}}%%
+flowchart TB
+    subgraph BUILD["① 索引准备 · 两轮共用同一需求范围"]
+        MATERIAL["有效 EvidenceSpan + ChunkSource 原文区间<br/>原文 source_* 不是自动新增的需求规则"] --> ECACHE["按空间 + 文本指纹查向量缓存<br/>校验数量、维度、有限数及内容指纹"]
+        ECACHE --> EMBED["缺失文本去重后批量向量化<br/>models.embedding · batch_size + concurrency"]
+        EMBED --> INDEX["NumPy / 可选 FAISS Flat 精确索引<br/>cosine、dot、euclidean 平方 L2<br/>normalize 属于向量空间配置"]
+        INDEX --> PUBLISH["写文件 → 回读校验 → manifest<br/>业务 ID ↔ int64 映射 → 绑定活动索引<br/>范围固定为当前文档内容版本"]
+    end
+    subgraph QUERIES["② 两轮查询 · 目标不同，必须分别检索"]
+        Q1["规划轮查询<br/>用户 instruction + 当前规则 statement"]
+        Q2["生成轮查询<br/>当前就绪测试点 objective"]
+    end
+    PUBLISH --> Q1
+    PUBLISH --> Q2
+    subgraph RETRIEVE["③ 每批共用的 retrieve / supplement 流程"]
+        QUERY["查询 embedding 或缓存<br/>与索引使用同一 EmbeddingSpace"] --> VECTOR["当前文档范围内向量 TopK<br/>保留原始分数、排名和索引版本"]
+        VECTOR --> KEYWORD["可选关键词召回 + RRF 融合<br/>排名融合，不直接相加异构原始分数"]
+        KEYWORD --> RERANK["可选 models.rerank<br/>只重排前 rerank_top_n 候选<br/>失败保留已有排名并记录 fallback"]
+        RERANK --> SUP["移除本批直接证据的重复命中<br/>余下作为 supplemental_evidence"]
+        SUP --> BUDGET["完整输入预算核验<br/>从尾部裁剪补充资料并保留省略记录<br/>不静默裁掉核心规则依据"]
+        DIRECT["按规则直接加载核心证据<br/>不依赖检索命中；生成时带同功能关联规则"] --> BUDGET
+        BUDGET --> AUDIT["保存上下文审计<br/>采用 / 省略证据 ID、查询范围<br/>缓存命中、重排状态和耗时"]
+    end
+    Q1 --> QUERY
+    Q2 --> QUERY
+    AUDIT --> P1["规划 LLM · models.llm<br/>rules + evidence + existing_points<br/>补充意图；边界值仍由本地计算"]
+    AUDIT --> P2["生成 LLM · models.llm<br/>points + rules + evidence + Skill<br/>每步引用限定的规则与证据"]
+    P1 --> ALL["保存全部测试点<br/>仅 ready + applicable 进入生成轮"]
+    ALL -. "下一轮重新查询；此虚线表示顺序" .-> Q2
+    P2 --> CASES["CaseBatch → 本地校验 → SQLite / 联合导出<br/>索引或检索失败则停止，不绕过 RAG"]
+    class MATERIAL,ECACHE,DIRECT,AUDIT,ALL app
+    class EMBED,QUERY,P1,P2 model
+    class INDEX,PUBLISH,VECTOR,KEYWORD,RERANK,SUP,BUDGET,Q1,Q2 retrieval
+    class CASES store
+    classDef entry fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+    classDef app fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+    classDef domain fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#0F172A
+    classDef infra fill:#F1F5F9,stroke:#64748B,stroke-width:2px,color:#0F172A
+    classDef model fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#0F172A
+    classDef retrieval fill:#ECFEFF,stroke:#0891B2,stroke-width:2px,color:#0F172A
+    classDef store fill:#ECFDF5,stroke:#059669,stroke-width:2px,color:#0F172A
+    classDef warn fill:#FFF7ED,stroke:#D97706,stroke-width:2px,color:#0F172A
+    linkStyle default stroke:#334155,stroke-width:2px,color:#0F172A

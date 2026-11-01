@@ -147,6 +147,10 @@ class TestPoint(DomainModel):
         "other",
     ]
     objective: str = Field(min_length=1)
+    # 同一测试意图下的边界/等价数据；数据不是独立测试点。
+    data_variants: list[str] = Field(default_factory=list)
+    # 纯界面展示汇总点：不因来源是图片而被降级为待补充。
+    display_summary: bool = False
     applicability: Literal["applicable", "not_applicable", "undetermined"] = "undetermined"
     status: Literal["ready", "needs_context", "needs_clarification", "not_applicable"] = (
         "needs_clarification"
@@ -208,6 +212,7 @@ class Issue(DomainModel):
     object_ids: list[str] = Field(default_factory=list)
     severity: Literal["info", "warning", "error"]
     description: str = Field(min_length=1)
+    status: Literal["open", "resolved", "ignored"] = "open"
     resolution: str | None = None
 
 
@@ -240,6 +245,9 @@ class ModelInvocation(DomainModel):
     usage: Usage = Field(default_factory=Usage)
     timing: Timing = Field(default_factory=Timing)
     error: str | None = None
+    # 仅传递已过滤的诊断元数据；持久化放在通用阶段快照，不改变旧调用 JSON。
+    # 这样旧版本的严格契约仍可读取新增调用记录，而不会因未知字段拒绝加载。
+    validation_errors: list[dict[str, Any]] = Field(default_factory=list, exclude=True, repr=False)
 
 
 class BusinessEntity(DomainModel):

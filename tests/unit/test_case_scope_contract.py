@@ -65,3 +65,45 @@ def test_scoped_schema_fingerprint_binds_exact_batch():
 def test_scoped_case_schema_requires_nonempty_batch():
     with pytest.raises(ValueError):
         case_batch_schema([])
+
+
+def test_scoped_case_schema_rejects_single_point_overflow_below_batch_cap(case_payload):
+    # 复现线上 5 个点、15 条用例，其中一个点 8 条；总数未达 30 仍须拒绝。
+    counts = [1, 1, 8, 2, 3]
+    case = case_payload["cases"][0]
+    case_payload["cases"] = [
+        {**case, "case_id": f"c{point}_{index}", "point_ids": [f"p{point}"]}
+        for point, count in enumerate(counts)
+        for index in range(count)
+    ]
+    schema = case_batch_schema([f"p{i}" for i in range(5)], 6)
+    batch_max = schema.model_json_schema()["properties"]["cases"]["maxItems"]
+    assert len(case_payload["cases"]) == 15 < batch_max
+    with pytest.raises(ValidationError, match="per-point case count"):
+        schema.model_validate(case_payload)
+
+
+def test_case_count_limit_counts_multi_point_cases_and_repeated_references(case_payload):
+    case = case_payload["cases"][0]
+    case_payload["cases"] = [
+        {**case, "case_id": f"c{i}", "point_ids": ["p0", "p0", "p1"]} for i in range(6)
+    ]
+    schema = case_batch_schema(["p0", "p1"], 6)
+    assert len(schema.model_validate(case_payload).cases) == 6
+    case_payload["cases"].append({**case, "case_id": "overflow", "point_ids": ["p1"]})
+    with pytest.raises(ValidationError, match="per-point case count"):
+        schema.model_validate(case_payload)
+
+
+def test_case_limit_changes_schema_fingerprint_and_exposes_batch_max():
+    legacy = case_batch_schema(["p0", "p1"]).model_json_schema()
+    limited = case_batch_schema(["p0", "p1"], 6).model_json_schema()
+    smaller = case_batch_schema(["p0", "p1"], 3).model_json_schema()
+    assert limited["properties"]["cases"]["maxItems"] == 12
+    assert len({fingerprint(s) for s in [legacy, limited, smaller]}) == 3
+
+
+@pytest.mark.parametrize("limit", [0, -1])
+def test_case_limit_must_be_positive(limit):
+    with pytest.raises(ValueError, match="正整数"):
+        case_batch_schema(["point"], limit)

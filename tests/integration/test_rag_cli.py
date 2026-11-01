@@ -84,7 +84,7 @@ def test_rag_joint_export_and_evaluate(tmp_path, monkeypatch, rerank_enabled, fi
     )
     assert repeated.exit_code == 0, repeated.output
     generated = json.loads(repeated.stdout)
-    assert generated["cases"] == 3
+    assert generated["cases"] == 1
     assert list(xmind.parent.glob("batch_*/testpoints*.xmind"))
     assert list(xmind.parent.glob("batch_*/testcases*.xlsx"))
     repo = SqliteRepository(cfg.storage.database)

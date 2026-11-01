@@ -30,6 +30,42 @@ class SchemaOutputError(ProviderError):
         super().__init__("模型输出结构无效")
 
 
+_ISSUE_KINDS = {
+    "gap",
+    "conflict",
+    "validation",
+    "unsupported",
+    "unparsed",
+    "unsupported_expectation",
+    "duplicate",
+    "coverage",
+    "other",
+}
+_ISSUE_SEVERITIES = {"info", "warning", "error"}
+
+
+def _coerce_issue_enums(content: str) -> str | None:
+    """问题清单是诊断字段，未知 kind/severity 归一为 other/warning，不重新调用模型。"""
+    try:
+        data = json.loads(content)
+    except (TypeError, ValueError):
+        return None
+    issues = data.get("issues")
+    if not isinstance(issues, list):
+        return None
+    changed = False
+    for item in issues:
+        if not isinstance(item, dict):
+            continue
+        if item.get("kind") not in _ISSUE_KINDS:
+            item["kind"] = "other"
+            changed = True
+        if item.get("severity") not in _ISSUE_SEVERITIES:
+            item["severity"] = "warning"
+            changed = True
+    return json.dumps(data, ensure_ascii=False) if changed else None
+
+
 def _schema_errors(exc: ValidationError, schema: type[T]) -> list[dict[str, Any]]:
     """修复只携带契约字段名与错误类型，过滤输出内容和任意未知字段名。"""
     names: set[str] = set()
@@ -95,6 +131,13 @@ def _schema_errors(exc: ValidationError, schema: type[T]) -> list[dict[str, Any]
                 f"Each {kind} object must have a unique ID within its collection. "
                 "Use distinct prefixes e_, f_, r_, entity_, issue_ to avoid ambiguous references. "
                 "Update all references consistently; rule_mapping must remain {}."
+            )
+        if error["msg"] == (
+            "Value error, CaseBatch per-point case count exceeds configured limit"
+        ):
+            detail["constraint"] = (
+                "Each point_id may be covered by at most limits.max_cases_per_point cases. "
+                "Correct the batch within this limit and preserve separate boundary points."
             )
         details.append(detail)
     return details
@@ -162,7 +205,13 @@ class OpenAIStructuredLLM:
                 report(
                     self.progress,
                     ProgressEvent(
-                        "repair", str(request.get("stage", "unknown")), attempt=repair + 1
+                        "repair", str(request.get("stage", "unknown")), attempt=repair + 1,
+                        validation_errors=tuple(
+                            (".".join(map(str, detail["path"])) or "<root>")
+                            + ": " + detail["error"]
+                            + ("; " + detail["constraint"] if "constraint" in detail else "")
+                            for detail in exc.details
+                        ),
                     ),
                 )
         raise AssertionError("unreachable")
@@ -189,6 +238,7 @@ class OpenAIStructuredLLM:
                 )
                 usage = Usage()
                 error: str | None = None
+                validation_errors: list[dict[str, Any]] = []
                 delay = min(2**attempt + random.random(), 30)
                 try:
                     # 动态 schema 通过 SDK 传递；输出仍在本地执行严格领域校验。
@@ -279,8 +329,28 @@ class OpenAIStructuredLLM:
                     try:
                         schema.model_validate_json(str(content))
                     except ValidationError as exc:
-                        raise SchemaOutputError(_schema_errors(exc, schema)) from None
+                        coerced = _coerce_issue_enums(str(content))
+                        if coerced is not None:
+                            try:
+                                schema.model_validate_json(coerced)
+                            except ValidationError:
+                                raise SchemaOutputError(
+                                    _schema_errors(exc, schema)
+                                ) from None
+                            content = coerced
+                            validation_errors = [
+                                {
+                                    "path": ["issues"],
+                                    "error": "normalized_issue_enums",
+                                }
+                            ]
+                        else:
+                            raise SchemaOutputError(_schema_errors(exc, schema)) from None
                     return str(content), usage, str(request_id)
+                except SchemaOutputError as exc:
+                    error = type(exc).__name__
+                    validation_errors = exc.details
+                    raise
                 except APIStatusError as exc:
                     error = f"HTTP_{exc.status_code}"
                     if exc.status_code not in {408, 409, 429} and exc.status_code < 500:
@@ -318,6 +388,7 @@ class OpenAIStructuredLLM:
                             usage=usage,
                             timing=Timing(duration_ms=(perf_counter() - started) * 1000),
                             error=error,
+                            validation_errors=validation_errors,
                         )
                     )
                 report(

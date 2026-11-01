@@ -751,3 +751,100 @@ async def test_optional_chinese_keyword_rescues_vector_miss(tmp_path):
     assert bundle["hits"][0]["object_id"] == "a"
     assert bundle["hits"][0]["raw_score"] is None
     assert bundle["supplemental_evidence"][0]["quote"] == "审批待办"
+
+
+@pytest.mark.asyncio
+async def test_ui_display_rules_merge_to_one_summary_point(tmp_path):
+    from docx import Document
+    from test_pipeline import FixtureLLM, setup
+
+    from tc_rag.application.ports.contracts import ModelResult
+    from tc_rag.domain.review import PointTree
+
+    class Reader:
+        async def read(self, image, context):
+            return VisionResult(
+                "产品列表界面展示字段A、字段B、列C、列D。",
+                "fixture-vision",
+                "vision/v1",
+            )
+
+    class DisplayLLM(FixtureLLM):
+        async def generate(self, request, output_schema):
+            if request["stage"] == "extract":
+                block = request["document_blocks"][0]
+                data = {
+                    "evidence": [
+                        {
+                            "evidence_id": "e",
+                            "block_id": block["block_id"],
+                            "locator": block["locator"],
+                            "quote": block["content"],
+                        }
+                    ],
+                    "features": [
+                        {
+                            "feature_id": "f",
+                            "name": "产品列表",
+                            "description": "",
+                            "evidence_ids": ["e"],
+                        }
+                    ],
+                    "rules": [
+                        {
+                            "rule_id": "r1",
+                            "feature_id": "f",
+                            "kind": "other",
+                            "statement": "产品列表展示字段A、字段B",
+                            "evidence_ids": ["e"],
+                            "status": "needs_review",
+                        },
+                        {
+                            "rule_id": "r2",
+                            "feature_id": "f",
+                            "kind": "other",
+                            "statement": "产品列表展示列C、列D",
+                            "evidence_ids": ["e"],
+                            "status": "needs_review",
+                        },
+                    ],
+                }
+                return ModelResult(output=output_schema.model_validate(data))
+            return await super().generate(request, output_schema)
+
+    pipeline, document, _, _ = setup(tmp_path)
+    buffer = io.BytesIO()
+    Image.new("RGB", (20, 20), "white").save(buffer, format="PNG")
+    buffer.seek(0)
+    doc = Document()
+    doc.add_picture(buffer)
+    doc.save(document)
+    pipeline.config.parsing.vision_enabled = True
+    pipeline.llm = DisplayLLM()
+    pipeline.vision = VisionEvidenceService(
+        pipeline.repository, pipeline.store, Reader(), {"v": 1}
+    )
+    pipeline.retriever = RagContext(
+        pipeline.repository,
+        pipeline.store,
+        FakeEmbedder(),
+        EmbeddingSpace("fixture", "m", 3),
+        "cosine",
+        20,
+        "run_display",
+    )
+    await pipeline.points(
+        document, "生成测试点", tmp_path / "out", run_id="run_display"
+    )
+    planned = pipeline.read("run_display", "plan_points")
+    assert len(planned["points"]) == 1
+    summary = planned["points"][0]
+    assert summary["technique"] == "other"
+    assert summary["objective"] == "产品列表：界面展示样式与内容正确"
+    tree = pipeline.repository.get("point_trees", planned["tree_id"], PointTree)
+    assert tree is not None
+    assert len([node for node in tree.nodes if node.kind == "point"]) == 1
+    issues = pipeline.read("run_display", "issues")["items"]
+    assert any("归并" in item["description"] for item in issues)
+    manifest = pipeline.read("run_display", "manifest")
+    assert manifest["prompts"]["plan_points"]["version"] == "v2"

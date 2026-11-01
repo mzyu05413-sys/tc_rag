@@ -220,3 +220,42 @@ async def test_terminal_write_failure_during_summary_preserves_business_error(mo
 def test_format_duration_keeps_subsecond_stages_visible(seconds, expected):
     # 快阶段若按整秒显示会被误读成 0 秒，这里固定毫秒与整秒的分界。
     assert format_duration(seconds) == expected
+
+
+@pytest.mark.parametrize("kind,stage", [
+    ("batch_completed", "extract"), ("image_completed", "vision"),
+])
+def test_normal_updates_share_interval_and_completion_is_immediate(
+    monkeypatch, capsys, kind, stage
+):
+    clock = [100.0]
+    monkeypatch.setattr("tc_rag.interfaces.progress.perf_counter", lambda: clock[0])
+    reporter = TerminalProgress()
+    reporter(ProgressEvent("stage", stage))
+    capsys.readouterr()
+    clock[0] += 1
+    reporter(ProgressEvent(kind, stage, completed=1, total=4))
+    assert not capsys.readouterr().err
+    clock[0] = 120
+    reporter(ProgressEvent(kind, stage, completed=2, total=4))
+    assert "2/4" in capsys.readouterr().err
+    clock[0] += 1
+    reporter(ProgressEvent(kind, stage, completed=3, total=4))
+    assert not capsys.readouterr().err
+    reporter(ProgressEvent(kind, stage, completed=4, total=4))
+    assert "4/4" in capsys.readouterr().err
+
+
+def test_failure_and_capped_safe_repair_details_are_not_throttled(capsys):
+    reporter = TerminalProgress()
+    reporter(ProgressEvent("stage", "vision"))
+    capsys.readouterr()
+    reporter(ProgressEvent("image_completed", "vision", completed=1, total=100, error="HTTP_429"))
+    assert "服务商限流" in capsys.readouterr().err
+    reporter(ProgressEvent("repair", "generate", attempt=1, validation_errors=(
+        "cases: list_type", "cases.0.priority: literal_error", "<unknown_field>: extra_forbidden",
+        "fourth-safe-detail",
+    )))
+    message = capsys.readouterr().err
+    assert "cases: list_type" in message and "<unknown_field>" in message
+    assert "fourth-safe-detail" not in message

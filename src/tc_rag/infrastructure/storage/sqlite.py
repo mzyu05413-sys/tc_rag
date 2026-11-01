@@ -67,21 +67,38 @@ def object_key(value: BaseModel) -> str:
 class SqliteRepository:
     """每次操作独立连接；调用结束即关闭，绝不让写事务跨越模型请求。"""
 
-    def __init__(self, database: str | Path, migrations_dir: Path | None = None) -> None:
+    def __init__(
+        self,
+        database: str | Path,
+        migrations_dir: Path | None = None,
+        *,
+        read_only: bool = False,
+    ) -> None:
         if str(database) == ":memory:":
             raise ValueError("仓库使用短连接，请使用文件数据库而非 :memory:")
         self.database = Path(database)
-        self.database.parent.mkdir(parents=True, exist_ok=True)
+        self.read_only = read_only
+        if not read_only:
+            self.database.parent.mkdir(parents=True, exist_ok=True)
         self.migrations_dir = migrations_dir or Path(__file__).with_name("migrations")
-        self.migrate()
+        if not read_only:
+            self.migrate()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.database, timeout=10)
+        if self.read_only:
+            # 质检等只读命令不能创建文件、执行迁移或持有写事务。
+            connection = sqlite3.connect(
+                self.database.resolve().as_uri() + "?mode=ro", uri=True, timeout=10
+            )
+        else:
+            connection = sqlite3.connect(self.database, timeout=10)
         connection.execute("PRAGMA foreign_keys=ON")
         return connection
 
     def migrate(self) -> None:
         """按编号应用 SQL 文件；校验历史指纹，拒绝覆盖已经执行过的迁移。"""
+        if self.read_only:
+            raise ValueError("只读仓库不能执行迁移")
         files = sorted(
             self.migrations_dir.glob("[0-9]*_*.sql"), key=lambda path: int(path.name.split("_")[0])
         )
@@ -129,12 +146,17 @@ class SqliteRepository:
                 connection.rollback()
                 raise
 
+    def _ensure_writable(self) -> None:
+        if self.read_only:
+            raise ValueError("只读仓库不能写入")
+
     def save(self, collection: str, object_id: str, value: BaseModel) -> None:
         """单条写入复用批量事务逻辑。"""
         self.save_many([(collection, object_id, value)])
 
     def save_many(self, records: Iterable[tuple[str, str, BaseModel]]) -> None:
         """先完成模型校验，再一次短事务写入；调用方按外键依赖顺序传入。"""
+        self._ensure_writable()
         prepared = []
         for table, key, value in records:
             model = self._model(table)
@@ -211,8 +233,21 @@ class SqliteRepository:
             ).fetchone()
         return None if row is None else schema.model_validate_json(row[0])
 
+    def list_recent(self, collection: str, schema: type[T], limit: int = 20) -> list[T]:
+        """按写入顺序返回最近的记录；只用于状态查询，不参与事实计算。"""
+        if self._model(collection) is not schema:
+            raise ValueError("读取类型与集合不匹配")
+        if limit < 1:
+            raise ValueError("limit 必须为正数")
+        with closing(self._connect()) as connection:
+            rows = connection.execute(
+                f"SELECT payload FROM {collection} ORDER BY rowid DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [schema.model_validate_json(row[0]) for row in rows]
+
     def delete(self, collection: str, object_id: str) -> None:
         """被其他事实引用时由外键拒绝删除，避免悄悄破坏证据链。"""
+        self._ensure_writable()
         self._model(collection)
         with closing(self._connect()) as connection, connection:
             connection.execute(f"DELETE FROM {collection} WHERE id=?", (object_id,))
@@ -229,6 +264,7 @@ class SqliteRepository:
 
     def allocate_vector_ids(self, space_id: str, object_ids: list[str]) -> list[int]:
         """事务内登记稳定映射；所有后端共用数据库生成的唯一 int64。"""
+        self._ensure_writable()
         if len(object_ids) != len(set(object_ids)):
             raise ValueError("向量对象 ID 重复")
         with closing(self._connect()) as connection, connection:

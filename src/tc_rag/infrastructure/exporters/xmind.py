@@ -6,6 +6,7 @@ from typing import Any
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from tc_rag.domain.review import PointTree
+from tc_rag.domain.text import display_title
 
 
 class XMindAdapter:
@@ -17,12 +18,21 @@ class XMindAdapter:
             children = sorted(
                 [n for n in tree.nodes if n.parent_id == node_id], key=lambda n: n.order
             )
-            item: dict[str, Any] = {"id": node_id, "title": node.title}
+            title = display_title(node.title) if node.kind == "point" else node.title
+            item: dict[str, Any] = {"id": node_id, "title": title}
             if node.kind == "point":
                 item["tcRag"] = {"point_id": node.point_id}
-                if node.technique:
-                    # 方法不进标题，作为标签保留，避免标题冗长。
-                    item["labels"] = [node.technique]
+                labels = [node.technique] if node.technique else []
+                status_labels = {
+                    "needs_context": "待补充上下文",
+                    "needs_clarification": "待澄清",
+                    "not_applicable": "不适用",
+                }
+                if node.status in status_labels:
+                    labels.append(status_labels[node.status])
+                if labels:
+                    # 方法/状态不进标题，作为标签保留，避免标题冗长。
+                    item["labels"] = labels
             if children:
                 item["children"] = {"attached": [topic(n.node_id) for n in children]}
             return item

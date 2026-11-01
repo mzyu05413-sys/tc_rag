@@ -7,7 +7,15 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 
 class Section(BaseModel):
@@ -119,6 +127,16 @@ class Parsing(Section):
     # 保留既有配置与快照字段；扫描页仅报告未解析，不再提供独立识别路线。
     scan_policy: Literal["report_unsupported"] = "report_unsupported"
     vision_enabled: bool = False
+    # 非标准 Word 标题的保守推断；关闭时保持既有标题样式识别和分块行为。
+    infer_docx_headings: bool = False
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        # 新能力默认关闭时不改变旧快照的形状，既有运行仍可用原配置续跑。
+        if not self.infer_docx_headings:
+            data.pop("infer_docx_headings", None)
+        return data
 
 
 class Planning(Section):
@@ -131,6 +149,20 @@ class Planning(Section):
         "permission",
     ]
     relation_enabled: bool = False
+    # merge：同一功能的纯界面展示点合并为一条概括点；keep 保留旧行为。
+    ui_display_policy: Literal["merge", "keep"] = "merge"
+    # aggregate：仅图片证据不生成点并按功能汇总问题；downgrade/keep 保留旧行为。
+    vision_policy: Literal["aggregate", "downgrade", "keep"] = "aggregate"
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        # 默认策略不改变旧快照形状，已有运行仍可按原配置恢复/重做用例。
+        if self.ui_display_policy == "merge":
+            data.pop("ui_display_policy", None)
+        if self.vision_policy == "aggregate":
+            data.pop("vision_policy", None)
+        return data
 
 
 class Generation(Section):
@@ -169,6 +201,15 @@ class Export(Section):
     include_issues: bool = True
     include_coverage: bool = True
     case_columns: list[ExcelColumn] = Field(default_factory=list)
+    # 默认按原文章节/模块组织；feature/chapter 保留旧布局，均保留全部点。
+    point_tree_layout: Literal["feature", "chapter", "module"] = "module"
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if self.point_tree_layout == "feature":
+            data.pop("point_tree_layout", None)
+        return data
 
     @model_validator(mode="after")
     def unique_columns(self) -> "Export":

@@ -46,8 +46,18 @@ def isolate_env(monkeypatch):
 def test_help():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ["run", "status", "inspect", "export", "estimate"]:
+    for command in [
+        "run",
+        "start",
+        "doctor",
+        "cases",
+        "status",
+        "inspect",
+        "quality",
+        "estimate",
+    ]:
         assert command in result.output
+    assert "export" not in result.output
 
 
 def test_no_args_prints_help_when_not_interactive():
@@ -164,10 +174,34 @@ def test_bad_paths_modes_and_config(tmp_path):
     [
         ["status", "demo"],
         ["inspect", "demo", "--stage", "rules"],
-        ["export", "demo", "--format", "json"],
+        ["inspect", "demo", "--stage", "cases", "--format", "xlsx"],
     ],
 )
 def test_missing_run_returns_error(args, tmp_path, monkeypatch):
     monkeypatch.setenv("TC_RAG_STORAGE__DATABASE", str(tmp_path / "data.sqlite"))
     result = runner.invoke(app, args)
     assert result.exit_code == 2
+
+
+def test_status_without_run_id_lists_recent_runs(tmp_path, monkeypatch):
+    from tc_rag.domain.models import Run
+    from tc_rag.infrastructure.storage.sqlite import SqliteRepository
+
+    database = tmp_path / "data.sqlite"
+    monkeypatch.setenv("TC_RAG_STORAGE__DATABASE", str(database))
+    repo = SqliteRepository(database)
+    for name, status in (("run_first", "succeeded"), ("run_second", "failed")):
+        repo.save("runs", name, Run(run_id=name, config_snapshot={}, status=status))
+    result = runner.invoke(app, ["status"])
+    assert result.exit_code == 0
+    listed = [
+        line.split("\t")[0] for line in result.output.splitlines() if line.startswith("run_")
+    ]
+    assert listed == ["run_second", "run_first"]
+
+
+def test_status_without_runs_is_not_an_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("TC_RAG_STORAGE__DATABASE", str(tmp_path / "empty.sqlite"))
+    result = runner.invoke(app, ["status"])
+    assert result.exit_code == 0
+    assert "尚无运行记录" in result.output

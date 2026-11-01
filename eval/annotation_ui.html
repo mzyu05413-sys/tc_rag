@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>检索相关性标注 · TC RAG</title>
+  <style>
+    :root{color-scheme:light;--ink:#1e293b;--muted:#64748b;--line:#e2e8f0;--brand:#4f46e5;--soft:#eef2ff;--green:#047857;--red:#be123c;--amber:#a16207}
+    *{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:var(--ink);font:14px/1.65 "Segoe UI","Microsoft YaHei",sans-serif}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #a5b4fc;outline-offset:2px}button{background:white;border:1px solid var(--line);border-radius:8px;padding:8px 13px;color:var(--ink)}button:hover:not(:disabled){border-color:#a5b4fc;background:#f8faff}.primary{background:var(--brand);color:white;border-color:var(--brand)}.primary:hover:not(:disabled){background:#4338ca}.quiet{color:var(--muted)}
+    header{background:#fff;border-bottom:1px solid var(--line);padding:17px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:5}.brand{display:flex;align-items:center;gap:12px}.logo{width:38px;height:38px;background:var(--brand);color:#fff;border-radius:11px;display:grid;place-items:center;font-weight:750;font-size:16px}h1{font-size:18px;margin:0;letter-spacing:.3px}.subtitle{font-size:12px;color:var(--muted)}.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.save-status{font-size:12px;color:var(--green)}
+    .layout{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:calc(100vh - 80px)}aside{background:#fff;border-right:1px solid var(--line);padding:22px 16px;position:sticky;top:80px;height:calc(100vh - 80px);overflow:auto}.side-title{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin:0 8px 12px}.progress-track{height:6px;background:#e8eaf3;border-radius:8px;overflow:hidden;margin:10px 0 12px}.progress-track span{display:block;height:100%;background:var(--brand)}.side-progress{padding:0 8px 14px}.side-progress strong{font-size:25px}.side-filter{display:flex;gap:7px;margin-bottom:12px}.side-filter select{width:100%;border:1px solid var(--line);background:white;border-radius:7px;padding:6px}.query-list{display:grid;gap:5px}.query-button{width:100%;text-align:left;padding:10px 11px;border-color:transparent;border-radius:9px;background:transparent}.query-button.active{background:var(--soft);border-color:#c7d2fe}.query-line{display:flex;justify-content:space-between;align-items:center;gap:6px}.query-id{font-weight:700;letter-spacing:.5px}.query-preview{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.badge{display:inline-block;font-size:11px;line-height:1.6;padding:2px 7px;border-radius:5px;background:#f1f5f9;color:var(--muted)}.badge.done{background:#ecfdf5;color:var(--green)}.badge.pending{background:#fffbeb;color:var(--amber)}.badge.suggest{background:var(--soft);color:var(--brand)}.aside-note{font-size:12px;color:var(--muted);padding:16px 8px;margin-top:12px;border-top:1px solid var(--line)}
+    main{padding:26px 34px 120px;max-width:1440px;width:100%;margin:auto}.overview{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.eyebrow{font-size:12px;color:var(--brand);font-weight:650;letter-spacing:.7px}.overview h2{font-size:24px;margin:4px 0 0}.overview p{margin:3px 0;color:var(--muted);font-size:12px}.notice{border:1px solid #c7d2fe;border-radius:10px;background:#f4f5ff;padding:11px 15px;font-size:13px;color:#4338ca;margin-bottom:18px}.notice.warning{color:#854d0e;border-color:#fde68a;background:#fffbeb}.panel{background:white;border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:18px;box-shadow:0 2px 4px #0f172a03}.panel-label{font-size:12px;color:var(--muted);font-weight:650;margin-bottom:9px}.query-text{white-space:pre-wrap;font-size:15px;line-height:1.85}.notes-label{display:block;font-size:12px;color:var(--muted);margin-top:16px}.note-box{display:block;width:100%;resize:vertical;min-height:63px;border:1px solid var(--line);border-radius:7px;padding:8px 11px;margin-top:6px;font-size:13px}.seed-note{font-size:12px;color:var(--muted);margin-top:12px;white-space:pre-wrap}
+    .evidence-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.evidence-head h3{font-size:16px;margin:0}.tabs{display:flex;gap:4px;flex-wrap:wrap}.tabs button{font-size:12px;padding:6px 10px;border-color:transparent;background:transparent}.tabs button.active{background:var(--soft);color:var(--brand)}.search{border:1px solid var(--line);border-radius:8px;padding:9px 12px;width:100%;background:white;margin-bottom:14px}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:10px 0 14px}.evidence-list{display:grid;gap:12px}.evidence-card{background:#fff;border:1px solid var(--line);border-left:3px solid #cbd5e1;border-radius:10px;overflow:hidden}.evidence-card[data-decision="relevant"]{border-left-color:#10b981}.evidence-card[data-decision="irrelevant"]{border-left-color:#f43f5e}.evidence-card[data-decision="unsure"]{border-left-color:#eab308}.evidence-top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}.group-title{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.group-id{font-size:14px;font-weight:750}.choice-group{display:flex;gap:4px;flex-wrap:wrap}.choice{font-size:12px;padding:5px 10px;border-color:transparent;background:#f8fafc}.choice[aria-pressed="true"][data-value="relevant"]{background:#d1fae5;color:var(--green);border-color:#6ee7b7}.choice[aria-pressed="true"][data-value="irrelevant"]{background:#ffe4e6;color:var(--red);border-color:#fda4af}.choice[aria-pressed="true"][data-value="unsure"]{background:#fef3c7;color:var(--amber);border-color:#fcd34d}.choice[aria-pressed="true"][data-value="unreviewed"]{background:#e2e8f0;color:#475569}.quote{padding:14px 17px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;font-size:13px;max-height:220px;overflow:auto}.evidence-card.expanded .quote{max-height:none}.evidence-bottom{padding:6px 16px 11px;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:space-between;gap:12px}.text-button{border:0;background:transparent;color:var(--brand);font-size:12px;padding:0}.empty{text-align:center;color:var(--muted);padding:48px 15px;background:white;border:1px dashed var(--line);border-radius:10px}.full-review{display:flex;gap:8px;align-items:flex-start;color:var(--muted);font-size:12px;margin:20px 0}.full-review input{margin-top:5px}.footer{position:fixed;bottom:0;left:260px;right:0;background:#ffffffed;backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:14px 34px;display:flex;justify-content:space-between;gap:12px;align-items:center;z-index:4}.footer-count{font-size:12px;color:var(--muted)}.footer-actions{display:flex;gap:8px;flex-wrap:wrap}.toast{position:fixed;bottom:95px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:9px;background:#1e293b;color:white;box-shadow:0 4px 16px #0f172a25;z-index:10;font-size:13px;max-width:90vw}.toast[hidden]{display:none}#fatal{margin:40px;padding:20px;background:#fff1f2;border:1px solid #fda4af;white-space:pre-wrap}#fatal[hidden]{display:none}
+    .query-list{min-width:0;grid-template-columns:minmax(0,1fr)}.query-button{min-width:0}.query-preview{max-width:100%}aside{overflow-x:hidden}.question-text{font-size:18px;font-weight:650;line-height:1.9;color:#312e81}.question-help{font-size:12px;color:var(--muted);margin-top:7px}.raw-query{margin-top:14px;padding:10px 13px;background:#f8fafc;border:1px solid var(--line);border-radius:8px}.raw-query summary{color:var(--brand);font-size:12px;cursor:pointer}.raw-query .query-text{font-size:13px;margin-top:10px}.quote table{border-collapse:collapse;width:100%;font-size:12px;white-space:pre-wrap}.quote td{border:1px solid var(--line);padding:7px 9px;vertical-align:top;min-width:65px}.quote tr:first-child td{background:#f8fafc}.sources{padding:0 17px 12px;font-size:11px;color:var(--muted)}.sources summary{cursor:pointer}.source-detail{white-space:pre-wrap;overflow-wrap:anywhere;padding-top:5px}
+    @media(min-width:1500px){main{padding-left:50px;padding-right:50px}}@media(max-width:850px){header{position:static;padding:16px;align-items:flex-start}.layout{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:14px;min-width:0}.side-title,.aside-note{display:none}.side-progress{padding:0 4px}.side-progress strong{font-size:20px}.query-list{display:flex;overflow:auto}.query-button{min-width:135px;max-width:150px}.side-filter{max-width:320px}.footer{left:0;padding:12px 16px}.footer-count{max-width:40%}main{padding:20px 16px 150px;min-width:0}.overview h2{font-size:21px}.panel{padding:16px}.brand{gap:8px}.tools{justify-content:flex-end}.save-status{width:100%;text-align:right}}@media(max-width:500px){header{flex-direction:column}.tools{width:100%;justify-content:flex-start}.save-status{width:auto;text-align:left}.overview{flex-direction:column}.footer{align-items:flex-start;flex-direction:column;gap:5px}.footer-count{max-width:100%}.footer-actions{gap:5px}.footer-actions button{padding:7px 9px;font-size:12px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><div class="logo" aria-hidden="true">TC</div><div><h1>检索相关性标注</h1><div class="subtitle">TC RAG · 第六章评测工作台</div></div></div>
+    <div class="tools"><span class="save-status" id="save-status" role="status">进度保存在当前浏览器</span><button id="import-button">导入进度</button><button class="primary" id="export-button">导出审核结果</button></div>
+  </header>
+  <div id="fatal" role="alert" hidden></div>
+  <div class="layout" id="app">
+    <aside>
+      <div class="side-title">查询清单</div>
+      <div class="side-progress"><strong id="progress-number">0 / 20</strong><div class="subtitle">已确认候选的查询</div><div class="progress-track"><span id="progress-fill"></span></div></div>
+      <div class="side-filter"><select id="status-filter" aria-label="查询审核状态"><option value="all">全部查询</option><option value="remaining">仅待确认</option><option value="confirmed">仅已确认</option></select><select id="stage-filter" aria-label="RAG 阶段"><option value="all">两轮 RAG</option><option value="plan_points">规划测试点</option><option value="generate">生成用例</option></select></div>
+      <nav class="query-list" id="query-list" aria-label="选择查询"></nav>
+      <div class="aside-note">先查看预标建议，再补查遗漏。相同文字已分组，一次选择覆盖组内所有 C 编号。<br><br>绿色表示相关，红色表示不相关，黄色表示待定；未判断的资料保持未知。</div>
+    </aside>
+    <main>
+      <div class="overview"><div><div class="eyebrow" id="stage-label"></div><h2 id="query-heading"></h2><p id="run-label"></p></div><button id="batch-button">批量确认剩余预标建议</button></div>
+      <div class="notice" id="notice">资料相关，不等于业务事实已确认。候选核对与全库审核分别记录；图片解释和冲突资料可标为相关，并在备注中保留疑问。</div>
+      <section class="panel" aria-label="当前查询"><div class="panel-label">本题要找什么资料？</div><div class="question-text" id="query-question"></div><div class="question-help">判断下方哪些原文有助于回答这个问题。问题是便于理解的提示，实际检索文本保留在下方。</div><details class="raw-query" id="raw-query"><summary>展开查看实际检索文本</summary><div class="query-text" id="query-text"></div></details><div class="seed-note" id="seed-note"></div><label class="notes-label" for="review-note">审核备注（冲突、适用范围或其他疑问）</label><textarea class="note-box" id="review-note" placeholder="可选：记录你的判断理由或待确认问题"></textarea></section>
+      <div class="evidence-head"><h3 id="evidence-heading">证据资料</h3><div class="tabs" id="view-tabs"><button data-view="candidates" class="active">预标与召回候选</button><button data-view="relevant">已判相关</button><button data-view="unsure">待定</button><button data-view="all">全部语料</button></div></div>
+      <input class="search" id="search" type="search" aria-label="搜索全部语料" placeholder="搜索原文、G 编号或 C 编号；输入后自动搜索全部语料">
+      <div class="legend" id="legend"></div><div class="evidence-list" id="evidence-list"></div>
+      <label class="full-review"><input type="checkbox" id="full-review"><span id="full-review-label">已检查全部语料并完成完整性审核（所有组明确判断后才可选）</span></label>
+    </main>
+  </div>
+  <footer class="footer"><div class="footer-count" id="footer-count"></div><div class="footer-actions"><button id="previous-button">上一条</button><button id="adopt-button">采纳本题预标建议</button><button class="primary" id="confirm-button">确认本题并下一条</button></div></footer>
+  <input type="file" id="import-file" accept="application/json,.json" hidden><div class="toast" id="toast" role="status" hidden></div>
+  <script type="application/json" id="annotation-data">__ANNOTATION_DATA__</script>
+  <script id="annotation-script">
+  'use strict';
+  (() => {
+    const data = JSON.parse(document.getElementById('annotation-data').textContent);
+    const groups = new Map(data.groups.map(group => [group.group_id, group]));
+    const queries = new Map(data.queries.map(query => [query.record_id, query]));
+    const decisions = new Set(['relevant', 'irrelevant', 'unsure']);
+    const storageKey = 'tc-rag-annotation-v1:' + data.dataset_id;
+    const $ = id => document.getElementById(id);
+    let view = 'candidates', search = '', toastTimer;
+    const originalReviews = Object.fromEntries(data.queries.map(query => {
+      // 仅继承真实人工核对项；助手预标作为建议展示，不自动转成人工标注。
+      const human = Boolean(query.reviewed_by && !query.reviewed_by.startsWith('draft-'));
+      const judgments = {};
+      if (human) {
+        for (const gid of query.relevant_groups || []) judgments[gid] = 'relevant';
+        for (const gid of query.irrelevant_groups || []) judgments[gid] = 'irrelevant';
+        for (const gid of query.uncertain_groups || []) judgments[gid] = 'unsure';
+      }
+      return [query.record_id, {judgments, confirmed: human, notes: '',
+        corpus_review_complete: Boolean(human && query.corpus_review_complete),
+        reviewed_by: human ? query.reviewed_by : null, confirmed_at: null}];
+    }));
+    let state = {reviews: originalReviews, active: data.queries.find(q => !originalReviews[q.record_id].confirmed)?.record_id || data.queries[0].record_id};
+    function toast(message) {
+      $('toast').textContent = message; $('toast').hidden = false;
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4500);
+    }
+    function fullReady(review) {
+      return data.groups.every(group => ['relevant', 'irrelevant'].includes(review.judgments[group.group_id]));
+    }
+    function validateReview(review) {
+      if (!review || typeof review !== 'object' || Array.isArray(review) ||
+          typeof review.confirmed !== 'boolean' || typeof review.notes !== 'string' ||
+          typeof review.corpus_review_complete !== 'boolean' ||
+          !review.judgments || typeof review.judgments !== 'object' || Array.isArray(review.judgments)) {
+        throw new Error('审核记录格式不正确');
+      }
+      for (const [gid, value] of Object.entries(review.judgments)) {
+        if (!groups.has(gid) || !decisions.has(value)) throw new Error('审核记录包含未知组号或判断');
+      }
+      if (review.corpus_review_complete && (!review.confirmed || !fullReady(review))) {
+        throw new Error('全库审核必须逐组完成相关或不相关判断');
+      }
+      if (!(review.reviewed_by === null || typeof review.reviewed_by === 'string') ||
+          !(review.confirmed_at === null || typeof review.confirmed_at === 'string')) {
+        throw new Error('审核来源格式不正确');
+      }
+    }
+    function validateState(candidate) {
+      if (!candidate || !candidate.reviews || !queries.has(candidate.active)) throw new Error('进度格式不正确');
+      const ids = Object.keys(candidate.reviews);
+      if (ids.length !== queries.size || ids.some(id => !queries.has(id))) throw new Error('查询集合不匹配');
+      for (const review of Object.values(candidate.reviews)) validateReview(review);
+      return candidate;
+    }
+    function save() {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({dataset_id: data.dataset_id, seed_revision: data.seed_revision, state}));
+        $('save-status').textContent = '已暂存 · ' + new Date().toLocaleTimeString('zh-CN');
+        $('save-status').style.color = '';
+      } catch (_) {
+        $('save-status').textContent = '浏览器暂存不可用，请及时导出';
+        $('save-status').style.color = '#be123c';
+      }
+    }
+    function currentQuery() { return queries.get(state.active); }
+    function currentReview() { return state.reviews[state.active]; }
+    function questionFor(query) {
+      return data.display_questions?.[query.record_id] ||
+        (query.stage === 'plan_points'
+          ? '为了设计本批功能的测试点，哪些原文能提供相关依据、条件、例外或差异？'
+          : '为了给本批测试点编写用例，哪些原文能为步骤、条件和可观察预期提供依据？');
+    }
+    function candidatesFor(query, review) {
+      return new Set([...(query.relevant_groups || []), ...(query.irrelevant_groups || []),
+        ...(query.hint_top10_groups || []), ...(query.additional_review_groups || []),
+        ...Object.keys(review.judgments)]);
+    }
+    function make(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+    function counts(review) {
+      return Object.values(review.judgments).reduce((result, value) => {
+        result[value] += 1; return result;
+      }, {relevant: 0, irrelevant: 0, unsure: 0});
+    }
+    function quoteNode(text) {
+      const node = make('div', 'quote');
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed.rows) && parsed.rows.every(row => Array.isArray(row))) {
+          const table = make('table');
+          for (const row of parsed.rows) {
+            const tr = make('tr');
+            for (const cell of row) tr.append(make('td', '', String(cell ?? '')));
+            table.append(tr);
+          }
+          node.append(table); return node;
+        }
+      } catch (_) { /* 普通原文按纯文字显示，不执行 Markdown 或 HTML。 */ }
+      node.textContent = text; return node;
+    }
+    function drawSidebar() {
+      const done = data.queries.filter(q => state.reviews[q.record_id].confirmed).length;
+      $('progress-number').textContent = done + ' / ' + data.queries.length;
+      $('progress-fill').style.width = (100 * done / data.queries.length) + '%';
+      $('batch-button').disabled = done === data.queries.length;
+      const list = $('query-list'); list.replaceChildren();
+      for (const query of data.queries) {
+        const review = state.reviews[query.record_id];
+        if ($('status-filter').value === 'remaining' && review.confirmed) continue;
+        if ($('status-filter').value === 'confirmed' && !review.confirmed) continue;
+        if ($('stage-filter').value !== 'all' && query.stage !== $('stage-filter').value) continue;
+        const button = make('button', 'query-button' + (query.record_id === state.active ? ' active' : ''));
+        button.dataset.recordId = query.record_id;
+        button.setAttribute('aria-current', query.record_id === state.active ? 'true' : 'false');
+        const line = make('span', 'query-line');
+        line.append(make('span', 'query-id', query.record_id));
+        const unresolved = counts(review).unsure > 0;
+        line.append(make('span', 'badge ' + (unresolved ? 'pending' : review.confirmed ? 'done' : ''),
+          unresolved ? '含待定' : review.confirmed ? '已确认' : '待确认'));
+        button.append(line, make('div', 'query-preview', questionFor(query)));
+        button.addEventListener('click', () => selectQuery(query.record_id)); list.append(button);
+      }
+      if (!list.childElementCount) list.append(make('div', 'quiet', '没有符合筛选的查询'));
+    }
+    function selectQuery(id) {
+      state.active = id; view = 'candidates'; search = ''; $('search').value = '';
+      $('raw-query').open = false;
+      save(); draw();
+      $('query-list').querySelector('.active')?.scrollIntoView({block: 'nearest', inline: 'nearest'});
+      window.scrollTo({top: 0, behavior: 'instant'});
+    }
+    function mark(gid, value) {
+      const review = currentReview();
+      if (value === 'unreviewed') delete review.judgments[gid]; else review.judgments[gid] = value;
+      review.confirmed = false; review.corpus_review_complete = false;
+      review.reviewed_by = null; review.confirmed_at = null;
+      save(); drawSidebar(); drawEvidence();
+    }
+    function drawEvidence() {
+      const query = currentQuery(), review = currentReview(), count = counts(review);
+      const candidates = candidatesFor(query, review);
+      const suggested = new Set(query.relevant_groups || []);
+      $('legend').replaceChildren(...[
+        '相关 ' + count.relevant, '不相关 ' + count.irrelevant, '待定 ' + count.unsure,
+        '未判断 ' + (groups.size - Object.keys(review.judgments).length)
+      ].map(text => make('span', '', text)));
+      for (const button of $('view-tabs').children) {
+        button.classList.toggle('active', button.dataset.view === view);
+      }
+      const shown = data.groups.filter(group => {
+        if (search) return [group.group_id, group.quote, ...group.corpus_ids].join(' ').toLowerCase().includes(search);
+        if (view === 'candidates') return candidates.has(group.group_id);
+        if (view === 'relevant') return review.judgments[group.group_id] === 'relevant';
+        if (view === 'unsure') return review.judgments[group.group_id] === 'unsure';
+        return true;
+      }).sort((left, right) => Number(suggested.has(right.group_id)) - Number(suggested.has(left.group_id)) || left.group_id.localeCompare(right.group_id));
+      $('evidence-heading').textContent = (search ? '搜索结果' : '证据资料') + ' · ' + shown.length + ' / ' + groups.size + ' 组';
+      const list = $('evidence-list'); list.replaceChildren();
+      for (const group of shown) {
+        const gid = group.group_id, decision = review.judgments[gid] || 'unreviewed';
+        const card = make('article', 'evidence-card'); card.dataset.groupId = gid; card.dataset.decision = decision;
+        const top = make('div', 'evidence-top'), title = make('div', 'group-title');
+        title.append(make('span', 'group-id', gid));
+        if (suggested.has(gid)) title.append(make('span', 'badge suggest', '预标建议相关'));
+        if ((query.additional_review_groups || []).includes(gid)) title.append(make('span', 'badge pending', '补查建议，未确认'));
+        if ((query.hint_top10_groups || []).includes(gid)) title.append(make('span', 'badge', '历史召回候选'));
+        if (group.sources.some(source => source.origin === 'vision')) title.append(make('span', 'badge pending', '含图片解释'));
+        const choices = make('div', 'choice-group'); choices.setAttribute('role', 'group'); choices.setAttribute('aria-label', gid + ' 相关性判断');
+        for (const [value, label] of [['relevant', '相关'], ['irrelevant', '不相关'], ['unsure', '待定'], ['unreviewed', '未判断']]) {
+          const button = make('button', 'choice', label); button.dataset.value = value;
+          button.setAttribute('aria-pressed', String(decision === value));
+          button.addEventListener('click', () => mark(gid, value)); choices.append(button);
+        }
+        top.append(title, choices); card.append(top, quoteNode(group.quote));
+        const bottom = make('div', 'evidence-bottom');
+        bottom.append(make('span', '', '语料：' + group.corpus_ids.join('、')));
+        if (group.quote.length > 220) {
+          const expand = make('button', 'text-button', '展开完整原文');
+          expand.addEventListener('click', () => {card.classList.toggle('expanded'); expand.textContent = card.classList.contains('expanded') ? '收起原文' : '展开完整原文';}); bottom.append(expand);
+        }
+        card.append(bottom);
+        if (group.sources.some(source => source.locator)) {
+          const sourceDetails = make('details', 'sources');
+          sourceDetails.append(make('summary', '', '查看来源定位'));
+          for (const source of group.sources) {
+            sourceDetails.append(make('div', 'source-detail', source.corpus_id + ' · ' + source.origin + '\n' + JSON.stringify(source.locator, null, 2)));
+          }
+          card.append(sourceDetails);
+        }
+        list.append(card);
+      }
+      if (!shown.length) list.append(make('div', 'empty', '暂无符合条件的资料，可以切换筛选或搜索全部语料。'));
+      const ready = fullReady(review);
+      $('full-review').disabled = !ready;
+      $('full-review').checked = review.corpus_review_complete;
+      $('full-review-label').textContent = ready ? '我已检查全部 ' + groups.size + ' 组，并确认完成完整性审核' : '全库完整性审核：全部 ' + groups.size + ' 组明确标为相关或不相关后才可勾选';
+      $('footer-count').textContent = '本题：相关 ' + count.relevant + ' · 不相关 ' + count.irrelevant + ' · 待定 ' + count.unsure + (review.confirmed ? ' ｜候选已确认' : ' ｜尚未确认');
+    }
+    function draw() {
+      const query = currentQuery();
+      $('query-heading').textContent = query.record_id + ' · ' + (query.stage === 'plan_points' ? '测试点规划' : '用例生成');
+      $('stage-label').textContent = query.stage === 'plan_points' ? '第一轮 RAG' : '第二轮 RAG';
+      $('run-label').textContent = '源运行：' + data.source_run_id;
+      $('query-question').textContent = questionFor(query);
+      $('query-text').textContent = query.text;
+      $('seed-note').textContent = '已有说明：' + (query.notes || '无');
+      $('review-note').value = currentReview().notes;
+      $('previous-button').disabled = data.queries[0].record_id === state.active;
+      drawSidebar(); drawEvidence();
+    }
+    function adopt(query, review) {
+      // 用户已经明确选择的不相关、待定均保留，不被机器建议覆盖。
+      for (const gid of query.relevant_groups || []) {
+        if (!review.judgments[gid]) review.judgments[gid] = 'relevant';
+      }
+    }
+    function confirmReview(review) {
+      review.confirmed = true; review.reviewed_by = 'user-via-web';
+      review.confirmed_at = new Date().toISOString();
+    }
+    function exported() {
+      return {tool: 'tc-rag-annotation', schema_version: '1.0', source_run_id: data.source_run_id,
+        dataset_id: data.dataset_id, seed_revision: data.seed_revision, exported_at: new Date().toISOString(),
+        question_hints_fingerprint: data.question_hints_fingerprint,
+        display_questions: data.display_questions || {},
+        note: '候选核对与全库审核分别记录；未判断项保持未知，不自动视为不相关；助手草稿不作为人工金标。',
+        progress: {candidate_confirmed: data.queries.filter(q => state.reviews[q.record_id].confirmed).length,
+          corpus_complete: data.queries.filter(q => state.reviews[q.record_id].corpus_review_complete).length, total: data.queries.length},
+        queries: data.queries.map(query => {
+          const review = state.reviews[query.record_id];
+          const ids = value => data.groups.filter(g => review.judgments[g.group_id] === value).map(g => g.group_id);
+          const positive = ids('relevant'), negative = ids('irrelevant');
+          return {record_id: query.record_id, query_id: query.query_id, stage: query.stage,
+            text: query.text, direct_ids: query.direct_ids || [], ...review,
+            suggested_relevant_groups: query.relevant_groups || [],
+            relevant_groups: review.confirmed ? positive : null, irrelevant_groups: negative,
+            uncertain_groups: ids('unsure'), unreviewed_groups: data.groups.filter(g => !review.judgments[g.group_id]).map(g => g.group_id),
+            relevant_corpus_ids: review.confirmed ? [...new Set(positive.flatMap(gid => groups.get(gid).corpus_ids))].sort() : null,
+            irrelevant_corpus_ids: [...new Set(negative.flatMap(gid => groups.get(gid).corpus_ids))].sort(),
+            review_scope: review.corpus_review_complete ? 'full_corpus' : 'presented_candidates',
+            original_notes: query.notes || ''};
+        })};
+    }
+    function imported(payload) {
+      if (payload.tool !== 'tc-rag-annotation' || payload.schema_version !== '1.0' ||
+          payload.source_run_id !== data.source_run_id || payload.dataset_id !== data.dataset_id ||
+          payload.seed_revision !== data.seed_revision || !Array.isArray(payload.queries)) {
+        throw new Error('文件不属于当前材料版本，已保留当前进度');
+      }
+      const reviews = {}, seen = new Set();
+      for (const item of payload.queries) {
+        const query = queries.get(item.record_id);
+        if (!query || seen.has(item.record_id) || query.query_id !== item.query_id || query.text !== item.text) {
+          throw new Error('查询 ID、文字或记录数量不匹配');
+        }
+        seen.add(item.record_id);
+        reviews[item.record_id] = {judgments: item.judgments, confirmed: item.confirmed,
+          notes: item.notes, corpus_review_complete: item.corpus_review_complete,
+          reviewed_by: item.reviewed_by, confirmed_at: item.confirmed_at};
+      }
+      return validateState({reviews, active: state.active});
+    }
+    $('status-filter').addEventListener('change', drawSidebar);
+    $('stage-filter').addEventListener('change', drawSidebar);
+    $('search').addEventListener('input', event => {search = event.target.value.trim().toLowerCase(); drawEvidence();});
+    for (const button of $('view-tabs').children) button.addEventListener('click', () => {
+      view = button.dataset.view; search = ''; $('search').value = ''; drawEvidence();
+    });
+    $('review-note').addEventListener('input', event => {currentReview().notes = event.target.value; save();});
+    $('full-review').addEventListener('change', event => {
+      const review = currentReview(); review.corpus_review_complete = event.target.checked && fullReady(review);
+      // 完整性勾选属于明确的人工确认，不能由预标或浏览自动触发。
+      if (review.corpus_review_complete) confirmReview(review);
+      save(); drawSidebar(); drawEvidence();
+    });
+    $('previous-button').addEventListener('click', () => selectQuery(data.queries[Math.max(0, data.queries.findIndex(q => q.record_id === state.active) - 1)].record_id));
+    $('adopt-button').addEventListener('click', () => {adopt(currentQuery(), currentReview()); save(); drawSidebar(); drawEvidence(); toast('已采纳建议，保留你的已有选择；请核对后确认本题');});
+    $('confirm-button').addEventListener('click', () => {
+      const review = currentReview();
+      if (!Object.keys(review.judgments).length) {toast('请先选择资料，或点击采纳本题预标建议'); return;}
+      confirmReview(review); save();
+      const position = data.queries.findIndex(q => q.record_id === state.active);
+      const next = [...data.queries.slice(position + 1), ...data.queries.slice(0, position)].find(q => !state.reviews[q.record_id].confirmed);
+      if (next) selectQuery(next.record_id); else {draw(); toast('全部查询的候选已确认，请导出审核结果保存到本地文件');}
+    });
+    $('batch-button').addEventListener('click', () => {
+      const remaining = data.queries.filter(q => !state.reviews[q.record_id].confirmed);
+      if (!remaining.length) return;
+      const message = '将采纳剩余 ' + remaining.length + ' 条查询的预标建议，并标记候选已核对。你明确选择的不相关和待定会保留；未判断项仍为未知，不代表全库审核完成。继续？';
+      if (!window.confirm(message)) return;
+      for (const query of remaining) {const review = state.reviews[query.record_id]; adopt(query, review); confirmReview(review);}
+      save(); draw(); toast('已批量确认候选，请检查待定项并导出结果');
+    });
+    $('export-button').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(exported(), null, 2)], {type: 'application/json;charset=utf-8'});
+      const url = URL.createObjectURL(blob), anchor = make('a'); anchor.href = url;
+      anchor.download = 'annotation_review_' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + '.json';
+      document.body.append(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
+      toast('已请求下载审核文件，请在浏览器下载列表确认保存位置');
+    });
+    $('import-button').addEventListener('click', () => $('import-file').click());
+    $('import-file').addEventListener('change', async event => {
+      const file = event.target.files[0]; if (!file) return;
+      try {
+        if (file.size > 10 * 1024 * 1024) throw new Error('文件过大，请选择本页面导出的审核 JSON');
+        const candidate = imported(JSON.parse(await file.text()));
+        if (!window.confirm('将用此文件恢复进度。若当前修改尚未导出，建议先取消并导出备份。继续？')) return;
+        state = candidate; save(); draw(); toast('审核进度已恢复');
+      } catch (error) {toast('导入失败：' + error.message);} finally {event.target.value = '';}
+    });
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+      if (saved) {
+        if (saved.dataset_id !== data.dataset_id || saved.seed_revision !== data.seed_revision) {
+          throw new Error('材料版本变化，未自动覆盖当前初始审核状态；请核对已导出的进度');
+        }
+        state = validateState(saved.state);
+      }
+    } catch (error) {toast('未恢复浏览器缓存：' + error.message);}
+    draw();
+    $('query-list').querySelector('.active')?.scrollIntoView({block: 'nearest', inline: 'nearest'});
+    window.scrollTo({top: 0, behavior: 'instant'});
+    // 仅暴露纯数据转换，供离线浏览器回归与导入校验复用。
+    window.annotationApp = {exportData: exported, validateImport: imported};
+  })();
+  </script>
+</body>
+</html>

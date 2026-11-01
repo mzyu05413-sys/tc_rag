@@ -9,7 +9,7 @@ import pytest
 from openai import AsyncOpenAI
 
 from tc_rag.core.config import Endpoint, Runtime
-from tc_rag.domain.pipeline import CaseBatch, Extraction, PointBatch
+from tc_rag.domain.pipeline import CaseBatch, Extraction, PointBatch, case_batch_schema
 from tc_rag.infrastructure.providers.openai_sdk import (
     OpenAIStructuredLLM,
     OutputTruncatedError,
@@ -266,7 +266,7 @@ async def test_repaired_extraction_ids_continue_through_rag_to_joint_export(tmp_
     pipeline.llm = adapter
     try:
         result = await pipeline.generate(document, "fixture", tmp_path / "out", run_id="run_demo")
-        assert result["cases"] == 3
+        assert result["cases"] == 1
         assert [call["stage"] for call in calls] == [
             "extract",
             "extract",
@@ -279,6 +279,36 @@ async def test_repaired_extraction_ids_continue_through_rag_to_joint_export(tmp_
         assert records[0].error == "SchemaOutputError"
         assert all(record.error is None for record in records[1:])
         assert Path(result["xmind"]).is_file() and Path(result["excel"]).is_file()
+    finally:
+        await adapter.close()
+
+
+@pytest.mark.asyncio
+async def test_issue_enum_is_coerced_without_extra_call():
+    calls = []
+
+    def handler(request):
+        calls.append(json.loads(request.content))
+        content = json.dumps(
+            {
+                "issues": [
+                    {
+                        "issue_id": "i",
+                        "kind": "invalid-kind",
+                        "severity": "invalid-severity",
+                        "description": "private-description",
+                    }
+                ]
+            }
+        )
+        return httpx.Response(200, json=completion(content))
+
+    adapter = provider(handler, [])
+    try:
+        result = await adapter.generate({"stage": "extract"}, Extraction)
+        assert len(calls) == 1
+        assert result.output.issues[0].kind == "other"
+        assert result.output.issues[0].severity == "warning"
     finally:
         await adapter.close()
 
@@ -316,10 +346,6 @@ async def test_extraction_repair_explains_enums_and_internal_mapping():
         assert "rule_mapping" in repair["repair"] and "{}" in repair["repair"]
         assert any(
             error["path"] == ["schema_version"] and error["allowed_values"] == ["1.0"]
-            for error in repair["validation_errors"]
-        )
-        assert any(
-            error["path"] == ["issues", 0, "kind"] and "gap" in error["allowed_values"]
             for error in repair["validation_errors"]
         )
         assert any(
@@ -515,5 +541,89 @@ async def test_retry_repair_progress_balances_active_requests():
         ]
         assert events[2].attempt == 1 and events[2].total == 2
         assert events[5].attempt == 1
+    finally:
+        await adapter.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("can_repair", [True, False])
+async def test_single_point_case_limit_repairs_before_cache_and_bypasses_old_cache(
+    tmp_path, can_repair
+):
+    """模型 HTTP 成功但单点超限：有界修复，不复用旧宽松 Schema 缓存。"""
+    from tc_rag.bootstrap import build_pipeline
+    from tc_rag.core.config import AppConfig
+    from tc_rag.domain import models as m
+    from tc_rag.domain.identity import fingerprint
+    from tc_rag.domain.pipeline import StageSnapshot
+    from tc_rag.infrastructure.providers.fakes import FakeEmbedder
+
+    def output(count):
+        return {"cases": [
+            {
+                "case_id": f"c{point}_{index}", "title": "校验测试目标",
+                "point_ids": [f"p{point}"],
+                "steps": [{"action": "执行校验", "expected": "观察结果",
+                           "rule_ids": ["r"], "evidence_ids": ["e"]}],
+            }
+            for point, total in enumerate([1, 1, count, 2, 3]) for index in range(total)
+        ]}
+
+    calls, records, events = [], [], []
+
+    def handler(request):
+        body = json.loads(json.loads(request.content)["messages"][1]["content"])
+        calls.append(body)
+        assert body["limits"]["max_cases_per_point"] == 6
+        return httpx.Response(200, json=completion(json.dumps(
+            output(6 if can_repair and len(calls) > 1 else 8), ensure_ascii=False
+        )))
+
+    adapter = provider(handler, records, repairs=1, response_format="json_object")
+    adapter.progress = events.append
+    cfg = AppConfig.model_validate({
+        "project": {"workdir": str(tmp_path / "work")},
+        "storage": {"database": str(tmp_path / "data.sqlite")},
+        "chunking": {"token_counter": "character_approx"},
+        "models": {"embedding": {"model": "fixture"}},
+        "retrieval": {"embedding_dimension": 3},
+    })
+    pipeline = build_pipeline(cfg, "run", adapter, FakeEmbedder())
+    pipeline.active_run_id = "run"
+    pipeline.repository.save(
+        "runs", "run", m.Run(run_id="run", status="running", config_snapshot={})
+    )
+    old_request = {"stage": "generate"}
+    old_schema = case_batch_schema([f"p{i}" for i in range(5)])
+    model_config = cfg.models.llm.model_dump(mode="json")
+    old_key = fingerprint([old_request, old_schema.model_json_schema(), model_config])
+    old_id = f"run:cache:{old_key}"
+    pipeline.repository.save("stage_snapshots", old_id, StageSnapshot(
+        snapshot_id=old_id, run_id="run", stage="model_cache", payload={"output": output(8)}
+    ))
+    request = {**old_request, "limits": {"max_cases_per_point": 6}}
+    schema = case_batch_schema([f"p{i}" for i in range(5)], 6)
+    new_key = fingerprint([request, schema.model_json_schema(), model_config])
+    new_id = f"run:cache:{new_key}"
+    try:
+        if can_repair:
+            result = await pipeline._model(request, schema)
+            assert len(result.output.cases) == 13
+            assert pipeline.repository.get("stage_snapshots", new_id, StageSnapshot) is not None
+            cached = await pipeline._model(request, schema)
+            assert cached.output.model_dump() == result.output.model_dump()
+            assert pipeline.cache_hits == 1
+        else:
+            with pytest.raises(ProviderError, match="Schema"):
+                await pipeline._model(request, schema)
+            assert pipeline.repository.get("stage_snapshots", new_id, StageSnapshot) is None
+            assert pipeline.cache_hits == 0
+        assert len(calls) == len(records) == 2
+        assert records[0].error == "SchemaOutputError"
+        assert calls[1]["validation_errors"][0]["constraint"].startswith("Each point_id")
+        assert len([event for event in events if event.kind == "repair"]) == 1
+        # 原缓存留作历史；没有修改生产数据或静默删除超限用例。
+        original = pipeline.repository.get("stage_snapshots", old_id, StageSnapshot)
+        assert original.payload["output"] == output(8)
     finally:
         await adapter.close()

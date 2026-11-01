@@ -9,6 +9,7 @@ storage:      # 存储配置
 parsing:      # 文档解析
   formats: [pdf, docx]
   vision_enabled: false
+  infer_docx_headings: false          # 可选推断非标准 Word 标题；默认保持原有解析
 
 chunking:     # 分块策略
   strategy: structural    # 按结构分块
@@ -67,6 +68,8 @@ planning:   # 测试点设计
   max_points_per_rule: 12 # 模型补充数量上限
   methods: [equivalence, boundary, decision_table, state, permission] # 等价类、边界值、决策表、状态转换、权限矩阵
   relation_enabled: false # 业务关系
+  ui_display_policy: merge # merge=纯界面展示点合并为概括点；keep=保留旧行为
+  vision_policy: aggregate # aggregate=仅图片证据不生成点并汇总问题；downgrade/keep 保留旧行为
 
 generation:
   skill_file: null # 默认内置用例 Skill；可追加自包含 UTF-8 Markdown 文件
@@ -95,3 +98,4 @@ export:
   include_issues: true
   include_coverage: true
   case_columns: []                    # 空列表使用原十一列模板；可配置 field/header
+  point_tree_layout: module           # 默认按模块/章节；feature/chapter 保留旧布局

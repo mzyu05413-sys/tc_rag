@@ -76,6 +76,14 @@ def validate_runtime_config(
 
 
 PROMPT_STAGES = ("extract", "plan_points", "generate", "rag_context", "vision", "case_skill")
+PROMPT_VERSIONS = {
+    "extract": "v2",
+    "plan_points": "v2",
+    "generate": "v2",
+    "rag_context": "v1",
+    "vision": "v1",
+    "case_skill": "v1",
+}
 
 
 def load_prompts(prompt_root: Path) -> tuple[dict[str, str], dict[str, str]]:
@@ -83,7 +91,7 @@ def load_prompts(prompt_root: Path) -> tuple[dict[str, str], dict[str, str]]:
     prompts: dict[str, str] = {}
     versions: dict[str, str] = {}
     for stage in PROMPT_STAGES:
-        chosen = "v1"
+        chosen = PROMPT_VERSIONS[stage]
         path = prompt_root / stage / f"{chosen}.md"
         prompts[stage] = path.read_text(encoding="utf-8")
         versions[stage] = chosen
@@ -149,13 +157,19 @@ def build_pipeline(
         repository.save("model_invocations", invocation.invocation_id, invocation)
         key = f"{run_id}:invocations"
         existing = repository.get("stage_snapshots", key, StageSnapshot)
-        items = existing.payload["items"] if existing else []
-        items.append(invocation.model_dump(mode="json"))
+        payload = dict(existing.payload) if existing else {"items": []}
+        payload["items"] = [*payload["items"], invocation.model_dump(mode="json")]
+        if invocation.validation_errors:
+            # 诊断按调用 ID 放入通用快照；旧版本只读取 items，不需要迁移数据库列。
+            payload["validation_errors"] = {
+                **payload.get("validation_errors", {}),
+                invocation.invocation_id: invocation.validation_errors,
+            }
         repository.save(
             "stage_snapshots",
             key,
             StageSnapshot(
-                snapshot_id=key, run_id=run_id, stage="invocations", payload={"items": items}
+                snapshot_id=key, run_id=run_id, stage="invocations", payload=payload
             ),
         )
 
@@ -224,7 +238,11 @@ def build_pipeline(
         config,
         repository,
         store,
-        lambda suffix: DocxParser(store) if suffix == ".docx" else PdfParser(store),
+        lambda suffix: (
+            DocxParser(store, infer_headings=config.parsing.infer_docx_headings)
+            if suffix == ".docx"
+            else PdfParser(store)
+        ),
         provider,
         XMindAdapter(),
         ReportExporter([(c.field, c.header) for c in config.export.case_columns]),

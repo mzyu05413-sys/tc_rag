@@ -28,7 +28,7 @@ async def test_document_rag_stays_continuous_without_reference_branch(tmp_path):
     events = []
     pipeline.progress = events.append
     result = await pipeline.generate(document, "生成边界用例", tmp_path / "out")
-    assert result["cases"] == 3
+    assert result["cases"] == 1
     assert Path(result["xmind"]).is_file()
     assert Path(result["excel"]).is_file()
     assert [event.stage for event in events if event.kind == "stage"] == [
@@ -61,7 +61,16 @@ async def test_document_rag_stays_continuous_without_reference_branch(tmp_path):
     for arguments in (
         ["status", run_id],
         ["inspect", run_id, "--stage", "cases"],
-        ["export", run_id, "--format", "xlsx", "--output-dir", str(tmp_path / "restored")],
+        [
+            "inspect",
+            run_id,
+            "--stage",
+            "cases",
+            "--format",
+            "xlsx",
+            "--output",
+            str(tmp_path / "restored" / "cases.xlsx"),
+        ],
     ):
         checked = runner.invoke(app, [*arguments, "--config", str(config)])
         assert checked.exit_code == 0, checked.output

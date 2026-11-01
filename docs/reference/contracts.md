@@ -22,11 +22,16 @@
 
 ### 用例批次的测试点引用
 
-生成时使用 `case_batch_schema(point_ids)`，把当前批次允许的测试点 ID 绑定为运行时字符串枚举。
+生成时使用 `case_batch_schema(point_ids, max_cases_per_point)`，把当前批次允许的测试点 ID 绑定为运行时字符串枚举。
 用例的 `point_ids` 非空且只能取这些值；引用其他批次或不存在的测试点会直接触发 Schema 错误，
 由模型适配器在现有 `generation.schema_repair_attempts` 预算内修复，耗尽仍失败。
 修复信息只含过滤后的字段路径、错误类型及输入契约的允许值，不回放错误模型正文。
 不会按标题猜测 ID、丢弃错误用例或放宽后续规则和证据校验。
+
+`generation.max_cases_per_point` 同时限制每个点关联的用例数量，关联多个点的用例对各点分别计数。
+总数没有超过“批次点数 × 单点上限”，也不能掩盖个别点超限。请求携带 `limits.max_cases_per_point`，
+Schema 校验在结构修复和有效缓存写入之前执行；超限时给出固定约束，修复耗尽仍失败。
+上限与运行时 Schema 参与缓存指纹，旧的宽松 Schema 缓存不能冒充合格结果。
 
 运行时契约沿用 `CaseBatch` / `TestCase` 的字段与严格校验，转回标准领域对象后保存；
 不改变持久化结构、数据库字段或导出格式。允许值排序后进入 Schema 和缓存指纹，
@@ -59,10 +64,24 @@
 
 用例至少有一步，每步同时记录 action、expected、rule_ids、evidence_ids。CoverageLink 对应具体步骤和规则/测试点，其关联存在不等于断言正确。
 
+纯界面展示点合并在应用层保存前完成，只替换测试点目标并合并 rule_ids，不新增领域字段、不删除规则或证据；汇总点仍引用原规则和证据，XMind 只显示概括目标。
+
 CasesRequest 只需要 run_id、生成指令和输出目录，不接受审核 ID、XMind 输入或文件校验和。
 PointTree 的正式节点绑定 point_id；导出 XMind 展示全部测试点，按状态、业务维度和功能分层，包含待澄清点。Excel 展示实际生成用例，二者数量不要求一致。
+`export.point_tree_layout: chapter` 可在业务维度与功能之间增加原文章节，默认 `feature` 保持原组织方式。
+章节依据全部直接规则证据的共同标题路径确定；没有共同路径归“跨章节”，均无标题归“未定位章节”，
+不按第一条证据猜测归属，不因目录布局删除测试点。
 历史 ReviewSnapshot 及数据库表保留以兼容旧数据，当前不读写批准记录。
 详见 [目录与联合导出](../learn/P1/11_测试点目录与联合导出.md) 及 [RAG 总览](../learn/P2/README.md)。
+
+## 质量检查
+
+`rag quality` 只读阶段快照与运行记录，不重新解析、不调用模型、不生成或修改业务事实。
+检查结果分为 `pass / warn / fail / not_applicable`：缺少阶段或未执行检查记为
+`not_applicable`，不能写成通过；`fail` 只用于引用、区间、文本或快照结构被破坏以及
+必需阶段缺失；启发式风险（重复、无依据数字、超预算、rerank 降级、失败调用）记 `warn`。
+`semantic_review` 必须保持 `not_performed`，自动检查不构成人工批准或语义正确结论。
+已有运行不回写；旧快照无法按当前契约解析时报告 `Q-SC-01`，依赖检查记 `not_applicable`。
 
 ## 身份、快照与检索
 
@@ -70,13 +89,19 @@ PointTree 的正式节点绑定 point_id；导出 XMind 展示全部测试点，
 
 Run.config_snapshot 是普通数据容器，调用方须传入无密钥配置。ModelInvocation 的 usage 未知为 None，不能填 0 冒充无消耗。
 
+`ModelInvocation.validation_errors` 是排除序列化的运行时诊断元数据，持久化到
+`invocations` 阶段快照的 `validation_errors[invocation_id]`；`items` 和 model_invocations 表中的
+调用 JSON 结构保持兼容。诊断只含过滤后的契约字段路径、错误类型与固定约束，不含错误输出值。
+新增标题/目录开关在默认关闭或默认布局时不加入配置快照，避免仅新增默认项破坏旧运行的一致性比较；
+启用后的实际值进入快照，不能将旧解析和目录结果强行当作新配置结果。
+
 RAG 空间绑定服务、模型、维度、归一化与模板版本；manifest 的业务 ID/int64 映射须唯一且等长。ContextPayload 保存范围、索引版本、命中、重排、采用/省略证据及耗时。`direct_ids` 指本规则的原文依据 ID，与生成路线无关。
 
 上下文仅使用需求文档的直接证据与检索补充资料。`source_*` 标识仍指 Chunk 字符区间对应的原文片段，不是源码引用，不因移除代码读取而删除。
 
 历史兼容边界：`ContextPayload` 的 `code_adopted_ids` / `code_omitted_ids` 仅用于读取旧记录，
 从新序列化和对象展示中排除，不进入新请求或生成流程；旧 `RagRecord.payload` 保持原样。
-不增加数据库列、不改写迁移或已有运行快照。旧运行仍可 status/inspect，已有用例可离线 export；
+不增加数据库列、不改写迁移或已有运行快照。旧运行仍可 status/inspect，已有用例可用 `inspect --format xlsx` 离线重建派生文件；
 旧配置不符合当前契约时，cases/resume 需要新建运行，不强行复用旧输入配置。
 
 参考测试：`tests/unit/test_domain.py`、`test_review.py` 与 `tests/integration/test_sqlite.py`、`test_rag.py`。具体语义和业务覆盖仍须人工审核。

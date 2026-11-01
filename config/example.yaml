@@ -9,6 +9,7 @@ storage:
 parsing:
   formats: [pdf, docx]
   vision_enabled: false
+  infer_docx_headings: false          # 可选的保守视觉标题推断，默认关闭
 
 chunking:
   strategy: structural
@@ -57,6 +58,8 @@ retrieval:
 planning:
   methods: [equivalence, boundary, decision_table, state, permission]
   relation_enabled: false
+  ui_display_policy: merge # merge/keep；纯界面展示点是否合并为概括点
+  vision_policy: downgrade # downgrade/keep；仅图片证据的测试点是否降级为待文本核对
 
 generation:
   skill_file: null # 可填自定义 Skill 的 .md 路径，也可通过 --skill-file 指定
@@ -79,6 +82,7 @@ observability:
   save_raw_model_payloads: false
 
 export:
+  point_tree_layout: feature          # chapter 在状态/业务维度和功能之间补充原文章节
   formats: [json, markdown]           # P2 起加 xlsx
   include_issues: true
   include_coverage: true

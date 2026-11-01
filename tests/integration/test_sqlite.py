@@ -54,6 +54,20 @@ def records():
     return [(table, object_key(value), value) for table, value in zip(TABLES, values)]
 
 
+def test_read_only_repository_rejects_writes(tmp_path):
+    path = tmp_path / "data.sqlite"
+    repository = SqliteRepository(path)
+    repository.save_many(records())
+    read_only = SqliteRepository(path, read_only=True)
+    assert read_only.get("documents", "d", m.Document) is not None
+    with pytest.raises(ValueError, match="只读"):
+        read_only.save("documents", "d", records()[0][2])
+    with pytest.raises(ValueError, match="只读"):
+        read_only.delete("documents", "d")
+    with pytest.raises(ValueError, match="只读"):
+        read_only.allocate_vector_ids("space", ["e"])
+
+
 def test_migration_idempotent_and_all_models_roundtrip(tmp_path):
     path = tmp_path / "data.sqlite"
     repo = SqliteRepository(path)

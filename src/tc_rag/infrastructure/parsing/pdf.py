@@ -92,13 +92,13 @@ class _PdfSession:
         assets: list[Asset] = []
         issues: list[Issue] = []
 
-        def issue(message: str) -> None:
+        def issue(message: str, extra_ids: list[str] | None = None) -> None:
             issues.append(
                 Issue(
                     issue_id=f"{self.document_id}_pdf_issue_{state.issue_count}",
                     kind="unparsed",
                     severity="warning",
-                    object_ids=[self.document_id],
+                    object_ids=[self.document_id, *(extra_ids or [])],
                     description=f"PDF第{page_no}页：{message}",
                 )
             )
@@ -131,7 +131,7 @@ class _PdfSession:
             )
             assets.append(image)
             items.append((box, "image", image.model_dump_json(), self.body_size))
-            issue(f"图片 {image.asset_id} 已提取定位，但图片文字未解析")
+            issue(f"图片 {image.asset_id} 已提取定位，但图片文字未解析", [image.asset_id])
         if text_ok:
             if self.tables_document is None or page.rotation:
                 issue("表格候选未提取（解析库不可用或页面旋转），保留原文字块")

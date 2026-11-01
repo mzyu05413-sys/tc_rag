@@ -201,3 +201,25 @@ def test_config_error_does_not_print_another_fields_secret():
             cli_overrides={"models": {"llm": {"api_key": secret, "concurrency": 0}}},
         )
     assert secret not in str(exc.value)
+
+
+def test_ui_display_policy_default_is_omitted_from_snapshot():
+    config = load_config(environ={})
+    assert "ui_display_policy" not in config.model_dump()["planning"]
+
+
+def test_ui_display_policy_keep_is_serialized():
+    config = load_config(
+        environ={}, cli_overrides={"planning": {"ui_display_policy": "keep"}}
+    )
+    assert config.model_dump()["planning"]["ui_display_policy"] == "keep"
+
+
+def test_vision_policy_default_is_omitted_from_snapshot():
+    config = load_config(environ={})
+    assert "vision_policy" not in config.model_dump()["planning"]
+
+
+def test_vision_policy_keep_is_serialized():
+    config = load_config(environ={}, cli_overrides={"planning": {"vision_policy": "keep"}})
+    assert config.model_dump()["planning"]["vision_policy"] == "keep"

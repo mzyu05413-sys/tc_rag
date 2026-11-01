@@ -34,6 +34,8 @@ class ProgressEvent:
     # pacing=本地请求间隔；cooldown=429/重试后的冷却。
     wait_reason: Literal["pacing", "cooldown"] | None = None
     rerank_status: Literal["disabled", "succeeded", "fallback"] | None = None
+    # 适配器按契约白名单过滤后的路径/错误类型；不传递响应正文或字段输入值。
+    validation_errors: tuple[str, ...] = ()
 
 
 ProgressReporter = Callable[[ProgressEvent], None]

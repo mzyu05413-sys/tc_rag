@@ -1,0 +1,50 @@
+%%{init: {"theme": "base", "securityLevel": "strict", "htmlLabels": false, "look": "classic", "fontFamily": "Microsoft YaHei, Segoe UI, sans-serif", "fontSize": 16, "themeVariables": {"background": "#FFFFFF", "primaryColor": "#EFF6FF", "primaryTextColor": "#0F172A", "primaryBorderColor": "#2563EB", "lineColor": "#334155", "textColor": "#0F172A", "clusterBkg": "#F8FAFC", "clusterBorder": "#94A3B8", "edgeLabelBackground": "#FFFFFF", "fontFamily": "Microsoft YaHei, Segoe UI, sans-serif"}, "flowchart": {"htmlLabels": false, "curve": "linear", "nodeSpacing": 34, "rankSpacing": 62, "padding": 18, "useMaxWidth": false, "wrappingWidth": 360}}}%%
+flowchart TB
+    subgraph SCHEDULE["① 批次调度 · 阶段串行，阶段内有界并发"]
+        JOBS["提炼 / 规划 / 生成批次队列"] --> WORKERS["固定工作协程数<br/>min(models.llm.concurrency, 批次数)"]
+        WORKERS --> BATCH["每批内部按顺序执行<br/>提炼：预算 → LLM<br/>规划 / 生成：预算 → RAG / 重排 → LLM"]
+        BATCH --> ORDER["按输入批次顺序归并<br/>首个致命错误取消并等待其余工人"]
+    end
+    subgraph MODELCALL["② LLM 单批请求 · 两层上限独立"]
+        CACHE["缓存键：完整请求 + 输出 Schema + 模型配置<br/>命中才复用；父运行缓存仅允许提炼复用"] -->|未命中| HTTP["生成模型请求<br/>适配器信号量 + 单次 timeout<br/>真实尝试计入共享 max_calls"]
+        CACHE -->|命中并校验| SAVE
+        HTTP --> RESULT{"返回情况"}
+        RESULT -->|可重试 HTTP / 超时| RETRY["runtime.max_attempts 内退避重试<br/>遵守 Retry-After；鉴权等直接失败"]
+        RETRY -. "有剩余额度" .-> HTTP
+        RESULT -->|成功返回| SCHEMA["JSON / Schema 校验<br/>同类提炼 ID 唯一<br/>用例 point_ids 仅限当前批次枚举"]
+        SCHEMA -->|不合规| REPAIR["generation.schema_repair_attempts 内修复<br/>只发安全字段路径、类型和允许值<br/>不回放错误正文，不猜测 ID"]
+        REPAIR -. "重新请求完整结构" .-> HTTP
+        SCHEMA -->|合规| SAVE["合规输出才写缓存<br/>后续仍核验原文、引用及业务风险"]
+        RESULT -->|用例输出截断| SPLIT["多测试点批次二分后依次执行<br/>直接输入超预算也可二分<br/>单点仍超限则失败"]
+        SPLIT -.-> CACHE
+    end
+    BATCH --> CACHE
+    subgraph SPECIAL["③ 各外部能力的差异"]
+        VISION["Vision：独立图片工人 + 信号量<br/>最小间隔、限流冷却、缓存<br/>单图失败记 Issue，其余继续"]
+        EMBEDDING["Embedding：batch_size + concurrency<br/>按 index 恢复顺序，校验向量空间<br/>空间 / 缓存损坏或检索失败阻断 RAG"]
+        RERANK["Rerank：随上层批次并发<br/>当前无独立重试 / 并发器<br/>失败记录 fallback，保留召回顺序"]
+    end
+    WORKERS -.-> RERANK
+    subgraph EXIT["④ 结束与恢复边界"]
+        FAIL["重试 / 修复耗尽或不可恢复错误<br/>保存 failure 阶段和类型，终端提示 run_id"]
+        CHECK["检索完成后校验，拒绝无效用例并记 Issue<br/>仍可导出全部点和有效用例，用例可为空<br/>有 Issue 可 partial_failed，不代表业务正确"]
+        RECOVER["status / inspect 定位阶段<br/>生成事实已保存时 inspect 可离线重导<br/>恢复需核对输入、配置和阶段绑定"]
+    end
+    RETRY -->|耗尽| FAIL
+    REPAIR -->|耗尽| FAIL
+    SAVE --> CHECK
+    FAIL --> RECOVER
+    class JOBS,WORKERS,BATCH,ORDER,CACHE,SCHEMA app
+    class HTTP,REPAIR model
+    class VISION,EMBEDDING,RERANK retrieval
+    class RESULT,RETRY,SPLIT,FAIL warn
+    class SAVE,CHECK,RECOVER store
+    classDef entry fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+    classDef app fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+    classDef domain fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#0F172A
+    classDef infra fill:#F1F5F9,stroke:#64748B,stroke-width:2px,color:#0F172A
+    classDef model fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#0F172A
+    classDef retrieval fill:#ECFEFF,stroke:#0891B2,stroke-width:2px,color:#0F172A
+    classDef store fill:#ECFDF5,stroke:#059669,stroke-width:2px,color:#0F172A
+    classDef warn fill:#FFF7ED,stroke:#D97706,stroke-width:2px,color:#0F172A
+    linkStyle default stroke:#334155,stroke-width:2px,color:#0F172A

@@ -17,6 +17,7 @@ class PointNode(DomainModel):
     order: int = Field(default=0, ge=0)
     point_id: str | None = None
     technique: str | None = None
+    status: Literal["ready", "needs_context", "needs_clarification", "not_applicable"] | None = None
 
     @model_validator(mode="after")
     def check_point_binding(self) -> "PointNode":

@@ -1,0 +1,62 @@
+%%{init: {"theme": "base", "securityLevel": "strict", "htmlLabels": false, "look": "classic", "fontFamily": "Microsoft YaHei, Segoe UI, sans-serif", "fontSize": 16, "themeVariables": {"background": "#FFFFFF", "primaryColor": "#EFF6FF", "primaryTextColor": "#0F172A", "primaryBorderColor": "#2563EB", "lineColor": "#334155", "textColor": "#0F172A", "clusterBkg": "#F8FAFC", "clusterBorder": "#94A3B8", "edgeLabelBackground": "#FFFFFF", "fontFamily": "Microsoft YaHei, Segoe UI, sans-serif"}, "flowchart": {"htmlLabels": false, "curve": "linear", "nodeSpacing": 34, "rankSpacing": 62, "padding": 18, "useMaxWidth": false, "wrappingWidth": 360}}}%%
+flowchart TB
+    subgraph ENTRY["① 入口与配置"]
+        CLI["rag / tc-rag · Typer CLI<br/>cli.py + workflow.py"]
+        CFG["core/config.py · Pydantic<br/>默认值 → 选定 YAML → 环境变量 → CLI"]
+        BOOT["bootstrap.py · build_pipeline<br/>校验配置、装配并注入具体适配器"]
+        PROMPT["prompts / stage / version.md<br/>RAG 约束 + 内置 / 附加用例 Skill"]
+    end
+    subgraph APP["② application · 用例编排与外部能力协议"]
+        PIPE["orchestration/pipeline.py<br/>generate → points → cases<br/>连续执行、无中间人工审核"]
+        SERVICE["services<br/>接入 / 分块 / 引文核验 / 测试设计<br/>视觉证据 / 评估"]
+        PORT["ports/contracts.py · Protocol<br/>解析、模型、存储、检索、导出接口"]
+        PROGRESS["application/progress.py<br/>阶段事件 → 终端心跳、批次、耗时"]
+    end
+    subgraph DOM["③ domain · 领域对象与纯逻辑"]
+        DFACT["models.py / pipeline.py<br/>Block、Chunk、Evidence、Rule<br/>Point、Case、Step、Issue、Coverage"]
+        DRAG["rag.py / identity.py<br/>空间、索引与上下文记录<br/>文档来源、指纹和 ID"]
+        DTREE["review.py · PointTree<br/>测试点目录；旧审核对象仅兼容"]
+    end
+    subgraph INFRA["④ infrastructure · 端口实现"]
+        PARSE["parsing<br/>DocxParser / PdfParser<br/>图文分离、定位、PDF 按页检查点"]
+        MODELS["providers<br/>StructuredLLM / Embedder<br/>VisionReader / Reranker"]
+        RET["retrieval<br/>RagContext + NumpyIndex / FAISS<br/>度量、关键词 / RRF、上下文"]
+        STORE["storage<br/>SqliteRepository<br/>LocalArtifactStore"]
+        EXPORT["exporters<br/>XMindAdapter / ReportExporter<br/>XMind、Excel、JSON / Markdown"]
+        RUNTIME["runtime<br/>Token 估算、计时装饰器"]
+    end
+    subgraph EXTERNAL["⑤ 模型服务与本地资源 · 具体名称以本地配置为准"]
+        API["OpenAI 兼容生成 / 向量 / 视觉服务<br/>HTTP rerank 服务<br/>四个角色分别配置；测试用 Fake / Mock"]
+        SQLITE["workdir/data.sqlite<br/>结构化业务事实、运行、调用和快照<br/>SQLite 是唯一结构化事实源"]
+        FILES["assets / indexes / output<br/>原件与图片、可重建索引<br/>派生测试点目录、用例和报告"]
+    end
+    CLI --> PIPE
+    CLI --> CFG
+    CLI --> BOOT
+    BOOT -->|读取配置| CFG
+    BOOT --> PIPE
+    BOOT -->|加载提示词| PROMPT
+    PIPE --> SERVICE
+    PIPE --> PORT
+    PIPE --> PROGRESS
+    PIPE -->|使用领域契约| DOM
+    BOOT -->|选择并注入具体实现| INFRA
+    INFRA -. "外部能力实现协议" .-> PORT
+    MODELS --> API
+    STORE --> SQLITE
+    STORE --> FILES
+    class CLI,CFG,BOOT,PROMPT entry
+    class PIPE,SERVICE,PORT,PROGRESS app
+    class DFACT,DRAG,DTREE domain
+    class PARSE,MODELS,RET,STORE,EXPORT,RUNTIME infra
+    class API model
+    class SQLITE,FILES store
+    classDef entry fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+    classDef app fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+    classDef domain fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#0F172A
+    classDef infra fill:#F1F5F9,stroke:#64748B,stroke-width:2px,color:#0F172A
+    classDef model fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#0F172A
+    classDef retrieval fill:#ECFEFF,stroke:#0891B2,stroke-width:2px,color:#0F172A
+    classDef store fill:#ECFDF5,stroke:#059669,stroke-width:2px,color:#0F172A
+    classDef warn fill:#FFF7ED,stroke:#D97706,stroke-width:2px,color:#0F172A
+    linkStyle default stroke:#334155,stroke-width:2px,color:#0F172A

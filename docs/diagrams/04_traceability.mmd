@@ -1,0 +1,51 @@
+%%{init: {"theme": "base", "securityLevel": "strict", "htmlLabels": false, "look": "classic", "fontFamily": "Microsoft YaHei, Segoe UI, sans-serif", "fontSize": 16, "themeVariables": {"background": "#FFFFFF", "primaryColor": "#EFF6FF", "primaryTextColor": "#0F172A", "primaryBorderColor": "#2563EB", "lineColor": "#334155", "textColor": "#0F172A", "clusterBkg": "#F8FAFC", "clusterBorder": "#94A3B8", "edgeLabelBackground": "#FFFFFF", "fontFamily": "Microsoft YaHei, Segoe UI, sans-serif"}, "flowchart": {"htmlLabels": false, "curve": "linear", "nodeSpacing": 34, "rankSpacing": 62, "padding": 18, "useMaxWidth": false, "wrappingWidth": 360}}}%%
+flowchart LR
+    subgraph ORIGINAL["① 原始资料与定位"]
+        ASSET["Asset / Document<br/>原件 checksum、内容版本"] --> BLOCK["DocumentBlock + Locator<br/>原文顺序、页码 / 段落 / 表格位置"]
+        BLOCK --> CHUNK["Chunk / ChunkSource<br/>block_id + [start_char, end_char)<br/>保留原文，不覆盖清洗结果"]
+        IMAGE["图片 Asset → 视觉解释<br/>origin=vision、模型 / 版本<br/>uncertain=true，不冒充原文"] -.-> BLOCK
+    end
+    subgraph FACTS["② 需求事实与测试设计"]
+        EVID["EvidenceSpan<br/>最短支撑引文 + block_id + Locator<br/>只允许引用所属区间"] --> RULE["Feature / RequirementRule<br/>rule → feature_id + evidence_ids<br/>条件、例外与缺漏保留"]
+        RULE --> POINT["TestPoint<br/>rule_ids、objective、technique<br/>status + applicability"]
+        POINT --> CASE["TestCase<br/>point_ids 属于当前生成批次<br/>动作与预期拆分"]
+        CASE --> STEP["TestStep<br/>action、expected<br/>rule_ids + evidence_ids"]
+    end
+    CHUNK --> EVID
+    subgraph AUDIT["③ 覆盖、风险与运行审计"]
+        COVER["CoverageLink<br/>case_id / step_no / rule_id / point_id<br/>关联存在不代表语义正确"]
+        ISSUE["Issue<br/>歧义、冲突、未解析、缺口<br/>无依据预期和重复风险"]
+        RUN["Run / StageSnapshot / ModelInvocation<br/>无密钥配置、Prompt / Skill 指纹<br/>阶段、调用、消耗、耗时和失败位置"]
+        CTX["RAG ContextPayload<br/>scope / space / index_version<br/>hits、rerank、采用 / 省略 ID"]
+    end
+    STEP --> COVER
+    RULE -.-> ISSUE
+    POINT -.-> ISSUE
+    STEP -.-> ISSUE
+    CHUNK -. "原文片段与证据参与索引" .-> CTX
+    subgraph STORAGE["④ 事实持久化与只读派生视图"]
+        DB["SQLite · 唯一结构化事实源<br/>文档 / 规则 / 点 / 用例 / 风险 / 运行"]
+        XM["XMind：全部点与状态目录<br/>不含用例步骤；不回读"]
+        EXCEL["Excel：实际生成用例<br/>目录点数与用例数可不同"]
+        REPORT["JSON / Markdown / 覆盖报告<br/>indexes 为可重建派生产物"]
+    end
+    COVER --> DB
+    ISSUE --> DB
+    RUN --> DB
+    CTX --> DB
+    DB --> XM
+    DB --> EXCEL
+    DB --> REPORT
+    class ASSET,BLOCK,CHUNK,EVID,RULE,POINT,CASE,STEP app
+    class COVER,RUN,CTX retrieval
+    class IMAGE,ISSUE warn
+    class DB,XM,EXCEL,REPORT store
+    classDef entry fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+    classDef app fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+    classDef domain fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#0F172A
+    classDef infra fill:#F1F5F9,stroke:#64748B,stroke-width:2px,color:#0F172A
+    classDef model fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#0F172A
+    classDef retrieval fill:#ECFEFF,stroke:#0891B2,stroke-width:2px,color:#0F172A
+    classDef store fill:#ECFDF5,stroke:#059669,stroke-width:2px,color:#0F172A
+    classDef warn fill:#FFF7ED,stroke:#D97706,stroke-width:2px,color:#0F172A
+    linkStyle default stroke:#334155,stroke-width:2px,color:#0F172A

@@ -1,0 +1,106 @@
+# 本地配置示例（可提交）：复制为 workdir/local.yaml 后填写，勿在本文件保存真实密钥。
+# 本文件不自动加载；不要覆盖已有 local.yaml。所有相对路径以项目根目录为基准。
+# llm 与 embedding 必需；vision/rerank 可选，未启用时保持空值。
+# concurrency 需按服务限额调整；rerank 当前随上层批次并发，无独立并发限制。
+
+project:      # 项目配置
+  name: demo
+  workdir: ./workdir  # 运行产物
+
+storage:      # 存储配置
+  backend: sqlite
+  database: ./workdir/data.sqlite
+
+parsing:      # 文档解析
+  formats: [pdf, docx]
+  scan_policy: report_unsupported     # 扫描页报告未解析，不提供独立整页识别路线
+  infer_docx_headings: false          # 可选：按有效字号/粗体推断短标题；默认只按显式标题
+  vision_enabled: false
+
+chunking:     # 分块策略
+  strategy: structural    # 按结构分块
+  target_tokens: 900
+  overlap_tokens: 100
+  token_counter: tiktoken_approx      # 近似计数；纯离线可选 character_approx
+
+models:      # 模型端点
+  llm:       # 大语言模型
+    adapter: openai_sdk               # 当前已实现的 OpenAI 兼容协议适配器
+    api_mode: chat_completions        # 对话协议
+    response_format: json_schema     # DeepSeek Chat 改为 json_object
+    thinking_mode: default           # DeepSeek Chat 可设 disabled；default 不发送此参数
+    max_output_tokens: null          # 单次输出上限；留空使用服务商默认，与输入预算不同
+    base_url: ""
+    model: ""
+    api_key: null                     # 在 workdir/local.yaml 填真实值；不进入快照或导出
+    api_key_env: TC_RAG_LLM_API_KEY
+    concurrency: 3                  # 请求并发数量
+  embedding: # 向量模型
+    adapter: openai_sdk
+    base_url: ""
+    model: ""
+    api_key: null                     # 非空值优先；留空时兼容环境变量
+    api_key_env: TC_RAG_EMBEDDING_API_KEY
+    batch_size: 16    # 批量数目
+    concurrency: 2
+  vision:     # 图片转文字设置
+    enabled: false                   # 启用还需 parsing.vision_enabled: true
+    supports_images: false # 开启前核对部署模型是否支持图片，再设为 true
+    adapter: openai_sdk
+    model: ""
+    base_url: ""
+    api_key: null
+    api_key_env: TC_RAG_VISION_API_KEY
+    concurrency: 2                  # 图片工人并发；还受请求间隔和冷却约束
+  rerank:
+    enabled: false
+    adapter: http
+    model: "" # 智谱使用 rerank
+    base_url: "" # 智谱完整 REST 地址 https://open.bigmodel.cn/api/paas/v4/rerank
+    api_key: null
+    api_key_env: TC_RAG_RERANK_API_KEY
+
+retrieval:
+  scope: requirement_set
+  backend: numpy                      # numpy | faiss
+  metric: cosine                      # cosine | euclidean | dot
+  normalize: true
+  embedding_dimension: 1536            # 必须等于模型实际返回维度，不自动截断
+  vector_top_k: 20
+  keyword_enabled: false
+  rerank_top_n: 6
+  threshold_policy: disabled          # 评估后按 metric 配置
+
+planning:   # 测试点设计
+  max_points_per_rule: 12 # 模型补充数量上限
+  methods: [equivalence, boundary, decision_table, state, permission] # 等价类、边界值、决策表、状态转换、权限矩阵
+  relation_enabled: false # 业务关系
+
+generation:
+  skill_file: null # 默认内置用例 Skill；可追加自包含 UTF-8 Markdown 文件
+  max_cases_per_point: 3 # 防止模型无界扩展用例数量
+  batch_point_limit: 5
+  schema_repair_attempts: 1
+  unsupported_expectation_policy: flag
+
+runtime:
+  max_context_tokens: 12000 # 本地输入预算，包含正文、来源元数据及输出 Schema；按实际模型能力调整
+  max_attempts: 3
+  request_timeout_seconds: 90
+  vision_min_interval_seconds: 0 # 视觉请求启动间隔；限流时可先设 3，具体限额看账户控制台
+  cache_enabled: true
+  chunk_failure_policy: fail   # fail=中止；skip=记录失败分块后继续，不代表完整提炼
+  budget:
+    max_calls: null
+    max_cost: null
+
+observability:
+  metrics_enabled: true
+  save_raw_model_payloads: false
+
+export:
+  formats: [json, markdown, xlsx]      # 用例阶段导出目标十一列 Excel
+  include_issues: true
+  include_coverage: true
+  case_columns: []                    # 空列表使用原十一列模板；可配置 field/header
+  point_tree_layout: module           # 默认按模块/章节；feature/chapter 保留旧布局

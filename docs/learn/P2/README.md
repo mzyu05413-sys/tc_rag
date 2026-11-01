@@ -117,6 +117,16 @@ XMind 编辑不反向改变 SQLite 事实，也不作为用例生成输入。
 保持生成测试点时的配置；使用 CLI 指定过 Skill 时重试也携带相同 `--skill-file`。
 第一次交付在运行目录；已有成功交付后重新生成会创建 `batch_*` 子目录，两份文件仍共同放置。
 
+已完成运行可做只读质检：
+
+```powershell
+.\.venv\Scripts\python.exe -m tc_rag.interfaces.cli quality RUN_ID --config workdir/local.yaml
+```
+
+输出 `reports/quality_check.json` 和 `.md`，逐阶段列出 pass/warn/fail/not_applicable；
+`fail` 退出码 2，`--strict` 时 warn 也退出 2。只读快照，不调用模型，
+自动检查不替代人工语义结论。
+
 `doctor` 只做离线检查；`doctor --live` 用独立虚构需求验证首轮 RAG，最多 8 次生成与向量请求，
 不验证完整用例生成或真实业务质量。实际请求可能产生费用，仅在显式执行时发送。
 

@@ -23,19 +23,38 @@
 目的：减少模型补充测试点过度标记待澄清。该修订不改变输出 Schema 或业务规则，
 真实模型上的待澄清比例需重新运行后抽样验证；改动后的提示词指纹随运行 manifest 记录。
 
+## 2026-10-31 v2：界面展示抽象与合并
+
+`extract/v2.md`、`plan_points/v2.md`、`generate/v2.md` 在 v1 基础上增加：
+
+- extract：图片外观只作展示证据；纯展示使用 `kind=other`，不写成功能规则；
+- plan_points：不生成碎片化界面描述点，同一功能最多一条概括展示点，目标必须抽象；
+- generate：`界面展示汇总` 点只生成一条概括用例，不按字段/按钮拆成多条。
+
+`bootstrap.PROMPT_VERSIONS` 固定加载 v2；vision/rag_context/case_skill 仍为 v1。
+v2 是当前 v1 全文加新增段落，不删除或改写 v1 的既有约束；`tests/unit/test_prompts.py`
+逐行校验 v1 非空行按顺序存在于 v2。新运行 manifest 记录实际版本与文本指纹；旧运行快照不回写，
+质量检查对旧提示词版本记 `not_applicable`。
+
+### 2026-10-31 同日修订：规则类型判定
+
+`extract/v2.md` 增加规则类型判定顺序（字段约束 → 异常 → 权限 → 状态 → 流程 → 条件 → 其他），
+用于降低 `kind=other` 占比。该修订只新增分类指导，不改变输出 Schema；新运行 manifest 记录新的文本指纹，
+v1 顺序超集断言仍通过。旧运行不回写，分类差异按各自运行的提示词指纹解释。
+
 ## 当前资源
 
 | 资源 | 当前用途 | 验证边界 |
 |---|---|---|
-| `prompts/extract/v1.md` | 从输入片段提炼功能、规则、引文与问题 | 离线提炼/引用/并发回归；真实语义待验收 |
-| `prompts/plan_points/v1.md` | 在规则基础点之上补充测试意图 | 与 RAG 约束组合使用；不能跳过检索 |
-| `prompts/generate/v1.md` | 从已保存测试点及上下文生成用例步骤 | 连续流程离线回归；业务覆盖需实际核验 |
+| `prompts/extract/v2.md` | 从输入片段提炼功能、规则、引文与问题 | 离线提炼/引用/并发回归；真实语义待验收 |
+| `prompts/plan_points/v2.md` | 在规则基础点之上补充测试意图 | 与 RAG 约束组合使用；不能跳过检索 |
+| `prompts/generate/v2.md` | 从已保存测试点及上下文生成用例步骤 | 连续流程离线回归；业务覆盖需实际核验 |
 | `prompts/case_skill/v1.md` | 默认用例命名、粒度与优先级规范 | 按上传 Skill 整理，保留独立边界用例和十一列 Excel |
 | `prompts/rag_context/v1.md` | 补充证据范围、冲突及图片来源约束 | 附加到规划/生成；检索采用/省略与失败路径验证 |
 | `prompts/vision/v1.md` | 只描述图片可见需求，记录不确定性 | HTTP 模拟、来源和缓存验证；图片准确性待抽查 |
 
 `bootstrap.py` 将 rag_context 组合到规划和生成提示词，并将 case_skill 加入生成提示词。
-各阶段统一加载表中的 v1 资源；不再按代码参考开关选择试验提示词。
+各阶段按 `bootstrap.PROMPT_VERSIONS` 加载上表资源；不再按代码参考开关选择试验提示词。
 manifest 记录各资源及组合后指纹；指定 `--skill-file` 或 `generation.skill_file` 时追加自定义规范，
 改变 generate 缓存依赖，另存内置/自定义校验和及接入方式快照。
 

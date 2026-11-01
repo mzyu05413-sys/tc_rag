@@ -1,0 +1,1778 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="tc-rag-docs">
+  <diagram id="01_architecture" name="01 · 项目分层架构与端口实现">
+    <mxGraphModel grid="1" page="0" math="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="01 · 项目分层架构与端口实现" style="text;fontSize=24;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="16" as="geometry" width="1200" height="40" />
+        </mxCell>
+        <mxCell id="cluster-EXTERNAL" value="⑤ 模型服务与本地资源 · 具体名称以本地配置为准" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="199.66" y="1013.63" as="geometry" width="1121.03" height="164.2" />
+        </mxCell>
+        <mxCell id="cluster-INFRA" value="④ infrastructure · 端口实现" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="38" y="742.8" as="geometry" width="2023.8" height="210.83" />
+        </mxCell>
+        <mxCell id="cluster-DOM" value="③ domain · 领域对象与纯逻辑" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="1340.12" y="1892.09" as="geometry" width="1051.2" height="164.2" />
+        </mxCell>
+        <mxCell id="cluster-APP" value="② application · 用例编排与外部能力协议" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="1500.72" y="1448.69" as="geometry" width="1088.41" height="328.4" />
+        </mxCell>
+        <mxCell id="cluster-ENTRY" value="① 入口与配置" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="1105.45" y="95" as="geometry" width="827.01" height="512.8" />
+        </mxCell>
+        <mxCell id="atlas0-L_CLI_PIPE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CLI" target="PIPE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1851.56" y="247.6" />
+              <mxPoint x="1891.02" y="247.6" />
+              <mxPoint x="1930.48" y="247.6" />
+              <mxPoint x="1958.74" y="261.46" />
+              <mxPoint x="1958.74" y="300.92" />
+              <mxPoint x="1958.74" y="340.38" />
+              <mxPoint x="1958.74" y="379.84" />
+              <mxPoint x="1958.74" y="419.29" />
+              <mxPoint x="1958.74" y="458.75" />
+              <mxPoint x="1958.74" y="498.21" />
+              <mxPoint x="1958.74" y="537.67" />
+              <mxPoint x="1958.74" y="577.12" />
+              <mxPoint x="1958.74" y="616.58" />
+              <mxPoint x="1979.64" y="637.8" />
+              <mxPoint x="2019.1" y="637.8" />
+              <mxPoint x="2058.56" y="637.8" />
+              <mxPoint x="2098.01" y="637.8" />
+              <mxPoint x="2135.18" y="642.53" />
+              <mxPoint x="2135.42" y="681.98" />
+              <mxPoint x="2135.42" y="721.43" />
+              <mxPoint x="2135.42" y="760.89" />
+              <mxPoint x="2135.42" y="800.35" />
+              <mxPoint x="2135.42" y="839.81" />
+              <mxPoint x="2135.42" y="879.26" />
+              <mxPoint x="2135.42" y="918.72" />
+              <mxPoint x="2135.42" y="958.18" />
+              <mxPoint x="2135.42" y="997.64" />
+              <mxPoint x="2135.42" y="1037.09" />
+              <mxPoint x="2135.42" y="1076.55" />
+              <mxPoint x="2135.42" y="1116.01" />
+              <mxPoint x="2135.42" y="1155.47" />
+              <mxPoint x="2135.42" y="1194.92" />
+              <mxPoint x="2135.42" y="1234.38" />
+              <mxPoint x="2135.42" y="1273.84" />
+              <mxPoint x="2135.42" y="1313.3" />
+              <mxPoint x="2135.42" y="1352.76" />
+              <mxPoint x="2135.42" y="1392.21" />
+              <mxPoint x="2119.77" y="1418.69" />
+              <mxPoint x="2080.32" y="1418.69" />
+              <mxPoint x="2040.86" y="1418.69" />
+              <mxPoint x="2001.4" y="1418.69" />
+              <mxPoint x="1993.82" y="1453.23" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_CLI_CFG_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CLI" target="CFG">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1716.2" y="247.6" />
+              <mxPoint x="1676.4" y="247.6" />
+              <mxPoint x="1636.61" y="247.6" />
+              <mxPoint x="1596.81" y="247.6" />
+              <mxPoint x="1557.01" y="247.6" />
+              <mxPoint x="1517.21" y="247.6" />
+              <mxPoint x="1477.42" y="247.6" />
+              <mxPoint x="1437.62" y="247.6" />
+              <mxPoint x="1397.82" y="247.6" />
+              <mxPoint x="1358.02" y="247.6" />
+              <mxPoint x="1318.22" y="247.6" />
+              <mxPoint x="1278.43" y="247.6" />
+              <mxPoint x="1254.78" y="266.41" />
+              <mxPoint x="1254.78" y="306.21" />
+              <mxPoint x="1254.78" y="346.01" />
+              <mxPoint x="1254.78" y="385.81" />
+              <mxPoint x="1254.78" y="425.6" />
+              <mxPoint x="1254.78" y="465.4" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_CLI_BOOT_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CLI" target="BOOT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1782.87" y="245.13" />
+              <mxPoint x="1755.9" y="247.9" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_BOOT_CFG_0" value="读取配置" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="BOOT" target="CFG">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1651.99" y="382.2" />
+              <mxPoint x="1612.9" y="382.2" />
+              <mxPoint x="1573.82" y="382.2" />
+              <mxPoint x="1534.73" y="382.2" />
+              <mxPoint x="1495.65" y="382.2" />
+              <mxPoint x="1456.56" y="382.2" />
+              <mxPoint x="1417.48" y="382.2" />
+              <mxPoint x="1378.39" y="382.2" />
+              <mxPoint x="1353.18" y="398.74" />
+              <mxPoint x="1353.18" y="437.83" />
+              <mxPoint x="1354.34" y="476.7" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_BOOT_PIPE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="BOOT" target="PIPE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1851.36" y="382.2" />
+              <mxPoint x="1890.88" y="382.2" />
+              <mxPoint x="1907.6" y="407.67" />
+              <mxPoint x="1907.6" y="447.2" />
+              <mxPoint x="1907.6" y="486.72" />
+              <mxPoint x="1907.6" y="526.24" />
+              <mxPoint x="1907.6" y="565.76" />
+              <mxPoint x="1907.6" y="605.28" />
+              <mxPoint x="1907.6" y="644.8" />
+              <mxPoint x="1936.79" y="657.8" />
+              <mxPoint x="1976.31" y="657.8" />
+              <mxPoint x="2015.83" y="657.8" />
+              <mxPoint x="2055.35" y="657.8" />
+              <mxPoint x="2081.8" y="673.53" />
+              <mxPoint x="2081.8" y="713.05" />
+              <mxPoint x="2081.8" y="752.57" />
+              <mxPoint x="2081.8" y="792.1" />
+              <mxPoint x="2081.8" y="831.62" />
+              <mxPoint x="2081.8" y="871.14" />
+              <mxPoint x="2081.8" y="910.66" />
+              <mxPoint x="2081.8" y="950.18" />
+              <mxPoint x="2081.8" y="989.7" />
+              <mxPoint x="2081.8" y="1029.23" />
+              <mxPoint x="2081.8" y="1068.75" />
+              <mxPoint x="2081.8" y="1108.27" />
+              <mxPoint x="2081.8" y="1147.79" />
+              <mxPoint x="2081.8" y="1187.31" />
+              <mxPoint x="2081.8" y="1226.83" />
+              <mxPoint x="2081.8" y="1266.35" />
+              <mxPoint x="2081.8" y="1305.88" />
+              <mxPoint x="2081.8" y="1345.4" />
+              <mxPoint x="2081.8" y="1384.92" />
+              <mxPoint x="2053.39" y="1398.69" />
+              <mxPoint x="2013.87" y="1398.69" />
+              <mxPoint x="1974.35" y="1398.69" />
+              <mxPoint x="1934.83" y="1398.69" />
+              <mxPoint x="1907.6" y="1413.65" />
+              <mxPoint x="1907.6" y="1453.17" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_BOOT_PROMPT_0" value="加载提示词" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="BOOT" target="PROMPT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1715.62" y="382.19" />
+              <mxPoint x="1700.25" y="403.41" />
+              <mxPoint x="1700.25" y="437.34" />
+              <mxPoint x="1700.25" y="471.27" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_PIPE_SERVICE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="PIPE" target="SERVICE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1976.58" y="1619.34" />
+              <mxPoint x="1998.13" y="1630.89" />
+              <mxPoint x="2028.58" y="1630.89" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_PIPE_PORT_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="PIPE" target="PORT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1861.38" y="1618.89" />
+              <mxPoint x="1822.31" y="1618.89" />
+              <mxPoint x="1783.25" y="1618.89" />
+              <mxPoint x="1744.24" y="1619.4" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_PIPE_PROGRESS_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="PIPE" target="PROGRESS">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2040.82" y="1618.89" />
+              <mxPoint x="2080.66" y="1618.89" />
+              <mxPoint x="2120.5" y="1618.89" />
+              <mxPoint x="2160.34" y="1618.89" />
+              <mxPoint x="2200.18" y="1618.89" />
+              <mxPoint x="2240.02" y="1618.89" />
+              <mxPoint x="2279.87" y="1618.89" />
+              <mxPoint x="2319.71" y="1618.89" />
+              <mxPoint x="2359.55" y="1618.89" />
+              <mxPoint x="2399.37" y="1619.17" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_PIPE_DOM_0" value="使用领域契约" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="PIPE" target="cluster-DOM">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1923.94" y="1627.97" />
+              <mxPoint x="1885.74" y="1630.89" />
+              <mxPoint x="1865.72" y="1652.76" />
+              <mxPoint x="1865.72" y="1691.99" />
+              <mxPoint x="1865.72" y="1731.21" />
+              <mxPoint x="1865.72" y="1770.43" />
+              <mxPoint x="1865.72" y="1809.65" />
+              <mxPoint x="1865.72" y="1848.87" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_BOOT_INFRA_0" value="选择并注入具体实现" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="BOOT" target="cluster-INFRA">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1781.73" y="391.51" />
+              <mxPoint x="1820.33" y="394.2" />
+              <mxPoint x="1859.81" y="394.2" />
+              <mxPoint x="1867.86" y="428.31" />
+              <mxPoint x="1867.86" y="467.79" />
+              <mxPoint x="1867.86" y="507.27" />
+              <mxPoint x="1867.86" y="546.76" />
+              <mxPoint x="1867.86" y="586.24" />
+              <mxPoint x="1867.86" y="625.73" />
+              <mxPoint x="1837.78" y="637.8" />
+              <mxPoint x="1798.3" y="637.8" />
+              <mxPoint x="1758.81" y="637.8" />
+              <mxPoint x="1719.33" y="637.8" />
+              <mxPoint x="1679.85" y="637.8" />
+              <mxPoint x="1640.36" y="637.8" />
+              <mxPoint x="1600.88" y="637.8" />
+              <mxPoint x="1561.39" y="637.8" />
+              <mxPoint x="1521.91" y="637.8" />
+              <mxPoint x="1482.42" y="637.8" />
+              <mxPoint x="1442.94" y="637.8" />
+              <mxPoint x="1403.46" y="637.8" />
+              <mxPoint x="1363.97" y="637.8" />
+              <mxPoint x="1324.49" y="637.8" />
+              <mxPoint x="1285.0" y="637.8" />
+              <mxPoint x="1245.52" y="637.8" />
+              <mxPoint x="1206.04" y="637.8" />
+              <mxPoint x="1166.55" y="637.8" />
+              <mxPoint x="1127.07" y="637.8" />
+              <mxPoint x="1087.58" y="637.8" />
+              <mxPoint x="1048.1" y="637.8" />
+              <mxPoint x="1008.62" y="637.8" />
+              <mxPoint x="969.13" y="637.8" />
+              <mxPoint x="929.65" y="637.8" />
+              <mxPoint x="890.16" y="637.8" />
+              <mxPoint x="850.68" y="637.8" />
+              <mxPoint x="811.19" y="637.8" />
+              <mxPoint x="771.71" y="637.8" />
+              <mxPoint x="732.23" y="637.8" />
+              <mxPoint x="692.74" y="637.8" />
+              <mxPoint x="653.26" y="637.8" />
+              <mxPoint x="633.14" y="659.83" />
+              <mxPoint x="633.14" y="699.32" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_INFRA_PORT_0" value="外部能力实现协议" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="cluster-INFRA" target="PORT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1215.79" y="983.63" />
+              <mxPoint x="1254.62" y="983.63" />
+              <mxPoint x="1293.46" y="983.63" />
+              <mxPoint x="1332.3" y="983.63" />
+              <mxPoint x="1371.14" y="983.63" />
+              <mxPoint x="1409.98" y="983.63" />
+              <mxPoint x="1448.82" y="983.63" />
+              <mxPoint x="1487.65" y="983.63" />
+              <mxPoint x="1526.49" y="983.63" />
+              <mxPoint x="1565.33" y="983.63" />
+              <mxPoint x="1601.71" y="988.57" />
+              <mxPoint x="1601.9" y="1027.4" />
+              <mxPoint x="1601.9" y="1066.24" />
+              <mxPoint x="1601.9" y="1105.08" />
+              <mxPoint x="1601.9" y="1143.91" />
+              <mxPoint x="1601.9" y="1182.75" />
+              <mxPoint x="1601.9" y="1221.59" />
+              <mxPoint x="1601.9" y="1260.43" />
+              <mxPoint x="1601.9" y="1299.27" />
+              <mxPoint x="1601.9" y="1338.11" />
+              <mxPoint x="1601.9" y="1376.94" />
+              <mxPoint x="1621.66" y="1398.69" />
+              <mxPoint x="1637.99" y="1423.86" />
+              <mxPoint x="1637.99" y="1462.7" />
+              <mxPoint x="1637.99" y="1501.54" />
+              <mxPoint x="1637.99" y="1540.38" />
+              <mxPoint x="1637.99" y="1579.21" />
+              <mxPoint x="1637.99" y="1618.05" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_MODELS_API_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MODELS" target="API">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="201.82" y="920.27" />
+              <mxPoint x="201.82" y="957.53" />
+              <mxPoint x="215.66" y="983.63" />
+              <mxPoint x="252.92" y="983.63" />
+              <mxPoint x="290.19" y="983.63" />
+              <mxPoint x="327.45" y="983.63" />
+              <mxPoint x="364.72" y="983.63" />
+              <mxPoint x="401.89" y="984.34" />
+              <mxPoint x="405.18" y="1020.36" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_STORE_SQLITE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="STORE" target="SQLITE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1130.28" y="921.34" />
+              <mxPoint x="1130.28" y="959.67" />
+              <mxPoint x="1113.23" y="983.63" />
+              <mxPoint x="1074.89" y="983.63" />
+              <mxPoint x="1036.56" y="983.63" />
+              <mxPoint x="998.22" y="983.63" />
+              <mxPoint x="959.88" y="983.63" />
+              <mxPoint x="921.54" y="983.63" />
+              <mxPoint x="883.21" y="983.63" />
+              <mxPoint x="844.87" y="983.63" />
+              <mxPoint x="806.54" y="983.75" />
+              <mxPoint x="801.19" y="1019.29" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas0-L_STORE_FILES_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="STORE" target="FILES">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1192.28" y="917.23" />
+              <mxPoint x="1192.28" y="951.46" />
+              <mxPoint x="1187.54" y="983.4" />
+              <mxPoint x="1156.29" y="989.17" />
+              <mxPoint x="1156.19" y="1023.4" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CLI" value="rag / tc-rag · Typer CLI&#10;cli.py + workflow.py" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1662.47" y="143.0" as="geometry" width="243.16" height="74.6" />
+        </mxCell>
+        <mxCell id="CFG" value="core/config.py · Pydantic&#10;复制 workdir/local.example.yaml 为 local.yaml&#10;默认值 → 选定 YAML → 环境变量 → CLI" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1129.45" y="509.2" as="geometry" width="365.19" height="74.6" />
+        </mxCell>
+        <mxCell id="BOOT" value="bootstrap.py · build_pipeline&#10;校验配置、装配并注入具体适配器" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1594.46" y="277.6" as="geometry" width="314" height="74.6" />
+        </mxCell>
+        <mxCell id="PROMPT" value="prompts / stage / version.md&#10;RAG 约束 + 内置 / 附加用例 Skill" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1544.64" y="509.2" as="geometry" width="311.22" height="74.6" />
+        </mxCell>
+        <mxCell id="PIPE" value="orchestration/pipeline.py&#10;generate → points → cases&#10;连续执行、无中间人工审核" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1810.57" y="1496.69" as="geometry" width="280.27" height="92.2" />
+        </mxCell>
+        <mxCell id="SERVICE" value="services&#10;接入 / 分块 / 引文核验 / 测试设计&#10;视觉证据 / 评估" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1878.72" y="1660.89" as="geometry" width="313.94" height="92.2" />
+        </mxCell>
+        <mxCell id="PORT" value="ports/contracts.py · Protocol&#10;解析、模型、存储、检索、导出接口" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1524.72" y="1660.89" as="geometry" width="329" height="74.6" />
+        </mxCell>
+        <mxCell id="PROGRESS" value="application/progress.py → 终端&#10;普通进度 20 秒节流，完成 / 异常即时提示&#10;短阶段显示毫秒，修复带安全字段诊断" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="2242.66" y="1660.89" as="geometry" width="322.47" height="74.6" />
+        </mxCell>
+        <mxCell id="DFACT" value="models.py / pipeline.py&#10;Block、Chunk、Evidence、Rule&#10;Point、Case、Step、Issue、Coverage" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="1711.12" y="1940.09" as="geometry" width="356.2" height="92.2" />
+        </mxCell>
+        <mxCell id="DRAG" value="rag.py / identity.py&#10;空间、索引与上下文记录&#10;文档来源、指纹和 ID" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="2117.33" y="1940.09" as="geometry" width="250" height="92.2" />
+        </mxCell>
+        <mxCell id="DTREE" value="review.py · PointTree&#10;测试点目录；旧审核对象仅兼容" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="1364.12" y="1948.89" as="geometry" width="297" height="74.6" />
+        </mxCell>
+        <mxCell id="PARSE" value="parsing · DocxParser / PdfParser&#10;图文分离、定位、PDF 按页检查点&#10;DOCX 字体标题推断可选，默认关闭" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry x="391.65" y="790.8" as="geometry" width="315.22" height="92.2" />
+        </mxCell>
+        <mxCell id="MODELS" value="providers&#10;StructuredLLM / Embedder&#10;VisionReader / Reranker" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry x="62" y="790.8" as="geometry" width="279.65" height="92.2" />
+        </mxCell>
+        <mxCell id="RET" value="retrieval&#10;RagContext + NumpyIndex / FAISS&#10;度量、关键词 / RRF、上下文" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry x="1698.57" y="790.8" as="geometry" width="339.23" height="92.2" />
+        </mxCell>
+        <mxCell id="STORE" value="storage&#10;SqliteRepository&#10;LocalArtifactStore" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry x="1057.48" y="790.8" as="geometry" width="207.61" height="92.2" />
+        </mxCell>
+        <mxCell id="EXPORT" value="exporters · XMindAdapter / ReportExporter&#10;全部点目录 + 中文 Excel 与追溯附表&#10;JSON / Markdown 保留原始字段" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry x="1315.09" y="790.8" as="geometry" width="333.48" height="92.2" />
+        </mxCell>
+        <mxCell id="RUNTIME" value="runtime&#10;Token 估算、计时装饰器" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry x="756.87" y="799.6" as="geometry" width="250.61" height="74.6" />
+        </mxCell>
+        <mxCell id="API" value="OpenAI 兼容生成 / 向量 / 视觉服务&#10;HTTP rerank 服务&#10;四个角色分别配置；测试用 Fake / Mock" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="223.66" y="1061.63" as="geometry" width="363.03" height="92.2" />
+        </mxCell>
+        <mxCell id="SQLITE" value="workdir/data.sqlite&#10;结构化业务事实、运行、调用和快照&#10;SQLite 是唯一结构化事实源" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="636.69" y="1061.63" as="geometry" width="329" height="92.2" />
+        </mxCell>
+        <mxCell id="FILES" value="assets / indexes / output&#10;原件与图片、可重建索引&#10;派生测试点目录、用例和报告" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="1015.69" y="1061.63" as="geometry" width="281" height="92.2" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="02_workflow" name="02 · 文档到 XMind / Excel 的完整流程">
+    <mxGraphModel grid="1" page="0" math="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="02 · 文档到 XMind / Excel 的完整流程" style="text;fontSize=24;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="16" as="geometry" width="1200" height="40" />
+        </mxCell>
+        <mxCell id="atlas1-L_START_PRE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="START" target="PRE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_PRE_INGEST_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="PRE" target="INGEST">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_INGEST_FORMAT_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="INGEST" target="FORMAT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_FORMAT_PDF_0" value="PDF" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="FORMAT" target="PDF">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="502.72" y="628.4" />
+              <mxPoint x="466.71" y="634.8" />
+              <mxPoint x="426.94" y="634.8" />
+              <mxPoint x="387.17" y="634.8" />
+              <mxPoint x="347.88" y="636.66" />
+              <mxPoint x="346.21" y="676.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_FORMAT_WORD_0" value="DOCX" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="FORMAT" target="WORD">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="555.07" y="624.53" />
+              <mxPoint x="583.36" y="634.8" />
+              <mxPoint x="619.26" y="634.8" />
+              <mxPoint x="655.15" y="634.8" />
+              <mxPoint x="691.05" y="634.8" />
+              <mxPoint x="711.6" y="652.81" />
+              <mxPoint x="711.6" y="688.7" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_PDF_BLOCKS_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="PDF" target="BLOCKS">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="366.84" y="832" />
+              <mxPoint x="404.8" y="832" />
+              <mxPoint x="442.77" y="832" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_WORD_BLOCKS_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="WORD" target="BLOCKS">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="705.61" y="831.96" />
+              <mxPoint x="673.48" y="832" />
+              <mxPoint x="641.34" y="832" />
+              <mxPoint x="609.21" y="832" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_BLOCKS_VISON_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="BLOCKS" target="VISON">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_VISON_VLM_0" value="是" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="VISON" target="VLM">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="498.57" y="1155.67" />
+              <mxPoint x="476.24" y="1171" />
+              <mxPoint x="441.24" y="1171" />
+              <mxPoint x="414.57" y="1182.0" />
+              <mxPoint x="414.57" y="1217.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_VISON_CHUNK_0" value="否" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="VISON" target="CHUNK">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="559.24" y="1157.28" />
+              <mxPoint x="584.79" y="1171" />
+              <mxPoint x="621.4" y="1171" />
+              <mxPoint x="643.24" y="1188.44" />
+              <mxPoint x="643.24" y="1225.05" />
+              <mxPoint x="643.24" y="1261.66" />
+              <mxPoint x="643.24" y="1298.27" />
+              <mxPoint x="643.24" y="1334.88" />
+              <mxPoint x="637.28" y="1368.15" />
+              <mxPoint x="600.67" y="1368.2" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_VLM_CHUNK_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="VLM" target="CHUNK">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="429.41" y="1368.2" />
+              <mxPoint x="461.58" y="1368.2" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_CHUNK_EXTRACT_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CHUNK" target="EXTRACT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_EXTRACT_CHECK_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="EXTRACT" target="CHECK">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_CHECK_INDEX_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CHECK" target="INDEX">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_INDEX_BASE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="INDEX" target="BASE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_BASE_PLAN_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="BASE" target="PLAN">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_PLAN_POINTS_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="PLAN" target="POINTS">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_POINTS_READY_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="POINTS" target="READY">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_READY_INDEX2_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="READY" target="INDEX2">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_INDEX2_GENERATE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="INDEX2" target="GENERATE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_GENERATE_CONTRACT_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="GENERATE" target="CONTRACT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_CONTRACT_SAVE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CONTRACT" target="SAVE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_SAVE_XM_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="SAVE" target="XM">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="406.79" y="2901.8" />
+              <mxPoint x="368.97" y="2901.8" />
+              <mxPoint x="331.15" y="2901.8" />
+              <mxPoint x="293.33" y="2901.8" />
+              <mxPoint x="255.51" y="2901.8" />
+              <mxPoint x="217.69" y="2901.8" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_SAVE_XL_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="SAVE" target="XL">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_SAVE_REPORT_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="SAVE" target="REPORT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="651.3" y="2901.8" />
+              <mxPoint x="689.4" y="2901.8" />
+              <mxPoint x="727.5" y="2901.8" />
+              <mxPoint x="765.6" y="2901.8" />
+              <mxPoint x="803.7" y="2901.8" />
+              <mxPoint x="841.81" y="2901.8" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_XM_END_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="XM" target="END">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="212.13" y="3034" />
+              <mxPoint x="248.39" y="3034" />
+              <mxPoint x="284.66" y="3034" />
+              <mxPoint x="320.92" y="3034" />
+              <mxPoint x="357.18" y="3034" />
+              <mxPoint x="393.45" y="3034" />
+              <mxPoint x="429.71" y="3034" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_XL_END_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="XL" target="END">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas1-L_REPORT_END_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="REPORT" target="END">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="847.64" y="3034" />
+              <mxPoint x="811.38" y="3034" />
+              <mxPoint x="775.12" y="3034" />
+              <mxPoint x="738.85" y="3034" />
+              <mxPoint x="702.59" y="3034" />
+              <mxPoint x="666.33" y="3034" />
+              <mxPoint x="630.06" y="3034" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="START" value="01 CLI：文档路径 + 生成目标&#10;rag / rag start / rag run" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="386.17" y="94.0" as="geometry" width="285.47" height="74.6" />
+        </mxCell>
+        <mxCell id="PRE" value="02 配置预检与依赖装配&#10;生成、向量必需；视觉 / 重排按开关" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="364.25" y="208.6" as="geometry" width="329.31" height="74.6" />
+        </mxCell>
+        <mxCell id="INGEST" value="03 接入文件 · 本地&#10;校验格式 / 大小、指纹、保存原件和 Document" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="321.8" y="323.2" as="geometry" width="414.22" height="74.6" />
+        </mxCell>
+        <mxCell id="FORMAT" value="PDF 或 DOCX？" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rhombus;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="440.91" y="437.8" as="geometry" width="177" height="177" />
+        </mxCell>
+        <mxCell id="PDF" value="PdfParser · 本地&#10;文字、表格、图片、页码和坐标&#10;逐页检查点；低文字页记未解析" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry x="177.97" y="719.8" as="geometry" width="336.48" height="92.2" />
+        </mxCell>
+        <mxCell id="WORD" value="DocxParser · 本地&#10;段落 / 表格顺序、图片和结构位置" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f1f5f9;strokeColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry x="554.45" y="728.6" as="geometry" width="314.31" height="74.6" />
+        </mxCell>
+        <mxCell id="BLOCKS" value="DocumentBlock + 图片 Asset + 解析 Issue" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="334.38" y="852" as="geometry" width="389.06" height="57" />
+        </mxCell>
+        <mxCell id="VISON" value="启用视觉且有图片？" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rhombus;fillColor=#fff7ed;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="428.41" y="949" as="geometry" width="202" height="202" />
+        </mxCell>
+        <mxCell id="VLM" value="04 图片解释 · models.vision&#10;缓存 → 限速并发 → 文字解释&#10;失败记待确认；origin=vision，uncertain=true" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="205.9" y="1256.0" as="geometry" width="417.34" height="92.2" />
+        </mxCell>
+        <mxCell id="CHUNK" value="05 分块 · 本地&#10;保留原始 Block、标题和字符区间" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="373.44" y="1388.2" as="geometry" width="310.94" height="74.6" />
+        </mxCell>
+        <mxCell id="EXTRACT" value="06 规则提炼 · models.llm&#10;按 Chunk 有界并发 → Extraction&#10;JSON / Schema / 同类 ID 校验与有界修复" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="339.59" y="1502.8" as="geometry" width="378.64" height="92.2" />
+        </mxCell>
+        <mxCell id="CHECK" value="07 核验与归并 · 本地&#10;逐字引文、Locator、区间、引用闭包&#10;保守合并重复；缺漏和冲突进入 Issue" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="358.77" y="1635.0" as="geometry" width="340.27" height="92.2" />
+        </mxCell>
+        <mxCell id="INDEX" value="08 准备需求检索索引 · models.embedding&#10;有效证据 + Chunk 原文区间&#10;缓存 / 批量向量化 → NumPy 或 FAISS →&#10;校验发布" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="336.4" y="1767.2" as="geometry" width="385.02" height="109.8" />
+        </mxCell>
+        <mxCell id="BASE" value="09 基础测试点 · 本地规则&#10;明确整数上限 300 → 299 / 300 / 301&#10;缺精度 / 条件则保留待澄清" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="357.18" y="1917.0" as="geometry" width="343.45" height="92.2" />
+        </mxCell>
+        <mxCell id="PLAN" value="10 第一轮 RAG 规划 · models.llm&#10;规则批次检索 → 可选 models.rerank&#10;直接证据 + 补充资料 → 补充测试意图" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="357.5" y="2049.2" as="geometry" width="342.81" height="92.2" />
+        </mxCell>
+        <mxCell id="POINTS" value="11 核验并保存全部测试点与 PointTree&#10;SQLite 是事实源；XMind 不作为下一阶段输入" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="326.19" y="2181.4" as="geometry" width="405.44" height="74.6" />
+        </mxCell>
+        <mxCell id="READY" value="12 筛选 ready 且 applicable 生成用例&#10;其余点保留在 SQLite / Excel 附表&#10;最终 XMind 保留全部点（含待澄清）" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="388.41" y="2296.0" as="geometry" width="281" height="74.6" />
+        </mxCell>
+        <mxCell id="INDEX2" value="13 再次准备检索上下文&#10;符合条件时复用，仍核验空间 / manifest / 文件" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="322.62" y="2410.6" as="geometry" width="412.58" height="74.6" />
+        </mxCell>
+        <mxCell id="GENERATE" value="14 第二轮 RAG + Skill · models.llm&#10;就绪点批次检索 → 可选 models.rerank&#10;点 + 规则证据 + 补充资料 + Skill → 用例" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="344.3" y="2525.2" as="geometry" width="369.22" height="92.2" />
+        </mxCell>
+        <mxCell id="CONTRACT" value="15 输出契约与本地校验&#10;批次 point_ids 枚举 → 有界修复&#10;规则 / 证据引用、独立边界、步骤和预期风险" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="331.75" y="2657.4" as="geometry" width="394.31" height="92.2" />
+        </mxCell>
+        <mxCell id="SAVE" value="16 保存 TestCase / Step / CoverageLink / Issue&#10;运行状态、检索审计、ModelInvocation、阶段耗&#10;时" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="315.64" y="2789.6" as="geometry" width="426.52" height="92.2" />
+        </mxCell>
+        <mxCell id="XM" value="17a XMind · 全量测试点目录&#10;状态 → 业务维度 → 功能，可选章节&#10;不含用例步骤，不作为生成输入" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="38" y="2921.8" as="geometry" width="310.41" height="92.2" />
+        </mxCell>
+        <mxCell id="XL" value="17b Excel · 实际生成的用例&#10;生成内容及附表由导出器排版&#10;无就绪点时可能只有表头" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="388.41" y="2921.8" as="geometry" width="281" height="92.2" />
+        </mxCell>
+        <mxCell id="REPORT" value="17c 质量 / 覆盖 / manifest&#10;JSON、Markdown 等按格式配置&#10;有 Issue 时可能 partial_failed" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="709.41" y="2921.8" as="geometry" width="314.33" height="92.2" />
+        </mxCell>
+        <mxCell id="END" value="同一运行目录交付 · 无中间人工审批&#10;自动校验通过仍需用户核对业务语义" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="365.39" y="3054.0" as="geometry" width="329" height="74.6" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="03_rag" name="03 · 索引、两轮检索与上下文组装">
+    <mxGraphModel grid="1" page="0" math="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="03 · 索引、两轮检索与上下文组装" style="text;fontSize=24;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="16" as="geometry" width="1200" height="40" />
+        </mxCell>
+        <mxCell id="cluster-RETRIEVE" value="③ 每批共用的 retrieve / supplement 流程" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="38.0" y="1076.26" as="geometry" width="800.48" height="827.0" />
+        </mxCell>
+        <mxCell id="cluster-QUERIES" value="② 两轮查询 · 目标不同，必须分别检索" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="191.08" y="731.2" as="geometry" width="713.69" height="146.6" />
+        </mxCell>
+        <mxCell id="cluster-BUILD" value="① 索引准备 · 两轮共用同一需求范围" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="368.55" y="95.0" as="geometry" width="474.98" height="576.2" />
+        </mxCell>
+        <mxCell id="atlas2-L_MATERIAL_ECACHE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MATERIAL" target="ECACHE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_ECACHE_EMBED_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="ECACHE" target="EMBED">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_EMBED_INDEX_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="EMBED" target="INDEX">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_INDEX_PUBLISH_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="INDEX" target="PUBLISH">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_PUBLISH_Q1_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="PUBLISH" target="Q1">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="551.98" y="682.3" />
+              <mxPoint x="533.13" y="701.2" />
+              <mxPoint x="498.03" y="701.2" />
+              <mxPoint x="462.93" y="701.2" />
+              <mxPoint x="427.83" y="701.2" />
+              <mxPoint x="394.36" y="705.06" />
+              <mxPoint x="393.88" y="740.1" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_PUBLISH_Q2_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="PUBLISH" target="Q2">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="660.1" y="682.18" />
+              <mxPoint x="678.71" y="701.2" />
+              <mxPoint x="711.9" y="705.29" />
+              <mxPoint x="712.31" y="740.22" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_QUERY_VECTOR_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="QUERY" target="VECTOR">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_VECTOR_KEYWORD_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="VECTOR" target="KEYWORD">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_KEYWORD_RERANK_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="KEYWORD" target="RERANK">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_RERANK_SUP_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="RERANK" target="SUP">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_SUP_BUDGET_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="SUP" target="BUDGET">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="637.06" y="1640.86" />
+              <mxPoint x="597.31" y="1640.86" />
+              <mxPoint x="557.56" y="1640.86" />
+              <mxPoint x="517.8" y="1640.86" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_DIRECT_BUDGET_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="DIRECT" target="BUDGET">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="262.92" y="1640.86" />
+              <mxPoint x="302.67" y="1640.86" />
+              <mxPoint x="342.42" y="1640.86" />
+              <mxPoint x="382.17" y="1640.86" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_BUDGET_AUDIT_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="BUDGET" target="AUDIT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_Q1_QUERY_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="Q1" target="QUERY">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="393.88" y="892.69" />
+              <mxPoint x="393.88" y="931.58" />
+              <mxPoint x="393.88" y="970.47" />
+              <mxPoint x="393.88" y="1009.37" />
+              <mxPoint x="398.55" y="1046.02" />
+              <mxPoint x="437.43" y="1046.26" />
+              <mxPoint x="476.32" y="1046.26" />
+              <mxPoint x="515.21" y="1046.26" />
+              <mxPoint x="554.1" y="1046.26" />
+              <mxPoint x="592.99" y="1046.28" />
+              <mxPoint x="599.44" y="1081.37" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_Q2_QUERY_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="Q2" target="QUERY">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="751.72" y="892.97" />
+              <mxPoint x="751.72" y="932.14" />
+              <mxPoint x="751.72" y="971.3" />
+              <mxPoint x="751.72" y="1010.47" />
+              <mxPoint x="745.68" y="1046.22" />
+              <mxPoint x="706.51" y="1046.26" />
+              <mxPoint x="699.51" y="1081.09" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_AUDIT_P1_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="AUDIT" target="P1">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="494.21" y="1913.24" />
+              <mxPoint x="510.82" y="1933.26" />
+              <mxPoint x="544.8" y="1933.26" />
+              <mxPoint x="578.77" y="1933.26" />
+              <mxPoint x="612.75" y="1933.26" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_AUDIT_P2_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="AUDIT" target="P2">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="405.77" y="1913.24" />
+              <mxPoint x="389.15" y="1933.26" />
+              <mxPoint x="355.18" y="1933.26" />
+              <mxPoint x="321.2" y="1933.26" />
+              <mxPoint x="287.23" y="1933.26" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_P1_ALL_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="P1" target="ALL">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="653.01" y="2065.46" />
+              <mxPoint x="689.98" y="2065.46" />
+              <mxPoint x="726.95" y="2065.46" />
+              <mxPoint x="763.91" y="2065.46" />
+              <mxPoint x="800.88" y="2065.46" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_ALL_Q2_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="ALL" target="Q2">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="946.88" y="2065.46" />
+              <mxPoint x="976.98" y="2053.7" />
+              <mxPoint x="976.98" y="2014.5" />
+              <mxPoint x="976.98" y="1975.3" />
+              <mxPoint x="976.98" y="1936.11" />
+              <mxPoint x="976.98" y="1896.91" />
+              <mxPoint x="976.98" y="1857.72" />
+              <mxPoint x="976.98" y="1818.52" />
+              <mxPoint x="976.98" y="1779.33" />
+              <mxPoint x="976.98" y="1740.13" />
+              <mxPoint x="976.98" y="1700.94" />
+              <mxPoint x="976.98" y="1661.74" />
+              <mxPoint x="976.98" y="1622.55" />
+              <mxPoint x="976.98" y="1583.35" />
+              <mxPoint x="976.98" y="1544.16" />
+              <mxPoint x="976.98" y="1504.96" />
+              <mxPoint x="976.98" y="1465.77" />
+              <mxPoint x="976.98" y="1426.57" />
+              <mxPoint x="976.98" y="1387.38" />
+              <mxPoint x="976.98" y="1348.18" />
+              <mxPoint x="976.98" y="1308.98" />
+              <mxPoint x="976.98" y="1269.79" />
+              <mxPoint x="976.98" y="1230.59" />
+              <mxPoint x="976.98" y="1191.4" />
+              <mxPoint x="976.98" y="1152.2" />
+              <mxPoint x="976.98" y="1113.01" />
+              <mxPoint x="976.98" y="1073.81" />
+              <mxPoint x="976.98" y="1034.62" />
+              <mxPoint x="976.98" y="995.42" />
+              <mxPoint x="976.98" y="956.23" />
+              <mxPoint x="976.98" y="917.03" />
+              <mxPoint x="976.98" y="877.84" />
+              <mxPoint x="976.98" y="838.64" />
+              <mxPoint x="976.98" y="799.45" />
+              <mxPoint x="976.98" y="760.25" />
+              <mxPoint x="976.98" y="721.06" />
+              <mxPoint x="954.97" y="701.2" />
+              <mxPoint x="915.78" y="701.2" />
+              <mxPoint x="876.58" y="701.2" />
+              <mxPoint x="837.39" y="701.2" />
+              <mxPoint x="798.19" y="701.2" />
+              <mxPoint x="791.14" y="736.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas2-L_P2_CASES_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="P2" target="CASES">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MATERIAL" value="有效 EvidenceSpan + ChunkSource 原文区间&#10;原文 source_* 不是自动新增的需求规则" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="402.69" y="143.0" as="geometry" width="406.7" height="74.6" />
+        </mxCell>
+        <mxCell id="ECACHE" value="按空间 + 文本指纹查向量缓存&#10;校验数量、维度、有限数及内容指纹" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="441.04" y="241.6" as="geometry" width="330" height="74.6" />
+        </mxCell>
+        <mxCell id="EMBED" value="缺失文本去重后批量向量化&#10;models.embedding · batch_size + concurrency" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="392.55" y="340.2" as="geometry" width="426.98" height="74.6" />
+        </mxCell>
+        <mxCell id="INDEX" value="NumPy / 可选 FAISS Flat 精确索引&#10;cosine、dot、euclidean 平方 L2&#10;normalize 属于向量空间配置" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="444.03" y="438.8" as="geometry" width="324.02" height="92.2" />
+        </mxCell>
+        <mxCell id="PUBLISH" value="写文件 → 回读校验 → manifest&#10;业务 ID ↔ int64 映射 → 绑定活动索引&#10;范围固定为当前文档内容版本" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="433.07" y="555.0" as="geometry" width="345.94" height="92.2" />
+        </mxCell>
+        <mxCell id="Q1" value="规划轮查询&#10;用户 instruction + 当前规则 statement" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="215.08" y="779.2" as="geometry" width="357.59" height="74.6" />
+        </mxCell>
+        <mxCell id="Q2" value="生成轮查询&#10;当前就绪测试点 objective" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="622.67" y="779.2" as="geometry" width="258.09" height="74.6" />
+        </mxCell>
+        <mxCell id="QUERY" value="查询 embedding 或缓存&#10;与索引使用同一 EmbeddingSpace" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="488.57" y="1124.26" as="geometry" width="321.81" height="74.6" />
+        </mxCell>
+        <mxCell id="VECTOR" value="当前文档范围内向量 TopK&#10;保留原始分数、排名和索引版本" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="500.98" y="1222.86" as="geometry" width="297" height="74.6" />
+        </mxCell>
+        <mxCell id="KEYWORD" value="可选关键词召回 + RRF 融合&#10;排名融合，不直接相加异构原始分数" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="484.48" y="1321.46" as="geometry" width="330" height="74.6" />
+        </mxCell>
+        <mxCell id="RERANK" value="可选 models.rerank&#10;只重排前 rerank_top_n 候选&#10;失败保留已有排名并记录 fallback" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="492.73" y="1420.06" as="geometry" width="313.5" height="92.2" />
+        </mxCell>
+        <mxCell id="SUP" value="移除本批直接证据的重复命中&#10;余下作为 supplemental_evidence" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="489.0" y="1536.26" as="geometry" width="320.95" height="74.6" />
+        </mxCell>
+        <mxCell id="BUDGET" value="完整输入预算核验&#10;从尾部裁剪补充资料并保留省略记录&#10;不静默裁掉核心规则依据" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="284.99" y="1670.86" as="geometry" width="330.0" height="92.2" />
+        </mxCell>
+        <mxCell id="DIRECT" value="按规则直接加载核心证据&#10;不依赖检索命中；生成时带同功能关联规则" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="62" y="1536.26" as="geometry" width="377.0" height="74.6" />
+        </mxCell>
+        <mxCell id="AUDIT" value="保存上下文审计&#10;采用 / 省略证据 ID、查询范围&#10;缓存命中、重排状态和耗时" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="306.52" y="1787.06" as="geometry" width="286.94" height="92.2" />
+        </mxCell>
+        <mxCell id="P1" value="规划 LLM · models.llm&#10;rules + evidence + existing_points&#10;补充意图；边界值仍由本地计算" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="466.27" y="1953.26" as="geometry" width="334.23" height="92.2" />
+        </mxCell>
+        <mxCell id="P2" value="生成 LLM · models.llm&#10;points + rules + evidence + Skill&#10;每步引用限定的规则与证据" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="106.91" y="1953.26" as="geometry" width="319.36" height="92.2" />
+        </mxCell>
+        <mxCell id="ALL" value="保存全部测试点&#10;仅 ready + applicable 进入生成轮" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="713.99" y="2085.46" as="geometry" width="321.55" height="74.6" />
+        </mxCell>
+        <mxCell id="CASES" value="CaseBatch → 本地校验 → SQLite / 联合导出&#10;索引或检索失败则停止，不绕过 RAG" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="68.87" y="2085.46" as="geometry" width="395.44" height="74.6" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="04_traceability" name="04 · 证据链、业务事实与派生视图">
+    <mxGraphModel grid="1" page="0" math="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="04 · 证据链、业务事实与派生视图" style="text;fontSize=24;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="16" as="geometry" width="1200" height="40" />
+        </mxCell>
+        <mxCell id="cluster-STORAGE" value="④ 事实持久化与只读派生视图" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="3517.12" y="192.5" as="geometry" width="732.78" height="395.8" />
+        </mxCell>
+        <mxCell id="cluster-AUDIT" value="③ 覆盖、风险与运行审计" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="2950.32" y="95" as="geometry" width="426.8" height="590.8" />
+        </mxCell>
+        <mxCell id="cluster-FACTS" value="② 需求事实与测试设计" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="1147.13" y="281.06" as="geometry" width="1703.19" height="223.37" />
+        </mxCell>
+        <mxCell id="cluster-ORIGINAL" value="① 原始资料与定位" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="38" y="329.76" as="geometry" width="1049.13" height="288.8" />
+        </mxCell>
+        <mxCell id="atlas3-L_ASSET_BLOCK_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="ASSET" target="BLOCK">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="376.23" y="423.9" />
+              <mxPoint x="376.23" y="460.08" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_BLOCK_CHUNK_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="BLOCK" target="CHUNK">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_IMAGE_BLOCK_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="IMAGE" target="BLOCK">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="376.23" y="539.61" />
+              <mxPoint x="376.23" y="503.44" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_EVID_RULE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="EVID" target="RULE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_RULE_POINT_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="RULE" target="POINT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1879.83" y="393.88" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_POINT_CASE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="POINT" target="CASE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2247.65" y="423.43" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_CASE_STEP_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CASE" target="STEP">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_CHUNK_EVID_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CHUNK" target="EVID">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1101.82" y="469.99" />
+              <mxPoint x="1117.13" y="443.95" />
+              <mxPoint x="1117.13" y="405.26" />
+              <mxPoint x="1128.45" y="375.23" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_STEP_COVER_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="STEP" target="COVER">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2862.54" y="446.09" />
+              <mxPoint x="2880.34" y="467.19" />
+              <mxPoint x="2912.89" y="473.5" />
+              <mxPoint x="2949.11" y="473.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_RULE_ISSUE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="RULE" target="ISSUE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1879.84" y="351.18" />
+              <mxPoint x="1911.99" y="341.06" />
+              <mxPoint x="1951.6" y="341.06" />
+              <mxPoint x="1991.21" y="341.06" />
+              <mxPoint x="2030.82" y="341.06" />
+              <mxPoint x="2070.43" y="341.06" />
+              <mxPoint x="2110.04" y="341.06" />
+              <mxPoint x="2149.65" y="341.06" />
+              <mxPoint x="2189.27" y="341.06" />
+              <mxPoint x="2228.88" y="341.06" />
+              <mxPoint x="2268.49" y="341.06" />
+              <mxPoint x="2308.1" y="341.06" />
+              <mxPoint x="2347.71" y="341.06" />
+              <mxPoint x="2387.32" y="341.06" />
+              <mxPoint x="2426.93" y="341.06" />
+              <mxPoint x="2466.54" y="341.06" />
+              <mxPoint x="2506.16" y="341.06" />
+              <mxPoint x="2545.77" y="341.06" />
+              <mxPoint x="2585.38" y="341.06" />
+              <mxPoint x="2624.99" y="341.06" />
+              <mxPoint x="2664.6" y="341.06" />
+              <mxPoint x="2704.21" y="341.06" />
+              <mxPoint x="2743.82" y="341.06" />
+              <mxPoint x="2783.43" y="341.06" />
+              <mxPoint x="2823.05" y="341.06" />
+              <mxPoint x="2862.66" y="341.06" />
+              <mxPoint x="2881.21" y="316.59" />
+              <mxPoint x="2919.8" y="313.65" />
+              <mxPoint x="2959.41" y="313.65" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_POINT_ISSUE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="POINT" target="ISSUE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2247.75" y="380.71" />
+              <mxPoint x="2284.47" y="375.23" />
+              <mxPoint x="2324.11" y="375.23" />
+              <mxPoint x="2363.75" y="375.23" />
+              <mxPoint x="2403.39" y="375.23" />
+              <mxPoint x="2443.03" y="375.23" />
+              <mxPoint x="2482.67" y="375.23" />
+              <mxPoint x="2522.31" y="375.23" />
+              <mxPoint x="2561.95" y="375.23" />
+              <mxPoint x="2601.59" y="375.23" />
+              <mxPoint x="2641.23" y="375.23" />
+              <mxPoint x="2680.86" y="375.23" />
+              <mxPoint x="2720.5" y="375.23" />
+              <mxPoint x="2760.14" y="375.23" />
+              <mxPoint x="2799.78" y="375.23" />
+              <mxPoint x="2839.42" y="375.23" />
+              <mxPoint x="2879.06" y="375.23" />
+              <mxPoint x="2900.32" y="354.18" />
+              <mxPoint x="2919.74" y="331.3" />
+              <mxPoint x="2959.38" y="331.3" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_STEP_ISSUE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="STEP" target="ISSUE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2860.75" y="422.56" />
+              <mxPoint x="2895.17" y="422.56" />
+              <mxPoint x="2920.32" y="410.62" />
+              <mxPoint x="2920.32" y="376.19" />
+              <mxPoint x="2930.17" y="348.95" />
+              <mxPoint x="2964.6" y="348.95" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_CHUNK_CTX_0" value="原文片段与证据参与索引" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="CHUNK" target="CTX">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1102.74" y="493.52" />
+              <mxPoint x="1117.13" y="521.4" />
+              <mxPoint x="1117.13" y="561.01" />
+              <mxPoint x="1147.56" y="572.86" />
+              <mxPoint x="1187.17" y="572.86" />
+              <mxPoint x="1226.77" y="572.86" />
+              <mxPoint x="1266.38" y="572.86" />
+              <mxPoint x="1305.99" y="572.86" />
+              <mxPoint x="1345.6" y="572.86" />
+              <mxPoint x="1385.2" y="572.86" />
+              <mxPoint x="1424.81" y="572.86" />
+              <mxPoint x="1464.42" y="572.86" />
+              <mxPoint x="1504.03" y="572.86" />
+              <mxPoint x="1543.63" y="572.86" />
+              <mxPoint x="1583.24" y="572.86" />
+              <mxPoint x="1622.85" y="572.86" />
+              <mxPoint x="1662.46" y="572.86" />
+              <mxPoint x="1702.07" y="572.86" />
+              <mxPoint x="1741.67" y="572.86" />
+              <mxPoint x="1781.28" y="572.86" />
+              <mxPoint x="1820.89" y="572.86" />
+              <mxPoint x="1860.5" y="572.86" />
+              <mxPoint x="1900.1" y="572.86" />
+              <mxPoint x="1939.71" y="572.86" />
+              <mxPoint x="1979.32" y="572.86" />
+              <mxPoint x="2018.93" y="572.86" />
+              <mxPoint x="2058.53" y="572.86" />
+              <mxPoint x="2098.14" y="572.86" />
+              <mxPoint x="2137.75" y="572.86" />
+              <mxPoint x="2177.36" y="572.86" />
+              <mxPoint x="2216.96" y="572.86" />
+              <mxPoint x="2256.57" y="572.86" />
+              <mxPoint x="2296.18" y="572.86" />
+              <mxPoint x="2335.79" y="572.86" />
+              <mxPoint x="2375.39" y="572.86" />
+              <mxPoint x="2415.0" y="572.86" />
+              <mxPoint x="2454.61" y="572.86" />
+              <mxPoint x="2494.22" y="572.86" />
+              <mxPoint x="2533.83" y="572.86" />
+              <mxPoint x="2573.43" y="572.86" />
+              <mxPoint x="2613.04" y="572.86" />
+              <mxPoint x="2652.65" y="572.86" />
+              <mxPoint x="2692.26" y="572.86" />
+              <mxPoint x="2731.86" y="572.86" />
+              <mxPoint x="2771.47" y="572.86" />
+              <mxPoint x="2811.08" y="572.86" />
+              <mxPoint x="2850.69" y="572.86" />
+              <mxPoint x="2880.32" y="585.5" />
+              <mxPoint x="2892.39" y="615.7" />
+              <mxPoint x="2932.0" y="615.7" />
+              <mxPoint x="2971.6" y="615.7" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_COVER_DB_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="COVER" target="DB">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="3375.19" y="473.5" />
+              <mxPoint x="3407.12" y="465.7" />
+              <mxPoint x="3407.12" y="428.64" />
+              <mxPoint x="3425.92" y="407.7" />
+              <mxPoint x="3462.99" y="407.7" />
+              <mxPoint x="3500.06" y="407.7" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_ISSUE_DB_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="ISSUE" target="DB">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="3303.75" y="331.3" />
+              <mxPoint x="3340.48" y="331.3" />
+              <mxPoint x="3377.21" y="331.3" />
+              <mxPoint x="3407.12" y="340.78" />
+              <mxPoint x="3407.12" y="377.51" />
+              <mxPoint x="3426.93" y="397.1" />
+              <mxPoint x="3463.66" y="397.1" />
+              <mxPoint x="3500.39" y="397.1" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_RUN_DB_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="RUN" target="DB">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="3390.73" y="189.1" />
+              <mxPoint x="3426.67" y="193.03" />
+              <mxPoint x="3427.12" y="230.59" />
+              <mxPoint x="3427.12" y="268.19" />
+              <mxPoint x="3427.12" y="305.8" />
+              <mxPoint x="3427.12" y="343.41" />
+              <mxPoint x="3427.23" y="381.01" />
+              <mxPoint x="3461.91" y="386.5" />
+              <mxPoint x="3499.52" y="386.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_CTX_DB_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CTX" target="DB">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="3350.14" y="615.7" />
+              <mxPoint x="3388.05" y="615.7" />
+              <mxPoint x="3425.47" y="613.82" />
+              <mxPoint x="3427.12" y="576.3" />
+              <mxPoint x="3427.12" y="538.4" />
+              <mxPoint x="3427.12" y="500.49" />
+              <mxPoint x="3427.12" y="462.59" />
+              <mxPoint x="3427.14" y="424.68" />
+              <mxPoint x="3461.31" y="418.3" />
+              <mxPoint x="3499.22" y="418.3" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_DB_XM_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="DB" target="XM">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="3902.52" y="384.07" />
+              <mxPoint x="3902.69" y="351.68" />
+              <mxPoint x="3902.69" y="319.27" />
+              <mxPoint x="3902.69" y="286.87" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_DB_EXCEL_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="DB" target="EXCEL">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="3900.69" y="402.4" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas3-L_DB_REPORT_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="DB" target="REPORT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="3902.52" y="420.73" />
+              <mxPoint x="3902.69" y="453.12" />
+              <mxPoint x="3902.69" y="485.53" />
+              <mxPoint x="3902.69" y="517.93" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ASSET" value="Asset / Document&#10;原件 checksum、内容版本" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="80.54" y="377.76" as="geometry" width="265.69" height="74.6" />
+        </mxCell>
+        <mxCell id="BLOCK" value="DocumentBlock + Locator&#10;原文顺序、页码 / 段落 / 表格位置" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="406.23" y="444.46" as="geometry" width="314.62" height="74.6" />
+        </mxCell>
+        <mxCell id="CHUNK" value="Chunk / ChunkSource&#10;block_id + [start_char, end_char)&#10;保留原文，不覆盖清洗结果" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="744.85" y="435.66" as="geometry" width="318.28" height="92.2" />
+        </mxCell>
+        <mxCell id="IMAGE" value="图片 Asset → 视觉解释&#10;origin=vision、模型 / 版本&#10;uncertain=true，不冒充原文" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#fff7ed;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="62" y="502.36" as="geometry" width="284.23" height="92.2" />
+        </mxCell>
+        <mxCell id="EVID" value="EvidenceSpan&#10;最短支撑引文 + block_id + Locator&#10;只允许引用所属区间" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1171.13" y="329.13" as="geometry" width="332.98" height="92.2" />
+        </mxCell>
+        <mxCell id="RULE" value="Feature / RequirementRule&#10;rule → feature_id + evidence_ids&#10;条件、例外与缺漏保留" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1528.12" y="329.13" as="geometry" width="321.72" height="92.2" />
+        </mxCell>
+        <mxCell id="POINT" value="TestPoint&#10;rule_ids、objective、technique&#10;status + applicability" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1909.84" y="358.67" as="geometry" width="307.81" height="92.2" />
+        </mxCell>
+        <mxCell id="CASE" value="TestCase&#10;point_ids 属于当前生成批次&#10;动作与预期拆分" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="2277.65" y="388.22" as="geometry" width="275.28" height="92.2" />
+        </mxCell>
+        <mxCell id="STEP" value="TestStep&#10;action、expected&#10;rule_ids + evidence_ids" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="2576.93" y="388.22" as="geometry" width="249.39" height="92.2" />
+        </mxCell>
+        <mxCell id="COVER" value="CoverageLink&#10;case_id / step_no / rule_id / point_id&#10;关联存在不代表语义正确" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="2989.32" y="427.4" as="geometry" width="348.8" height="92.2" />
+        </mxCell>
+        <mxCell id="ISSUE" value="Issue&#10;歧义、冲突、未解析、缺口&#10;无依据预期和重复风险" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#fff7ed;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="3003.02" y="285.2" as="geometry" width="264" height="92.2" />
+        </mxCell>
+        <mxCell id="RUN" value="Run / StageSnapshot / ModelInvocation&#10;配置与 Prompt 指纹、调用及阶段耗时&#10;安全结构诊断另存 invocations 快照" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="2974.32" y="143.0" as="geometry" width="378.8" height="92.2" />
+        </mxCell>
+        <mxCell id="CTX" value="RAG ContextPayload&#10;scope / space / index_version&#10;hits、rerank、采用 / 省略 ID" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="3015.21" y="569.6" as="geometry" width="297.02" height="92.2" />
+        </mxCell>
+        <mxCell id="DB" value="SQLite · 唯一结构化事实源&#10;文档 / 规则 / 点 / 用例 / 风险 / 运行" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="3541.12" y="365.1" as="geometry" width="331.56" height="74.6" />
+        </mxCell>
+        <mxCell id="XM" value="XMind：全部点（含待澄清）目录&#10;状态 → 业务维度 → 功能，可选章节&#10;不含用例步骤，不回读" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="3932.69" y="240.5" as="geometry" width="268.3" height="74.6" />
+        </mxCell>
+        <mxCell id="EXCEL" value="Excel：实际生成用例 + 中文附表&#10;具体问题备注、用例追溯与质量说明&#10;技术状态不等于人工批准" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="3932.69" y="365.1" as="geometry" width="248" height="74.6" />
+        </mxCell>
+        <mxCell id="REPORT" value="JSON / Markdown / 覆盖报告&#10;indexes 为可重建派生产物" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="3932.69" y="489.7" as="geometry" width="293.22" height="74.6" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="05_reliability" name="05 · 并发调度、缓存、重试与失败处理">
+    <mxGraphModel grid="1" page="0" math="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="05 · 并发调度、缓存、重试与失败处理" style="text;fontSize=24;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="16" as="geometry" width="1200" height="40" />
+        </mxCell>
+        <mxCell id="cluster-EXIT" value="④ 结束与恢复边界" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="1373.72" y="1817.6" as="geometry" width="856.25" height="280.4" />
+        </mxCell>
+        <mxCell id="cluster-SPECIAL" value="③ 各外部能力的差异" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="38.0" y="669.4" as="geometry" width="1131.72" height="164.2" />
+        </mxCell>
+        <mxCell id="cluster-MODELCALL" value="② LLM 单批请求 · 两层上限独立" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="1209.72" y="669.4" as="geometry" width="1394.7" height="1023.2" />
+        </mxCell>
+        <mxCell id="cluster-SCHEDULE" value="① 批次调度 · 阶段串行，阶段内有界并发" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#F8FAFC;strokeColor=#94A3B8;verticalAlign=top;spacingTop=12;fontColor=#0F172A;fontSize=16;fontStyle=1;">
+          <mxGeometry x="1071.34" y="95.0" as="geometry" width="518.57" height="514.4" />
+        </mxCell>
+        <mxCell id="atlas4-L_JOBS_WORKERS_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="JOBS" target="WORKERS">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_WORKERS_BATCH_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="WORKERS" target="BATCH">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1333.12" y="328.6" />
+              <mxPoint x="1369.68" y="328.6" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_BATCH_ORDER_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="BATCH" target="ORDER">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1314.08" y="480.8" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_CACHE_HTTP_0" value="未命中" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CACHE" target="HTTP">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2270.34" y="822.0" />
+              <mxPoint x="2230.85" y="822.0" />
+              <mxPoint x="2191.37" y="822.0" />
+              <mxPoint x="2151.89" y="822.0" />
+              <mxPoint x="2112.41" y="822.0" />
+              <mxPoint x="2072.92" y="822.0" />
+              <mxPoint x="2033.44" y="822.0" />
+              <mxPoint x="1993.96" y="822.0" />
+              <mxPoint x="1954.47" y="822.0" />
+              <mxPoint x="1914.99" y="822.0" />
+              <mxPoint x="1875.51" y="822.0" />
+              <mxPoint x="1836.03" y="822.0" />
+              <mxPoint x="1796.54" y="822.0" />
+              <mxPoint x="1757.06" y="822.0" />
+              <mxPoint x="1717.58" y="822.0" />
+              <mxPoint x="1678.09" y="822.0" />
+              <mxPoint x="1638.61" y="822.0" />
+              <mxPoint x="1599.13" y="822.01" />
+              <mxPoint x="1592.5" y="857.52" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_CACHE_SAVE_0" value="命中并校验" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="CACHE" target="SAVE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2486.24" y="822.0" />
+              <mxPoint x="2513.32" y="837.25" />
+              <mxPoint x="2513.32" y="876.91" />
+              <mxPoint x="2513.32" y="916.57" />
+              <mxPoint x="2513.32" y="956.24" />
+              <mxPoint x="2513.32" y="995.9" />
+              <mxPoint x="2513.32" y="1035.56" />
+              <mxPoint x="2513.32" y="1075.23" />
+              <mxPoint x="2513.32" y="1114.89" />
+              <mxPoint x="2513.32" y="1154.55" />
+              <mxPoint x="2513.32" y="1194.22" />
+              <mxPoint x="2513.32" y="1233.88" />
+              <mxPoint x="2513.32" y="1273.54" />
+              <mxPoint x="2513.32" y="1313.21" />
+              <mxPoint x="2513.32" y="1352.87" />
+              <mxPoint x="2513.32" y="1392.54" />
+              <mxPoint x="2513.32" y="1432.2" />
+              <mxPoint x="2513.32" y="1471.86" />
+              <mxPoint x="2513.32" y="1511.53" />
+              <mxPoint x="2505.87" y="1546.4" />
+              <mxPoint x="2466.2" y="1546.4" />
+              <mxPoint x="2426.54" y="1546.4" />
+              <mxPoint x="2386.88" y="1546.4" />
+              <mxPoint x="2347.21" y="1546.4" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_HTTP_RESULT_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="HTTP" target="RESULT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1668.52" y="1023.2" />
+              <mxPoint x="1705.44" y="1023.2" />
+              <mxPoint x="1742.35" y="1023.2" />
+              <mxPoint x="1779.26" y="1023.2" />
+              <mxPoint x="1816.17" y="1023.2" />
+              <mxPoint x="1853.09" y="1023.2" />
+              <mxPoint x="1890.0" y="1023.2" />
+              <mxPoint x="1926.91" y="1023.2" />
+              <mxPoint x="1963.82" y="1023.2" />
+              <mxPoint x="2000.74" y="1023.2" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_RESULT_RETRY_0" value="可重试 HTTP / 超时" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="RESULT" target="RETRY">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1975.46" y="1229.75" />
+              <mxPoint x="1964.84" y="1260.2" />
+              <mxPoint x="1926.44" y="1260.2" />
+              <mxPoint x="1888.03" y="1260.2" />
+              <mxPoint x="1849.63" y="1260.2" />
+              <mxPoint x="1811.22" y="1260.2" />
+              <mxPoint x="1772.82" y="1260.2" />
+              <mxPoint x="1734.42" y="1260.2" />
+              <mxPoint x="1696.55" y="1262.2" />
+              <mxPoint x="1695.0" y="1300.26" />
+              <mxPoint x="1695.0" y="1338.66" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_RETRY_HTTP_0" value="有剩余额度" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="RETRY" target="HTTP">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1592.5" y="1342.68" />
+              <mxPoint x="1592.5" y="1304.29" />
+              <mxPoint x="1592.5" y="1265.91" />
+              <mxPoint x="1592.5" y="1227.52" />
+              <mxPoint x="1592.5" y="1189.13" />
+              <mxPoint x="1592.5" y="1150.75" />
+              <mxPoint x="1592.5" y="1112.36" />
+              <mxPoint x="1592.5" y="1073.97" />
+              <mxPoint x="1592.5" y="1035.59" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_RESULT_SCHEMA_0" value="成功返回" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="RESULT" target="SCHEMA">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2014.31" y="1265.45" />
+              <mxPoint x="2014.31" y="1300.7" />
+              <mxPoint x="2014.31" y="1335.95" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_SCHEMA_REPAIR_0" value="不合规" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="SCHEMA" target="REPAIR">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1965.91" y="1505.86" />
+              <mxPoint x="1964.62" y="1544.07" />
+              <mxPoint x="1926.85" y="1546.4" />
+              <mxPoint x="1888.39" y="1546.4" />
+              <mxPoint x="1849.93" y="1546.4" />
+              <mxPoint x="1811.46" y="1546.4" />
+              <mxPoint x="1773.0" y="1546.4" />
+              <mxPoint x="1734.53" y="1546.4" />
+              <mxPoint x="1696.07" y="1546.4" />
+              <mxPoint x="1657.6" y="1546.4" />
+              <mxPoint x="1625.99" y="1546.4" />
+              <mxPoint x="1587.53" y="1546.4" />
+              <mxPoint x="1549.07" y="1546.4" />
+              <mxPoint x="1510.6" y="1546.4" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_REPAIR_HTTP_0" value="重新请求完整结构" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="REPAIR" target="HTTP">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1370.0" y="1537.98" />
+              <mxPoint x="1370.0" y="1499.57" />
+              <mxPoint x="1370.0" y="1461.15" />
+              <mxPoint x="1370.0" y="1422.73" />
+              <mxPoint x="1370.0" y="1384.31" />
+              <mxPoint x="1370.0" y="1345.9" />
+              <mxPoint x="1370.0" y="1307.48" />
+              <mxPoint x="1370.0" y="1269.06" />
+              <mxPoint x="1370.0" y="1230.65" />
+              <mxPoint x="1370.0" y="1192.23" />
+              <mxPoint x="1370.0" y="1153.81" />
+              <mxPoint x="1370.0" y="1115.4" />
+              <mxPoint x="1370.0" y="1076.98" />
+              <mxPoint x="1370.0" y="1038.56" />
+              <mxPoint x="1395.72" y="1023.2" />
+              <mxPoint x="1434.13" y="1023.2" />
+              <mxPoint x="1472.55" y="1023.2" />
+              <mxPoint x="1510.97" y="1023.2" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_SCHEMA_SAVE_0" value="合规" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="SCHEMA" target="SAVE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2062.72" y="1502.66" />
+              <mxPoint x="2062.72" y="1537.93" />
+              <mxPoint x="2092.17" y="1546.4" />
+              <mxPoint x="2127.43" y="1546.4" />
+              <mxPoint x="2162.7" y="1546.4" />
+              <mxPoint x="2197.96" y="1546.4" />
+              <mxPoint x="2233.22" y="1546.44" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_RESULT_SPLIT_0" value="用例输出截断" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="RESULT" target="SPLIT">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2053.16" y="1231.25" />
+              <mxPoint x="2066.78" y="1260.2" />
+              <mxPoint x="2106.69" y="1260.2" />
+              <mxPoint x="2146.59" y="1260.2" />
+              <mxPoint x="2186.5" y="1260.2" />
+              <mxPoint x="2226.4" y="1260.2" />
+              <mxPoint x="2266.31" y="1260.2" />
+              <mxPoint x="2306.21" y="1260.2" />
+              <mxPoint x="2317.59" y="1291.39" />
+              <mxPoint x="2317.59" y="1331.3" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_SPLIT_CACHE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="SPLIT" target="CACHE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2404.05" y="1335.22" />
+              <mxPoint x="2404.05" y="1295.24" />
+              <mxPoint x="2404.05" y="1255.25" />
+              <mxPoint x="2404.05" y="1215.27" />
+              <mxPoint x="2404.05" y="1175.29" />
+              <mxPoint x="2404.05" y="1135.31" />
+              <mxPoint x="2404.05" y="1095.33" />
+              <mxPoint x="2404.05" y="1055.34" />
+              <mxPoint x="2404.05" y="1015.36" />
+              <mxPoint x="2404.05" y="975.38" />
+              <mxPoint x="2404.05" y="935.4" />
+              <mxPoint x="2404.05" y="895.42" />
+              <mxPoint x="2404.05" y="855.44" />
+              <mxPoint x="2394.84" y="822.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_BATCH_CACHE_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="BATCH" target="CACHE">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1452.63" y="480.8" />
+              <mxPoint x="1467.15" y="508.6" />
+              <mxPoint x="1467.15" y="548.26" />
+              <mxPoint x="1467.15" y="587.92" />
+              <mxPoint x="1467.15" y="627.58" />
+              <mxPoint x="1497.66" y="639.4" />
+              <mxPoint x="1537.32" y="639.4" />
+              <mxPoint x="1576.99" y="639.4" />
+              <mxPoint x="1616.65" y="639.4" />
+              <mxPoint x="1656.31" y="639.4" />
+              <mxPoint x="1695.97" y="639.4" />
+              <mxPoint x="1735.63" y="639.4" />
+              <mxPoint x="1775.29" y="639.4" />
+              <mxPoint x="1814.95" y="639.4" />
+              <mxPoint x="1854.61" y="639.4" />
+              <mxPoint x="1894.28" y="639.4" />
+              <mxPoint x="1933.94" y="639.4" />
+              <mxPoint x="1973.6" y="639.4" />
+              <mxPoint x="2013.26" y="639.4" />
+              <mxPoint x="2052.92" y="639.4" />
+              <mxPoint x="2092.58" y="639.4" />
+              <mxPoint x="2132.24" y="639.4" />
+              <mxPoint x="2171.9" y="639.4" />
+              <mxPoint x="2211.57" y="639.4" />
+              <mxPoint x="2251.23" y="639.4" />
+              <mxPoint x="2290.89" y="639.4" />
+              <mxPoint x="2330.55" y="639.4" />
+              <mxPoint x="2370.21" y="639.4" />
+              <mxPoint x="2378.2" y="673.74" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_WORKERS_RERANK_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="WORKERS" target="RERANK">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1203.43" y="328.6" />
+              <mxPoint x="1164.51" y="328.6" />
+              <mxPoint x="1129.18" y="334.82" />
+              <mxPoint x="1129.15" y="373.74" />
+              <mxPoint x="1129.15" y="412.66" />
+              <mxPoint x="1129.15" y="451.58" />
+              <mxPoint x="1129.15" y="490.49" />
+              <mxPoint x="1129.15" y="529.41" />
+              <mxPoint x="1129.15" y="568.33" />
+              <mxPoint x="1129.15" y="607.25" />
+              <mxPoint x="1119.72" y="639.4" />
+              <mxPoint x="1080.81" y="639.4" />
+              <mxPoint x="1041.89" y="639.4" />
+              <mxPoint x="1002.97" y="639.4" />
+              <mxPoint x="964.05" y="639.4" />
+              <mxPoint x="925.13" y="639.4" />
+              <mxPoint x="886.22" y="639.4" />
+              <mxPoint x="847.3" y="639.4" />
+              <mxPoint x="808.38" y="639.4" />
+              <mxPoint x="769.46" y="639.4" />
+              <mxPoint x="730.54" y="639.4" />
+              <mxPoint x="691.63" y="639.4" />
+              <mxPoint x="652.71" y="639.4" />
+              <mxPoint x="613.79" y="639.4" />
+              <mxPoint x="574.87" y="639.4" />
+              <mxPoint x="535.95" y="639.4" />
+              <mxPoint x="497.04" y="639.4" />
+              <mxPoint x="458.12" y="639.4" />
+              <mxPoint x="419.2" y="639.4" />
+              <mxPoint x="380.28" y="639.4" />
+              <mxPoint x="341.36" y="639.4" />
+              <mxPoint x="302.45" y="639.4" />
+              <mxPoint x="263.53" y="639.4" />
+              <mxPoint x="224.61" y="639.41" />
+              <mxPoint x="218.11" y="674.48" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_RETRY_FAIL_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="RETRY" target="FAIL">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1643.75" y="1493.1" />
+              <mxPoint x="1643.75" y="1530.54" />
+              <mxPoint x="1643.75" y="1567.98" />
+              <mxPoint x="1643.75" y="1605.41" />
+              <mxPoint x="1643.75" y="1642.85" />
+              <mxPoint x="1643.75" y="1680.28" />
+              <mxPoint x="1643.75" y="1717.72" />
+              <mxPoint x="1643.75" y="1755.16" />
+              <mxPoint x="1643.75" y="1792.59" />
+              <mxPoint x="1643.75" y="1830.03" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_REPAIR_FAIL_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="REPAIR" target="FAIL">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1432.73" y="1703.8" />
+              <mxPoint x="1451.8" y="1722.6" />
+              <mxPoint x="1479.44" y="1732.83" />
+              <mxPoint x="1479.44" y="1768.03" />
+              <mxPoint x="1497.73" y="1787.6" />
+              <mxPoint x="1526.14" y="1797.06" />
+              <mxPoint x="1526.14" y="1832.26" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_SAVE_CHECK_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="SAVE" target="CHECK">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="2288.02" y="1695.87" />
+              <mxPoint x="2273.08" y="1722.6" />
+              <mxPoint x="2234.08" y="1722.6" />
+              <mxPoint x="2195.08" y="1722.6" />
+              <mxPoint x="2156.09" y="1722.77" />
+              <mxPoint x="2151.04" y="1759.23" />
+              <mxPoint x="2137.74" y="1787.6" />
+              <mxPoint x="2098.74" y="1787.6" />
+              <mxPoint x="2059.74" y="1787.6" />
+              <mxPoint x="2020.74" y="1787.61" />
+              <mxPoint x="2014.07" y="1822.6" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="atlas4-L_FAIL_RECOVER_0" value="" style="endArrow=block;endFill=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=12;fontColor=#0F172A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="FAIL" target="RECOVER">
+          <mxGeometry x="0" y="0" as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="JOBS" value="提炼 / 规划 / 生成批次队列" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1136.64" y="143.0" as="geometry" width="265.62" height="57" />
+        </mxCell>
+        <mxCell id="WORKERS" value="固定工作协程数&#10;min(models.llm.concurrency, 批次数)" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1095.34" y="224.0" as="geometry" width="348.23" height="74.6" />
+        </mxCell>
+        <mxCell id="BATCH" value="每批内部按顺序执行&#10;提炼：预算 → LLM&#10;规划 / 生成：预算 → RAG / 重排 → LLM" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1199.9" y="358.6" as="geometry" width="366" height="92.2" />
+        </mxCell>
+        <mxCell id="ORDER" value="按输入批次顺序归并&#10;首个致命错误取消并等待其余工人" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1142.15" y="510.8" as="geometry" width="313" height="74.6" />
+        </mxCell>
+        <mxCell id="CACHE" value="缓存键：完整请求 + 输出 Schema + 模型配置&#10;命中才复用；父运行缓存仅允许提炼复用" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="2175.97" y="717.4" as="geometry" width="404.45" height="74.6" />
+        </mxCell>
+        <mxCell id="HTTP" value="生成模型请求&#10;适配器信号量 + 单次 timeout&#10;真实尝试计入共享 max_calls" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="1448.8" y="901.0" as="geometry" width="287.4" height="92.2" />
+        </mxCell>
+        <mxCell id="SAVE" value="合规输出才写缓存&#10;后续仍核验原文、引用及业务风险" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="2131.02" y="1582.27" as="geometry" width="314" height="74.6" />
+        </mxCell>
+        <mxCell id="RESULT" value="返回情况" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rhombus;fillColor=#fff7ed;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="1926.31" y="1053.2" as="geometry" width="177" height="177" />
+        </mxCell>
+        <mxCell id="RETRY" value="runtime.max_attempts 内退避重试&#10;遵守 Retry-After；鉴权等直接失败" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#fff7ed;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="1479.2" y="1381.07" as="geometry" width="329.11" height="74.6" />
+        </mxCell>
+        <mxCell id="SCHEMA" value="JSON / Schema 校验&#10;同类提炼 ID 唯一&#10;用例 point_ids 仅限当前批次枚举" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1858.3" y="1375.2" as="geometry" width="312.02" height="92.2" />
+        </mxCell>
+        <mxCell id="REPAIR" value="generation.schema_repair_attempts 内修复&#10;引用与单点数量限制先校验，再缓存&#10;安全字段诊断存快照，不回放错误正文" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#f5f3ff;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="1233.72" y="1576.4" as="geometry" width="398.03" height="92.2" />
+        </mxCell>
+        <mxCell id="SPLIT" value="多测试点批次二分后依次执行&#10;直接输入超预算也可二分&#10;单点仍超限则失败" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#fff7ed;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="2220.32" y="1375.2" as="geometry" width="281" height="92.2" />
+        </mxCell>
+        <mxCell id="VISION" value="Vision：独立图片工人 + 信号量&#10;最小间隔、限流冷却、缓存&#10;单图失败继续；账户阻断停发未缓存图" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="424.22" y="717.4" as="geometry" width="302.12" height="92.2" />
+        </mxCell>
+        <mxCell id="EMBEDDING" value="Embedding：batch_size + concurrency&#10;按 index 恢复顺序，校验向量空间&#10;空间 / 缓存损坏或检索失败阻断 RAG" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="776.34" y="717.4" as="geometry" width="369.38" height="92.2" />
+        </mxCell>
+        <mxCell id="RERANK" value="Rerank：随上层批次并发&#10;当前无独立重试 / 并发器&#10;失败记录 fallback，保留召回顺序" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfeff;strokeColor=#0891b2;" vertex="1" parent="1">
+          <mxGeometry x="62" y="717.4" as="geometry" width="312.22" height="92.2" />
+        </mxCell>
+        <mxCell id="FAIL" value="重试 / 修复耗尽或不可恢复错误&#10;保存 failure 阶段和类型，终端提示 run_id" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#fff7ed;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="1397.72" y="1871.47" as="geometry" width="374.44" height="74.6" />
+        </mxCell>
+        <mxCell id="CHECK" value="检索完成后校验引用、依据风险与覆盖&#10;XMind 全部点，Excel 实际生成用例&#10;有 Issue 可 partial_failed，仍需语义验收" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="1822.16" y="1865.6" as="geometry" width="383.81" height="92.2" />
+        </mxCell>
+        <mxCell id="RECOVER" value="status / inspect 定位阶段&#10;生成事实已保存时 export 可离线重导&#10;恢复需核对输入、配置和阶段绑定" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#ecfdf5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="1414.63" y="1981.8" as="geometry" width="340.62" height="92.2" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

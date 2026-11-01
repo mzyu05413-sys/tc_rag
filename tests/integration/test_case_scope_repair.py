@@ -72,7 +72,7 @@ async def test_foreign_case_point_id_uses_bounded_safe_repair(
             result = await pipeline.cases(request)
             assert result["cases"] == 1
             assert Path(result["excel"]).is_file()
-            assert len(point_topics(Path(result["xmind"]))) == 3
+            assert len(point_topics(Path(result["xmind"]))) == 1
             assert records[-1].error is None
         else:
             # 同一修复预算耗尽就停止，不猜测 ID，也不丢弃错误用例伪装成功。

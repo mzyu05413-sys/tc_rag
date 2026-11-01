@@ -1,0 +1,45 @@
+%%{init: {"theme": "base", "securityLevel": "strict", "htmlLabels": false, "look": "classic", "fontFamily": "Microsoft YaHei, Segoe UI, sans-serif", "fontSize": 16, "themeVariables": {"background": "#FFFFFF", "primaryColor": "#EFF6FF", "primaryTextColor": "#0F172A", "primaryBorderColor": "#2563EB", "lineColor": "#334155", "textColor": "#0F172A", "clusterBkg": "#F8FAFC", "clusterBorder": "#94A3B8", "edgeLabelBackground": "#FFFFFF", "fontFamily": "Microsoft YaHei, Segoe UI, sans-serif"}, "flowchart": {"htmlLabels": false, "curve": "linear", "nodeSpacing": 34, "rankSpacing": 62, "padding": 18, "useMaxWidth": false, "wrappingWidth": 360}}}%%
+flowchart TB
+    START["01 CLI：文档路径 + 生成目标<br/>rag / rag start / rag run"] --> PRE["02 配置预检与依赖装配<br/>生成、向量必需；视觉 / 重排按开关"]
+    PRE --> INGEST["03 接入文件 · 本地<br/>校验格式 / 大小、指纹、保存原件和 Document"]
+    INGEST --> FORMAT{"PDF 或 DOCX？"}
+    FORMAT -->|PDF| PDF["PdfParser · 本地<br/>文字、表格、图片、页码和坐标<br/>逐页检查点；低文字页记未解析"]
+    FORMAT -->|DOCX| WORD["DocxParser · 本地<br/>段落 / 表格顺序、图片和结构位置"]
+    PDF --> BLOCKS["DocumentBlock + 图片 Asset + 解析 Issue"]
+    WORD --> BLOCKS
+    BLOCKS --> VISON{"启用视觉且有图片？"}
+    VISON -->|是| VLM["04 图片解释 · models.vision<br/>缓存 → 限速并发 → 文字解释<br/>失败记待确认；origin=vision，uncertain=true"]
+    VISON -->|否| CHUNK
+    VLM --> CHUNK["05 分块 · 本地<br/>保留原始 Block、标题和字符区间"]
+    CHUNK --> EXTRACT["06 规则提炼 · models.llm<br/>按 Chunk 有界并发 → Extraction<br/>JSON / Schema / 同类 ID 校验与有界修复"]
+    EXTRACT --> CHECK["07 核验与归并 · 本地<br/>逐字引文、Locator、区间、引用闭包<br/>保守合并重复；缺漏和冲突进入 Issue"]
+    CHECK --> INDEX["08 准备需求检索索引 · models.embedding<br/>有效证据 + Chunk 原文区间<br/>缓存 / 批量向量化 → NumPy 或 FAISS → 校验发布"]
+    INDEX --> BASE["09 基础测试点 · 本地规则<br/>明确整数上限 300 → 299 / 300 / 301<br/>缺精度 / 条件则保留待澄清"]
+    BASE --> PLAN["10 第一轮 RAG 规划 · models.llm<br/>规则批次检索 → 可选 models.rerank<br/>直接证据 + 补充资料 → 补充测试意图"]
+    PLAN --> POINTS["11 核验并保存全部测试点与 PointTree<br/>SQLite 是事实源；XMind 不作为下一阶段输入"]
+    POINTS --> READY["12 筛选 ready 且 applicable<br/>其余点保留在目录与问题报告"]
+    READY --> INDEX2["13 再次准备检索上下文<br/>符合条件时复用，仍核验空间 / manifest / 文件"]
+    INDEX2 --> GENERATE["14 第二轮 RAG + Skill · models.llm<br/>就绪点批次检索 → 可选 models.rerank<br/>点 + 规则证据 + 补充资料 + Skill → 用例"]
+    GENERATE --> CONTRACT["15 输出契约与本地校验<br/>批次 point_ids 枚举 → 有界修复<br/>规则 / 证据引用、独立边界、步骤和预期风险"]
+    CONTRACT --> SAVE["16 保存 TestCase / Step / CoverageLink / Issue<br/>运行状态、检索审计、ModelInvocation、阶段耗时"]
+    SAVE --> XM["17a XMind · 全部测试点目录<br/>状态 → 业务维度 → 功能 → 目标<br/>含待澄清；不含完整用例步骤"]
+    SAVE --> XL["17b Excel · 实际生成的用例<br/>生成内容及附表由导出器排版<br/>无就绪点时可能只有表头"]
+    SAVE --> REPORT["17c 质量 / 覆盖 / manifest<br/>JSON、Markdown 等按格式配置<br/>有 Issue 时可能 partial_failed"]
+    XM --> END["同一运行目录交付 · 无中间人工审批<br/>自动校验通过仍需用户核对业务语义"]
+    XL --> END
+    REPORT --> END
+    class START,PRE,INGEST,FORMAT,BLOCKS,CHUNK,CHECK,BASE,POINTS,READY,CONTRACT app
+    class PDF,WORD infra
+    class VLM,EXTRACT,PLAN,GENERATE model
+    class INDEX,INDEX2 retrieval
+    class VISON warn
+    class SAVE,XM,XL,REPORT,END store
+    classDef entry fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+    classDef app fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+    classDef domain fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#0F172A
+    classDef infra fill:#F1F5F9,stroke:#64748B,stroke-width:2px,color:#0F172A
+    classDef model fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#0F172A
+    classDef retrieval fill:#ECFEFF,stroke:#0891B2,stroke-width:2px,color:#0F172A
+    classDef store fill:#ECFDF5,stroke:#059669,stroke-width:2px,color:#0F172A
+    classDef warn fill:#FFF7ED,stroke:#D97706,stroke-width:2px,color:#0F172A
+    linkStyle default stroke:#334155,stroke-width:2px,color:#0F172A

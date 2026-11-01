@@ -9,7 +9,7 @@ ReportExporter 保留参考模板的第一张“模版”及默认十一列，�
 SQLite cases 快照是事实来源，可重新导出：
 
 ```powershell
-tc-rag export RUN_ID --format xlsx --config workdir/local.yaml --output-dir workdir/output
+tc-rag inspect RUN_ID --stage cases --format xlsx --config workdir/local.yaml --output workdir/output/RUN_ID/reexport.xlsx
 ```
 
 ## 团队列定义

@@ -78,7 +78,7 @@ P0 的配置、领域和计时仍是当前实现基础，CLI 使用说明以当�
 | 1.7 测试点设计 | 规则 → 测试意图；`application/services/design.py` | 整数上限 300 的边界为 299/300/301；未知精度/权限不编造 |
 | 1.8 用例生成 | 审核点与 RAG 上下文 → 用例步骤；`application/orchestration/pipeline.py` | 每步动作/预期与证据引用；Skill 不能覆盖业务依据 |
 | 1.9 校验与覆盖 | 用例 → 关联矩阵和 Issue；`application/services/design.py` | 无依据预期、无效引用、重复、未覆盖规则；自动关联不等于正确率 |
-| 1.10 脑图与导出 | 用例对应测试点 → XMind 目录；事实 → Excel/报告 | 两份文件同批同目录、无步骤进入脑图、覆盖和缺漏可追溯 |
+| 1.10 脑图与导出 | 全部测试点 → XMind 目录；实际用例 → Excel/报告 | 两份文件同批同目录、无步骤进入脑图、覆盖和缺漏可追溯；可选章节视图仍保留状态/维度/功能 |
 | 1.11 编排与恢复 | 阶段快照 → 一次连续运行；`application/orchestration/pipeline.py` | 规划与生成均检索；Skill 仅约束表达；有限恢复保持输入/配置一致 |
 
 `interfaces/workflow.py` 提供交互输入、状态/快照、预览和诊断。终端操作集中见 [交互与调试](../learn/P1/13_终端交互与调试.md)，不在每个步骤重复维护命令。
@@ -96,7 +96,7 @@ P0 的配置、领域和计时仍是当前实现基础，CLI 使用说明以当�
 | 2.5 重排 | `infrastructure/providers/rerank.py` | 候选集合和顺序合法；HTTP 失败记录降级；未启用时不请求 |
 | 2.6 检索增强 | `application/orchestration/pipeline.py`、`prompts/rag_context/` | 规划和生成都检索；保留核心依据；补充裁剪可审计；检索故障停止 |
 | 2.7 图片证据 | `infrastructure/providers/vision.py`、`application/services/vision.py` | 图文分离、图片解释、来源/模型/不确定性、未解析范围、缓存与预算 |
-| 2.8 Excel | `infrastructure/exporters/reports.py` | 十一列模板、步骤/预期对齐、可配置映射、质量页与人工客户端验收 |
+| 2.8 Excel | `infrastructure/exporters/reports.py` | 十一列模板、步骤/预期对齐、可配置映射、用例追溯/质量说明与人工客户端验收 |
 | 2.9 评估 | `application/services/evaluation.py`、CLI `evaluate` | 人工语义匹配与相关性标注；缺标注为 null；自动与人工指标分开 |
 
 OpenAI 兼容 LLM、embedding、HTTP rerank 和已提取图片的 vision 有实现。LangChain/Claude SDK 只有扩展声明，业务关系图也未实现；不能据依赖已声明就标记完成。图片统一由 Vision 处理，不另设 OCR 扫描路线；低文字量或扫描页保留未解析告警，需提供可读取文字的 PDF/DOCX。

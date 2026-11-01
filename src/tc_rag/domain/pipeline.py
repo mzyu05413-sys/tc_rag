@@ -1,5 +1,6 @@
 """P1 阶段输出和可恢复快照；业务事实仍由 SQLite 持有。"""
 
+from collections import Counter
 from collections.abc import Callable
 from enum import Enum
 from typing import Any, cast
@@ -48,11 +49,15 @@ class CaseBatch(DomainModel):
     issues: list[Issue] = Field(default_factory=list)
 
 
-def case_batch_schema(point_ids: list[str]) -> type[CaseBatch]:
-    """把当前批次的测试点绑定为枚举，让错误引用进入已有 Schema 修复流程。"""
+def case_batch_schema(
+    point_ids: list[str], max_cases_per_point: int | None = None
+) -> type[CaseBatch]:
+    """把批次引用和数量上限前置校验，让错误进入有界修复且不写入有效缓存。"""
     allowed = sorted(set(point_ids))
     if not allowed:
         raise ValueError("用例批次至少需要一个测试点")
+    if max_cases_per_point is not None and max_cases_per_point < 1:
+        raise ValueError("单点用例上限必须为正整数")
     # 枚举值来自输入事实；不按标题猜测或重写模型引用。排序保证同一范围的契约指纹稳定。
     # 成员来自运行时输入，只依赖枚举类型接口，不声明可供静态访问的固定成员。
     enum_factory = cast(Callable[..., type[Enum]], Enum)
@@ -65,11 +70,29 @@ def case_batch_schema(point_ids: list[str]) -> type[CaseBatch]:
         __base__=TestCase,
         point_ids=(conlist(point_type, min_length=1), ...),
     )
-    # 沿用 CaseBatch 的字段、默认值和严格校验；只缩小 point_ids 的合法范围。
+    validators: dict[str, Any] = {}
+    if max_cases_per_point is not None:
+        def check_point_limit(batch: CaseBatch) -> CaseBatch:
+            counts: Counter[str] = Counter()
+            for case in batch.cases:
+                # 一个用例即便重复写同一引用，也只按一个关联计数，与最终检查一致。
+                counts.update(set(case.point_ids))
+            if any(count > max_cases_per_point for count in counts.values()):
+                # 固定错误说明不携带实际 ID、用例内容或输入值。
+                raise ValueError("CaseBatch per-point case count exceeds configured limit")
+            return batch
+
+        validators["check_point_limit"] = model_validator(mode="after")(check_point_limit)
+    case_list = (
+        conlist(case_type, max_length=len(allowed) * max_cases_per_point)
+        if max_cases_per_point is not None else conlist(case_type)
+    )
+    # 沿用其余严格约束；不增加数量、不截断结果、不重写引用。
     return create_model(
         "CaseBatch",
         __base__=CaseBatch,
-        cases=(conlist(case_type), Field(default_factory=list)),
+        __validators__=validators,
+        cases=(case_list, Field(default_factory=list)),
     )
 
 

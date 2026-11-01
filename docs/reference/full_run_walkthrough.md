@@ -1,6 +1,6 @@
 # 完整运行过程：需求文档 → 两轮 RAG → 测试点 XMind 与用例 Excel
 
-[文档入口](README.md) · [项目 README](../README.md) · [交互图集](diagrams/index.html) · [领域契约](reference/contracts.md) · [目录职责](reference/directory_structure.md)
+[参考导航](README.md) · [项目 README](../../README.md) · [交互图集](../diagrams/index.html) · [领域契约](contracts.md) · [目录职责](directory_structure.md)
 
 更新日期：2026-10-29。本文依据当前实现，框架只以 PDF/DOCX 需求文档为输入，连续完成提炼、检索、规划、生成、校验和联合导出。项目代码读取与 UI 参考支路已删除。
 历史运行保留在文末，与当前流程、模型配置及验收结果分开阅读。
@@ -59,9 +59,9 @@ CLI 先选择一份配置：显式 `--config` → `workdir/local.yaml` → `conf
 
 ### 3.1 分层架构
 
-![分层架构](diagrams/01_architecture.svg)
+![分层架构](../diagrams/01_architecture.svg)
 
-[Mermaid 源码](diagrams/01_architecture.mmd)。交互放大、切图和可编辑 Draw.io 见[图集](diagrams/README.md)。
+[Mermaid 源码](../diagrams/01_architecture.mmd)。交互放大、切图和可编辑 Draw.io 见[图集](../diagrams/README.md)。
 
 - `interfaces`：CLI、配置覆盖、输入与终端进度。
 - `application`：Pipeline 连续编排、分块与测试设计、视觉证据后处理、评估及外部能力协议。
@@ -74,7 +74,7 @@ SQLite 是结构化事实源；原件和图片为资产，向量索引及导出�
 
 ### 3.2 一次执行的完整路径
 
-![完整流程](diagrams/02_workflow.svg)
+![完整流程](../diagrams/02_workflow.svg)
 
 图中的步骤号用于阅读，不等于终端实际阶段编号。默认无图片解释的连续主线有 **10 个可见阶段**；启用图片解释增加 1 个。`index` 在规划和生成之前各出现一次，`points_ready/completed` 是衔接与完成事件，不计为工作阶段。
 
@@ -112,7 +112,7 @@ Vision 仅处理已提取图片。缓存命中不重复请求，失败图片记�
 
 ### 5.1 可追溯证据链
 
-![证据链](diagrams/04_traceability.svg)
+![证据链](../diagrams/04_traceability.svg)
 
 `Asset / Document → DocumentBlock + Locator → ChunkSource → EvidenceSpan → Feature / Rule → TestPoint → TestCase / Step → CoverageLink / Issue`。
 规则引用功能和证据，测试点引用规则，用例引用测试点，每个步骤引用规则与证据；覆盖记录关联具体用例、步骤、规则和点。
@@ -120,7 +120,7 @@ PDF 页码、覆盖步骤号从 1 开始；DOCX 结构索引、块顺序及字�
 
 ### 5.2 索引和查询
 
-![两轮 RAG](diagrams/03_rag.svg)
+![两轮 RAG](../diagrams/03_rag.svg)
 
 需求索引包含有效引文，以及每个 Chunk 对应的原文区间。原文区间使用 `source_*` ID；这是需求资料来源，不是代码仓库或新增规则。
 同一文本去重向量化，再保存各自的业务 ID 映射。向量空间绑定服务、模型、实际维度、归一化与模板版本；缓存须匹配空间、文本及内容指纹，禁止混用不同空间。
@@ -165,7 +165,7 @@ Rerank 只重排前 `rerank_top_n` 个候选，其余接在后面；失败记录
 
 六阶段统一装载 `prompts/<stage>/v1.md`：`extract`、`plan_points`、`generate`、`rag_context`、`vision`、`case_skill`。
 用户此前授权的 v1 精简、空值与最短引文规范保留；运行 manifest 记录实际组合文本指纹，仅看 v1 名称不能判断输入一致。
-版本修订记录见[提示词参考](reference/prompt_versions.md)。
+版本修订记录见[提示词参考](prompt_versions.md)。
 
 `bootstrap.py` 将 rag_context 追加到规划与生成，将 case_skill 追加到生成。`--skill-file` 或 `generation.skill_file` 可追加非空 UTF-8 Markdown，最大 256 KiB。
 Skill 只约束命名、步骤、粒度、优先级和内容表达，不执行脚本，不自行构造 Excel，不能覆盖原文事实、引用规则或 Schema。
@@ -182,7 +182,7 @@ Skill 只约束命名、步骤、粒度、优先级和内容表达，不执行�
 
 ## 7. 并发、超时、重试与缓存
 
-![调度与失败处理](diagrams/05_reliability.svg)
+![调度与失败处理](../diagrams/05_reliability.svg)
 
 阶段按依赖连续执行；提炼、规划和生成在各自阶段内使用 `min(models.llm.concurrency, 批次数)` 个固定工人，结果按输入顺序归并。
 提炼批内部不检索；规划 / 生成批内部依次检索、重排、调用 LLM，不能把并发 8 理解为整个文档所有阶段同时执行。
@@ -197,6 +197,11 @@ Skill 只约束命名、步骤、粒度、优先级和内容表达，不执行�
 
 `runtime.max_attempts` 包含首次网络尝试；仅临时网络和可重试 HTTP 错误退避重试，遵守 Retry-After。鉴权等错误直接失败。
 `generation.schema_repair_attempts` 是成功 HTTP 返回不合规 JSON / Schema 后追加完整结构请求的次数。
+用例 Schema 同时绑定当前批次的 point_ids 与 generation.max_cases_per_point；请求明确携带单点上限。
+例如一批五个点、共十五条用例，若同一个点关联八条而上限为六，即使总数未达三十也超限。
+超限进入有界结构修复，合格后才缓存；耗尽仍停止，不静默删用例或抬高上限。
+安全诊断只含契约字段路径、错误类型与固定约束，完整内容可用
+`rag inspect RUN_ID --stage invocations` 查看 validation_errors 映射，旧调用记录结构不变。
 每次真实尝试计入 `runtime.budget.max_calls`；单次 180 秒超时不代表整个阶段最多 180 秒。
 `max_cost` 缺少价格表支撑，不能据此声称精确费用控制。
 
@@ -210,11 +215,19 @@ Skill 只约束命名、步骤、粒度、优先级和内容表达，不执行�
 
 <a id="25-如何阅读阶段进度"></a>
 
-终端展示阶段、批次、图片、缓存、重试、修复、检索和重排状态及约 10 秒心跳；不展示模型私有思考链。
+终端展示阶段、批次、图片、缓存、重试、修复、检索和重排状态，普通进度与心跳共享约 20 秒间隔；
+完成、失败和结构修复即时展示，不展示模型私有思考链。
 在途请求计数主要统计 LLM / Vision，预计剩余是进度估算，尾部重试时可上升。
 阶段墙钟与模型请求耗时累计不同，并发请求的时间不能直接相加当作总耗时。
 
 ## 8. 输出和数量解释
+
+`parsing.infer_docx_headings` 默认 false：启用后补认整段大字号粗体短标题，保留显式 Heading 父层级，
+推断会记录提醒，不修改原文和定位。`export.point_tree_layout` 默认 feature，chapter 在状态/业务维度与
+功能之间补充共同章节；跨章与未定位情况单列，仍输出所有点，包括待澄清点。
+启用影响解析或目录的开关后应新建运行。Excel 仍以十一列主表展示实际用例，新增“用例追溯”与
+“质量说明”附表，区分自身具体风险、共享需求问题及通用语义复核提醒。
+本轮变更、兼容边界与审核清单见 [更新采纳记录](main_updates_20261031.md)。
 
 ```text
 workdir/
@@ -258,20 +271,21 @@ rag run 'D:\需求\订单.docx' -i '与原运行完全相同的指令' --resume 
 rag run 'D:\需求\订单.docx' -i '与原运行完全相同的指令' --resume $runId --from-stage plan_points --config workdir/local.yaml
 
 # 当前配置契约下，复用已保存测试点生成：仍会检索并调用模型
-rag cases $runId -i '依据已保存测试点生成用例，保留原文依据' --config workdir/local.yaml
+rag cases $runId --config workdir/local.yaml
 
 # 已有 cases 事实，仅重建一种派生文件：不调用模型
-rag export $runId --format xlsx --config workdir/local.yaml --output-dir workdir/output
-rag export $runId --format json --config workdir/local.yaml --output-dir workdir/output
-rag export $runId --format markdown --config workdir/local.yaml --output-dir workdir/output
+rag inspect $runId --stage cases --format xlsx --output workdir/output/$runId/reexport.xlsx --config workdir/local.yaml
+rag inspect $runId --stage cases --format json --output workdir/output/$runId/reexport.json --config workdir/local.yaml
+rag inspect $runId --stage cases --format markdown --config workdir/local.yaml
 ```
 
 恢复仅支持 extract / plan_points；需检查配置快照、指令和内容指纹。配置比较不含密钥，但模型、并发等非密钥配置变化会阻断恢复。
 不是任意 DAG 节点恢复；程序或提示词改变后，不能只凭配置相同认定旧提炼事实仍适配。
 cases 复用原 run_id，要求原配置及点 / 规则 / 树一致，不读 XMind，也不是离线导出。
-export 需要 cases 快照，写 `<run_id>/reexport.xlsx|json|md`，不重做业务校验、不改变状态，不自动补齐整套 XMind / 报告；同格式再次执行会覆盖同名重导文件。
+inspect 的 xlsx 只适用于 cases 快照；未给 `--output` 时写入 `<run_id>/reexport.xlsx|md`，
+json 直接打印到终端。重建不重做业务校验、不改变状态，不自动补齐整套 XMind / 报告；同格式再次执行会覆盖同名重导文件。
 
-**此次移除支路不改写旧 SQLite、原件、索引或输出。** 旧记录仍可 status / inspect，已有用例可离线 export。
+**此次移除支路不改写旧 SQLite、原件、索引或输出。** 旧记录仍可 status / inspect，已有用例可离线重建派生文件。
 旧运行配置含已移除字段时，cases / resume 不强行兼容，应使用 `rag` 新建运行；历史 ContextPayload 审计字段仅供读取并排除新序列化，不重新启用旧功能。
 
 ## 10. 其他命令
@@ -281,10 +295,13 @@ rag --help
 rag start --help
 rag run --help
 rag estimate 'D:\需求\订单.docx' --config workdir/local.yaml
+rag quality RUN_ID --config workdir/local.yaml
 rag doctor --config workdir/local.yaml
 ```
 
 estimate 本地解析、分块并估算调用，不估精确费用或最终用例数量。
+quality 只读运行快照，逐阶段输出 `reports/quality_check.json` 和 `.md`；不调用模型，
+自动检查不替代人工语义结论；`--strict` 时 warn 也返回退出码 2。
 doctor 默认检查当前进程配置；`--live` 才发起付费模型请求，使用虚构材料和独立诊断数据库，主动关闭视觉 / 重排、缓存、重试和结构修复，不能当作完整业务验收。
 evaluate 需要人工规则 / 相关性标注，默认不调用模型；具体参数查 `rag evaluate --help`。
 
@@ -308,13 +325,13 @@ evaluate 需要人工规则 / 相关性标注，默认不调用模型；具体�
 
 | 代码 | 阅读重点 |
 |---|---|
-| [workflow.py](../src/tc_rag/interfaces/workflow.py) / [progress.py](../src/tc_rag/interfaces/progress.py) | CLI、阶段编号、错误与进度 |
-| [bootstrap.py](../src/tc_rag/bootstrap.py) / [config.py](../src/tc_rag/core/config.py) | 装配、角色、Prompt / Skill、配置校验 |
-| [pipeline.py](../src/tc_rag/application/orchestration/pipeline.py) | 连续 points → cases、预算、批次、缓存及校验导出 |
-| [design.py](../src/tc_rag/application/services/design.py) | 引文、约束、边界点、重复及依据风险 |
-| [context.py](../src/tc_rag/infrastructure/retrieval/context.py) | 空间、向量缓存、索引准备、召回与重排 |
-| [openai_sdk.py](../src/tc_rag/infrastructure/providers/openai_sdk.py) | HTTP 重试与安全结构修复 |
-| [领域契约](reference/contracts.md) | 字段、引用、来源、批次 point_id 和历史读取边界 |
+| [workflow.py](../../src/tc_rag/interfaces/workflow.py) / [progress.py](../../src/tc_rag/interfaces/progress.py) | CLI、阶段编号、错误与进度 |
+| [bootstrap.py](../../src/tc_rag/bootstrap.py) / [config.py](../../src/tc_rag/core/config.py) | 装配、角色、Prompt / Skill、配置校验 |
+| [pipeline.py](../../src/tc_rag/application/orchestration/pipeline.py) | 连续 points → cases、预算、批次、缓存及校验导出 |
+| [design.py](../../src/tc_rag/application/services/design.py) | 引文、约束、边界点、重复及依据风险 |
+| [context.py](../../src/tc_rag/infrastructure/retrieval/context.py) | 空间、向量缓存、索引准备、召回与重排 |
+| [openai_sdk.py](../../src/tc_rag/infrastructure/providers/openai_sdk.py) | HTTP 重试与安全结构修复 |
+| [领域契约](contracts.md) | 字段、引用、来源、批次 point_id 和历史读取边界 |
 
 ## 附录 A：2026-10-27 历史真实运行与离线补导
 
@@ -372,4 +389,4 @@ NumPy/cosine，持久缓存关闭，关键词和 Rerank 关闭。
 最终在后续命名空间转换发现重复 ID，没有进入该项修复。
 原始响应未保存，不能确认具体同类重复还是跨类型同号。现行处理见第 6.2 节，修复不会自动改变旧运行状态。
 
-继续按模块学习见[学习导航](learn/README.md)，计时口径见[计时与指标](reference/timing.md)，开发规划见[开发指南](design/dev_guide.md)。
+继续按模块学习见[学习导航](../learn/README.md)，计时口径见[计时与指标](timing.md)，开发规划见[开发指南](../design/dev_guide.md)。

@@ -176,7 +176,7 @@ async def test_planning_and_generation_are_bounded_and_keep_case_order(tmp_path)
     assert maximum["plan_points"] == maximum["generate"] == 2
     assert not any(active.values())
     payload = pipeline.read(result["run_id"], "cases")
-    assert result["cases"] == 6
+    assert result["cases"] == 2
     assert [case["point_ids"][0] for case in payload["cases"]] == [
         point["point_id"] for point in payload["points"]
     ]

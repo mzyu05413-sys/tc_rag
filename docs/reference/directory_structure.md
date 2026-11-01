@@ -19,8 +19,8 @@ RAG/
 ├─ tests/                     自动化测试代码
 ├─ docs/                      架构、开发指南、学习和参考资料
 ├─ scripts/                   可复用的开发辅助脚本
-├─ eval/                      效果评估入口
-├─ workdir/                   本机配置、业务数据和开发产物，不进 Git
+├─ eval/                      评估入口与离线检索材料准备，见该目录 README
+├─ workdir/                   本机配置、业务/开发数据；仅无密钥 local.example.yaml 可进 Git
 ├─ .venv/                     Python 虚拟环境
 ├─ pyproject.toml             项目、依赖和检查工具配置
 └─ uv.lock                    uv 依赖锁文件
@@ -37,6 +37,7 @@ RAG/
 ```text
 workdir/
 ├─ local.yaml                 唯一默认本地配置，模型与密钥填这里
+├─ local.example.yaml         可跟踪的无密钥示例，不自动加载，不覆盖现有 local.yaml
 ├─ data.sqlite                文档、证据、规则、审核、用例和运行记录
 ├─ data.sqlite-wal            SQLite 日志文件，运行时可能出现
 ├─ data.sqlite-shm            SQLite 共享内存文件，运行时可能出现
@@ -70,6 +71,7 @@ workdir/
 | `workdir/local.yaml`             | 实际使用的模型、密钥、检索及导出参数  |
 | `config/defaults.yaml`           | 公共默认配置模板                      |
 | `config/example.yaml`            | 公共示例，不会被自动选中              |
+| `workdir/local.example.yaml`     | 首次复制到 local.yaml 的无密钥模板，不自动加载 |
 | `workdir/dev/backups/` 中的 YAML | 历史备份，不参与正常启动              |
 | 诊断或测试目录中的配置             | 仅供对应诊断/测试使用，不会被自动扫描 |
 
@@ -83,7 +85,7 @@ src/tc_rag/
 ├─ interfaces/                CLI 命令、交互与进度
 ├─ application/
 │  ├─ orchestration/          规划与生成连续执行的流程编排
-│  ├─ services/               解析后处理、分块、设计和评估
+│  ├─ services/               解析后处理、分块、设计、评估与质检
 │  └─ ports/                  外部能力的接口约定
 ├─ domain/                    领域对象与纯业务规则
 ├─ infrastructure/

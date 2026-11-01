@@ -22,17 +22,20 @@ from tc_rag.application.ports.errors import (
 )
 from tc_rag.application.requests import CasesRequest
 from tc_rag.application.services.plan import run_plan
+from tc_rag.application.services.quality import inspect_quality
 from tc_rag.bootstrap import build_pipeline, validate_runtime_config
 from tc_rag.core.config import AppConfig, load_config
 from tc_rag.domain.identity import new_id
 from tc_rag.domain.models import Run
 from tc_rag.domain.pipeline import Extraction, StageSnapshot
+from tc_rag.infrastructure.exporters.quality_report import render_quality_markdown
 from tc_rag.infrastructure.exporters.reports import ReportExporter
 from tc_rag.infrastructure.providers.openai_sdk import OpenAIStructuredLLM, ProviderError
 from tc_rag.infrastructure.storage.sqlite import SqliteRepository
 from tc_rag.interfaces.progress import TerminalProgress, format_duration
 
 DEFAULT_INSTRUCTION = "根据需求文档生成功能测试点和测试用例，保留原文依据"
+DEFAULT_OUTPUT_DIR = Path("workdir/output")
 
 app = typer.Typer(
     help="tc-rag：通过 RAG 一次生成测试点 XMind、用例 Excel 及报告。"
@@ -96,23 +99,60 @@ def _snapshot(repo: SqliteRepository, run_id: str, stage: str) -> dict[str, Any]
     return value.payload
 
 
-def _error(exc: Exception) -> None:
-    # 只展示程序固定说明；第三方异常正文可能含凭据或需求原文，仍不回显。
-    if isinstance(exc, ValidationError) and any(e["loc"] == ("sources",) for e in exc.errors()):
+def _config_changes(saved: dict[str, Any], current: dict[str, Any]) -> list[str]:
+    """只回显发生变化的配置段名，不输出配置值。"""
+    keys = sorted(set(saved) | set(current))
+    return [key for key in keys if saved.get(key) != current.get(key)]
+
+
+def _configuration_error(exc: ValidationError) -> None:
+    """只展示配置契约中的键名，未知键和输入值都不能成为终端内容。"""
+    errors = exc.errors(include_input=False, include_url=False, include_context=False)
+    if any(e["loc"] == ("sources",) for e in errors):
         typer.echo(
             "代码读取分支已移除；请删除配置中的 sources 段，"
             "并清除当前终端的 TC_RAG_SOURCES__* 环境变量。",
             err=True,
         )
-    elif isinstance(exc, ValidationError) and any(
-        e["loc"] == ("retrieval", "mode") for e in exc.errors()
-    ):
+    elif any(e["loc"] == ("retrieval", "mode") for e in errors):
         typer.echo("配置已统一为 RAG，请删除 retrieval.mode；CLI 不再使用 --mode。", err=True)
         typer.echo("若设置过环境变量 TC_RAG_RETRIEVAL__MODE，也请在当前终端清除。", err=True)
-    elif isinstance(exc, ValidationError) and any(
-        e["loc"] == ("planning", "llm_supplement") for e in exc.errors()
-    ):
+    elif any(e["loc"] == ("planning", "llm_supplement") for e in errors):
         typer.echo("RAG 规划已固定启用，请删除 planning.llm_supplement。", err=True)
+    else:
+        names: set[str] = set()
+
+        def collect(node: Any) -> None:
+            if isinstance(node, dict):
+                names.update(node.get("properties", {}))
+                for value in node.values():
+                    collect(value)
+            elif isinstance(node, list):
+                for value in node:
+                    collect(value)
+
+        collect(AppConfig.model_json_schema())
+        typer.echo("配置校验失败（不显示配置值或未知键名）：", err=True)
+        for error in errors[:20]:
+            field = ".".join(
+                str(part) if isinstance(part, int) or part in names else "<未知字段>"
+                for part in error["loc"]
+            ) or "<配置根>"
+            reason = (
+                "当前版本不支持此字段，请删除"
+                if error["type"] == "extra_forbidden"
+                else "类型或取值不符合配置约束"
+            )
+            typer.echo(f"  {field}：{reason}", err=True)
+
+
+def _error(exc: Exception) -> None:
+    # 只有根配置模型的校验才叫配置错误；领域数据错误不混用这套提示。
+    # 不回显第三方异常正文、Pydantic 输入值或任意用户字段名。
+    if isinstance(exc, ValidationError) and exc.title == AppConfig.__name__:
+        _configuration_error(exc)
+    elif isinstance(exc, ValidationError):
+        typer.echo("数据契约校验失败；请检查阶段快照及引用，不显示原始数据。", err=True)
     elif isinstance(exc, StartupConfigurationError):
         typer.echo(f"启动配置错误：{exc}", err=True)
     elif isinstance(exc, EmbeddingProviderError):
@@ -183,14 +223,23 @@ async def _close(pipeline: Pipeline) -> None:
 @app.command()
 def run(
     doc: Path = typer.Argument(..., exists=True, dir_okay=False),
-    instruction: str | None = typer.Option(None, "--instruction", "-i"),
-    output_dir: Path = typer.Option(Path("workdir/output"), "--output-dir"),
+    instruction: str | None = typer.Option(
+        None,
+        "--instruction",
+        "-i",
+        help="生成目标；省略时只展示执行计划，不调用模型。",
+    ),
+    output_dir: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output-dir", help="产物根目录。"),
     config: Path | None = typer.Option(None, "--config", exists=True, dir_okay=False),
-    preview: bool = typer.Option(False, "--preview"),
-    resume: str | None = typer.Option(None, "--resume"),
-    from_stage: str | None = typer.Option(None, "--from-stage"),
+    preview: bool = typer.Option(False, "--preview", help="只展示执行计划，不调用模型。"),
+    resume: str | None = typer.Option(None, "--resume", help="从已有运行继续。"),
+    from_stage: str | None = typer.Option(
+        None, "--from-stage", help="配合 --resume，支持 extract / plan_points。"
+    ),
     quiet: bool = typer.Option(False, "--quiet", help="隐藏执行进度，保留结果与错误。"),
-    skill_file: Path | None = typer.Option(None, "--skill-file", exists=True, dir_okay=False),
+    skill_file: Path | None = typer.Option(
+        None, "--skill-file", exists=True, dir_okay=False, help="追加用例表达规范（UTF-8）。"
+    ),
     metric: Literal["cosine", "euclidean", "dot"] | None = typer.Option(
         None, "--metric", help="检索相似度：cosine / euclidean / dot。"
     ),
@@ -198,7 +247,7 @@ def run(
         None, "--normalize/--no-normalize", help="是否对向量做 L2 归一化。"
     ),
 ) -> None:
-    """一次生成测试点 XMind 和用例 Excel；--preview 仅展示计划。"""
+    """一次生成测试点 XMind 和用例 Excel；省略 -i 或使用 --preview 时仅展示计划。"""
     try:
         config = _config_path(config)
         cfg = load_config(config)
@@ -267,9 +316,6 @@ def run(
         if active_run:
             typer.echo(f"【排查】查看运行进度：tc-rag status {active_run}", err=True)
         _error(exc)
-
-
-DEFAULT_OUTPUT_DIR = Path("workdir/output")
 
 
 def _interactive_start(
@@ -358,10 +404,12 @@ def start(
         dir_okay=False,
         help="默认优先读取 workdir/local.yaml，否则读取 config/defaults.yaml。",
     ),
-    output_dir: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output-dir"),
-    preview: bool = typer.Option(False, "--preview"),
-    quiet: bool = typer.Option(False, "--quiet"),
-    skill_file: Path | None = typer.Option(None, "--skill-file", exists=True, dir_okay=False),
+    output_dir: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output-dir", help="产物根目录。"),
+    preview: bool = typer.Option(False, "--preview", help="只展示执行计划，不调用模型。"),
+    quiet: bool = typer.Option(False, "--quiet", help="隐藏执行进度，保留结果与错误。"),
+    skill_file: Path | None = typer.Option(
+        None, "--skill-file", exists=True, dir_okay=False, help="追加用例表达规范（UTF-8）。"
+    ),
     metric: Literal["cosine", "euclidean", "dot"] | None = typer.Option(
         None, "--metric", help="检索相似度：cosine / euclidean / dot。"
     ),
@@ -369,7 +417,7 @@ def start(
         None, "--normalize/--no-normalize", help="是否对向量做 L2 归一化。"
     ),
 ) -> None:
-    """交互输入需求文档路径，自动生成测试点 XMind 与用例 Excel。"""
+    """交互输入需求文档路径；无子命令且终端可交互时进入同一流程。"""
     _interactive_start(
         config=config,
         output_dir=output_dir,
@@ -427,7 +475,7 @@ def doctor(
         document.save(str(source))
         (folder / "config.json").write_text(cfg.model_dump_json(indent=2), encoding="utf-8")
         pipeline = build_pipeline(cfg, run_id)
-        reporter = _progress(pipeline, quiet, 8 if cfg.parsing.vision_enabled else 7)
+        reporter = _progress(pipeline, quiet, 7)
         typer.echo("开始 RAG 检查：虚构需求，最多 8 次模型请求，不重试，仅检查到测试点。")
         typer.echo(f"诊断材料：{folder}")
 
@@ -470,21 +518,35 @@ def doctor(
 @app.command()
 def cases(
     run_id: str,
-    instruction: str = typer.Option(..., "--instruction", "-i"),
-    output_dir: Path = typer.Option(Path("workdir/output"), "--output-dir"),
-    config: Path | None = typer.Option(None, "--config", exists=True),
-    skill_file: Path | None = typer.Option(None, "--skill-file", exists=True, dir_okay=False),
-    quiet: bool = typer.Option(False, "--quiet"),
+    instruction: str | None = typer.Option(
+        None, "--instruction", "-i", help="生成目标；省略时沿用原运行的生成指令。"
+    ),
+    output_dir: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output-dir", help="产物根目录。"),
+    config: Path | None = typer.Option(None, "--config", exists=True, dir_okay=False),
+    skill_file: Path | None = typer.Option(
+        None, "--skill-file", exists=True, dir_okay=False, help="追加用例表达规范（UTF-8）。"
+    ),
+    quiet: bool = typer.Option(False, "--quiet", help="隐藏执行进度，保留结果与错误。"),
 ) -> None:
-    """从已保存的测试点重试用例生成，同时导出 XMind 和 Excel，无需审核文件。"""
+    """复用已保存的测试点重做用例阶段，联合导出 XMind 与 Excel。"""
     try:
         cfg = _config(config)
         if skill_file is not None:
             cfg.generation.skill_file = str(skill_file)
         repo = SqliteRepository(cfg.storage.database)
         original = repo.get("runs", run_id, Run)
-        if original is None or original.config_snapshot != cfg.model_dump(mode="json"):
-            raise WorkflowError("运行不存在或配置已变化；请使用生成测试点时的原配置")
+        if original is None:
+            raise WorkflowError("运行不存在；请确认 run_id 后重试")
+        changed = _config_changes(original.config_snapshot, cfg.model_dump(mode="json"))
+        if changed:
+            raise WorkflowError(
+                "配置已变化（" + "、".join(changed) + "）；请使用生成测试点时的原配置"
+            )
+        if instruction is None:
+            saved = repo.get("stage_snapshots", f"{run_id}:generation_request", StageSnapshot)
+            if saved is None:
+                raise WorkflowError("未找到原运行的生成指令；请使用 --instruction 指定")
+            instruction = str(saved.payload["instruction"])
         request = CasesRequest(
             run_id=run_id,
             instruction=instruction,
@@ -509,10 +571,22 @@ def cases(
 
 
 @app.command()
-def status(run_id: str, config: Path | None = typer.Option(None, "--config", exists=True)) -> None:
-    """读取实际运行状态及最后阶段，不访问模型。"""
+def status(
+    run_id: str | None = typer.Argument(None),
+    config: Path | None = typer.Option(None, "--config", exists=True, dir_okay=False),
+) -> None:
+    """查看运行状态；省略 run_id 时列出最近 20 次运行。"""
     try:
         repo = SqliteRepository(_config(config).storage.database)
+        if run_id is None:
+            runs = repo.list_recent("runs", Run, limit=20)
+            if not runs:
+                typer.echo("尚无运行记录。")
+                return
+            typer.echo("RUN_ID\tSTATUS")
+            for entry in runs:
+                typer.echo(f"{entry.run_id}\t{entry.status}")
+            return
         value = repo.get("runs", run_id, Run)
         if value is None:
             raise WorkflowError("运行不存在")
@@ -531,39 +605,42 @@ def status(run_id: str, config: Path | None = typer.Option(None, "--config", exi
 @app.command()
 def inspect(
     run_id: str,
-    stage: str = typer.Option("extract", "--stage"),
-    config: Path | None = typer.Option(None, "--config", exists=True),
+    stage: str = typer.Option(
+        "extract",
+        "--stage",
+        help="阶段名：extract（别名 rules）/ index / retrieval / plan_points / cases / "
+        "issues / failure / manifest / progress / invocations。",
+    ),
+    format: Literal["json", "markdown", "xlsx"] = typer.Option(
+        "json", "--format", help="输出格式；非 json 时写入 --output 或默认产物目录。"
+    ),
+    output: Path | None = typer.Option(
+        None, "--output", help="输出文件路径；省略时 json 打印到终端。"
+    ),
+    config: Path | None = typer.Option(None, "--config", exists=True, dir_okay=False),
 ) -> None:
-    """查看 SQLite 阶段事实，如 extract/index/retrieval/cases/issues/failure。"""
-    try:
-        repo = SqliteRepository(_config(config).storage.database)
-        payload = _snapshot(repo, run_id, "extract" if stage == "rules" else stage)
-        typer.echo(
-            json.dumps(
-                payload["rules"] if stage == "rules" else payload, ensure_ascii=False, indent=2
-            )
-        )
-    except (ValueError, OSError) as exc:
-        _error(exc)
-
-
-@app.command(name="export")
-def export_run(
-    run_id: str,
-    format: Literal["json", "markdown", "xlsx"] = typer.Option("json", "--format"),
-    output_dir: Path = typer.Option(Path("workdir/output"), "--output-dir"),
-    config: Path | None = typer.Option(None, "--config", exists=True),
-) -> None:
-    """从 SQLite 重建用例派生文件。"""
+    """查看 SQLite 阶段事实，或从 cases 快照重建用例文件。"""
     try:
         cfg = _config(config)
         repo = SqliteRepository(cfg.storage.database)
-        payload = _snapshot(repo, run_id, "cases")
+        actual = "extract" if stage == "rules" else stage
+        payload = _snapshot(repo, run_id, actual)
+        value = payload["rules"] if stage == "rules" else payload
+        if output is None and format == "json":
+            typer.echo(json.dumps(value, ensure_ascii=False, indent=2))
+            return
+        if format == "xlsx" and actual != "cases":
+            raise WorkflowError("xlsx 只适用于 cases 阶段；其他阶段请使用 json 或 markdown")
+        if format != "json" and not isinstance(value, dict):
+            raise WorkflowError("该阶段快照不是对象结构，无法写成文件；请使用 json 输出")
         suffix = "md" if format == "markdown" else format
-        target = output_dir / run_id / f"reexport.{suffix}"
-        ReportExporter([(c.field, c.header) for c in cfg.export.case_columns]).export(
-            payload, target
+        target = output or DEFAULT_OUTPUT_DIR / run_id / f"reexport.{suffix}"
+        columns: list[tuple[str, str]] | None = (
+            [(str(column.field), column.header) for column in cfg.export.case_columns]
+            if format == "xlsx"
+            else None
         )
+        ReportExporter(columns).export(value, target)
         typer.echo(str(target))
     except (ValueError, OSError) as exc:
         _error(exc)
@@ -575,7 +652,7 @@ def evaluate(
     gold: Path = typer.Option(..., "--gold", exists=True, dir_okay=False),
     output: Path = typer.Option(Path("workdir/evaluation.json"), "--output"),
     k: int = typer.Option(10, "--k", min=1),
-    config: Path | None = typer.Option(None, "--config", exists=True),
+    config: Path | None = typer.Option(None, "--config", exists=True, dir_okay=False),
 ) -> None:
     """按人工规则对应和相关性标注评估，不调用模型、不猜测语义匹配。"""
     from tc_rag.application.services.evaluation import evaluate as compute
@@ -612,11 +689,87 @@ def evaluate(
 
 
 @app.command()
+def quality(
+    run_id: str,
+    output: Path | None = typer.Option(
+        None, "--output", help="输出目录；默认写入运行产物目录的 reports/。"
+    ),
+    config: Path | None = typer.Option(None, "--config", exists=True, dir_okay=False),
+    strict: bool = typer.Option(False, "--strict", help="warn 也返回退出码 2。"),
+) -> None:
+    """只读检查已完成运行的阶段快照，不调用模型。"""
+    try:
+        cfg = _config(config)
+        repo = SqliteRepository(cfg.storage.database, read_only=True)
+        run = repo.get("runs", run_id, Run)
+        if run is None:
+            raise WorkflowError("运行不存在")
+        stages = (
+            "input",
+            "chunk",
+            "extract",
+            "index",
+            "plan_points",
+            "cases",
+            "issues",
+            "retrieval",
+            "invocations",
+            "manifest",
+            "cases_output",
+            "failure",
+            "progress",
+        )
+        snapshots: dict[str, dict[str, Any]] = {}
+        for stage in stages:
+            value = repo.get("stage_snapshots", f"{run_id}:{stage}", StageSnapshot)
+            if value is not None:
+                snapshots[stage] = value.payload
+        planned = snapshots.get("plan_points") or {}
+        tree_id = planned.get("tree_id")
+        if tree_id:
+            from tc_rag.domain.review import PointTree
+
+            tree = repo.get("point_trees", str(tree_id), PointTree)
+            if tree is not None:
+                snapshots["point_tree"] = tree.model_dump(mode="json")
+        report = inspect_quality(run.model_dump(mode="json"), snapshots)
+        cases_output = snapshots.get("cases_output") or {}
+        base = output if output is not None else (
+            Path(str(cases_output["directory"]))
+            if cases_output.get("directory")
+            else DEFAULT_OUTPUT_DIR / run_id
+        ) / "reports"
+        base.mkdir(parents=True, exist_ok=True)
+        json_path = base / "quality_check.json"
+        md_path = base / "quality_check.md"
+        json_path.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        md_path.write_text(render_quality_markdown(report), encoding="utf-8")
+        overall = report["overall"]
+        counts = overall["counts"]
+        typer.echo(
+            f"质量检查：{overall['status']}（pass {counts['pass']} / warn {counts['warn']} / "
+            f"fail {counts['fail']} / not_applicable {counts['not_applicable']}）"
+        )
+        typer.echo(f"JSON：{json_path}")
+        typer.echo(f"Markdown：{md_path}")
+        if overall["status"] == "fail" or (strict and overall["status"] == "warn"):
+            raise typer.Exit(2)
+    except KeyboardInterrupt:
+        _cancelled()
+    except typer.Exit:
+        raise
+    except (ValueError, OSError, KeyError, RuntimeError) as exc:
+        _error(exc)
+
+
+@app.command()
 def estimate(
     doc: Path = typer.Argument(..., exists=True, dir_okay=False),
-    config: Path | None = typer.Option(None, "--config", exists=True),
+    config: Path | None = typer.Option(None, "--config", exists=True, dir_okay=False),
 ) -> None:
-    """本地解析与分块，估算抽取调用量；不估造费用或最终用例数量。"""
+    """本地解析与分块，估算抽取调用量；不估算费用或最终用例数量。"""
     try:
         import tempfile
 
@@ -633,7 +786,10 @@ def estimate(
             repo = SqliteRepository(root / "estimate.sqlite")
             store = LocalArtifactStore(root)
             ingest = ingest_document(doc, store, repo)
-            parser = DocxParser(store) if doc.suffix.lower() == ".docx" else PdfParser(store)
+            parser = (
+                DocxParser(store, infer_headings=cfg.parsing.infer_docx_headings)
+                if doc.suffix.lower() == ".docx" else PdfParser(store)
+            )
             parsed = parser.parse(ingest.asset)
             chunked = structural_chunks(
                 parsed.blocks,

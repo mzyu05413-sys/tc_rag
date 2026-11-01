@@ -4,7 +4,7 @@
 检索增强规划测试点 → Skill 与检索增强生成用例 → 输出 XMind、Excel 与质量报告。
 
 架构、模块分工与审核点见
-[RAG 主线说明](docs/learn/P2/README.md)、[完整运行说明](docs/full_run_walkthrough.md) 和[架构图集](docs/diagrams/index.html)。
+[RAG 主线说明](docs/learn/P2/README.md)、[完整运行说明](docs/reference/full_run_walkthrough.md) 和[架构图集](docs/reference/tc_rag_architecture_atlas.drawio)。
 
 框架只读取需求 PDF/DOCX；已移除代码仓库读取及 UI 参考支路。
 
@@ -12,6 +12,11 @@
 
 ```powershell
 uv sync --extra dev
+# 首次使用且尚无 local.yaml 时复制；已有配置请保留。
+if (-not (Test-Path -LiteralPath workdir/local.yaml)) {
+    Copy-Item -LiteralPath workdir/local.example.yaml -Destination workdir/local.yaml
+}
+# 填写 local.yaml 的模型、地址及密钥，再启动。
 rag
 ```
 
@@ -75,6 +80,8 @@ XMind 展示**全部测试点**（含待澄清），不复用为生成输入。
 | 覆盖矩阵 | 用例名称 / 步骤 / 规则内容 / 测试目标 / 校验状态 |
 | 问题清单 | 类型 / 严重程度 / 说明 / **涉及对象（解析成名称）** |
 | 未解析范围 | 未能解析的图片或页面 |
+| 用例追溯 | 用例 → 测试点 → 规则 → 证据，区分用例自身风险与共享来源问题 |
+| 质量说明 | 技术状态、具体风险与共享问题的统计口径，自动检查不代替语义验收 |
 
 附表使用中文枚举和可读对象名，ID 只保留在"参考ID"列。
 
@@ -87,6 +94,23 @@ XMind 展示**全部测试点**（含待澄清），不复用为生成输入。
 - 正式运行必须配置 `models.llm` 与 `models.embedding`；
   `retrieval.embedding_dimension` 必须等于向量模型实际维度；
 - `vision`、`rerank` 按需启用。
+- `planning.ui_display_policy` 默认 `merge`：同一功能的纯 vision 界面展示点合并为一条概括点；
+  `keep` 保留逐条展示点。
+
+可选的目录与解析开关（默认保持现有行为）：
+
+```yaml
+parsing:
+  infer_docx_headings: false  # 未使用 Heading 样式的 DOCX，可保守推断字号/粗体标题
+export:
+  point_tree_layout: feature # chapter 增加原文章节，仍保留全部点、状态、维度与功能
+```
+
+启用这些开关会影响解析或目录结果，应新建运行。无密钥示例可纳入 Git，真实 local.yaml 仍被忽略。
+普通进度与心跳约 20 秒输出一次，异常、修复与完成立即显示。
+字段级修复诊断可用 `rag inspect RUN_ID --stage invocations` 查询。
+离线检索实验材料准备见 [eval 指南](eval/README.md)，
+本轮更新及审核点见 [采纳记录](docs/reference/main_updates_20261031.md)。
 
 配置选择顺序：显式 `--config` → `workdir/local.yaml` → `config/defaults.yaml` → 内置默认。
 
@@ -167,21 +191,32 @@ rag estimate "D:\需求资料\需求文档.pdf"
 ### 查看运行与重新导出
 
 ```powershell
+rag status
 rag status <run_id>
+rag quality <run_id>
 rag inspect <run_id> --stage rules
 rag inspect <run_id> --stage cases
 rag inspect <run_id> --stage failure
-rag export <run_id> --format xlsx
+rag inspect <run_id> --stage cases --format xlsx --output workdir/output/<run_id>/cases.xlsx
 ```
+
+- `rag status` 不带 `run_id` 时按时间倒序列出最近 20 次运行及其状态；
+- `rag quality` 只读运行快照，逐阶段输出 `reports/quality_check.json` 和 `.md`；
+  `fail` 返回退出码 2，`--strict` 时 `warn` 也返回 2；不调用模型；
+- `inspect` 默认把阶段快照以 JSON 打印到终端；`--format xlsx` 只适用于 `cases` 阶段，
+  未给 `--output` 时写入 `workdir/output/<run_id>/reexport.xlsx`；
+- `--format markdown` 可把任意阶段快照写成 Markdown。
 
 ### 重试用例生成或恢复运行
 
 ```powershell
-rag cases <run_id> -i "与原运行一致的生成指令"
+rag cases <run_id>
+rag cases <run_id> -i "覆盖正常、异常、边界、权限和状态变化"
 rag run "D:\需求资料\需求文档.pdf" -i "与原运行一致的生成指令" --resume <run_id> --from-stage extract
 ```
 
-- `cases`：复用已保存测试点，只重做用例阶段，配置必须与原运行一致；
+- `cases`：复用已保存测试点，只重做用例阶段；省略 `-i` 时沿用原运行的生成指令，
+  配置必须与原运行一致，变化时会列出发生变化的配置段；
 - `--resume`：从失败或中断处继续；`--from-stage` 支持 `extract` / `plan_points`。
 
 ### 真实连通检查与评估
@@ -196,7 +231,7 @@ rag evaluate <run_id> --gold workdir/dev/demo/gold.json
 | 选项 | 用途 |
 |---|---|
 | `--config <file>` | 指定配置文件 |
-| `--output-dir <dir>` | 输出根目录，适用 `start/run/cases/export` |
+| `--output-dir <dir>` | 输出根目录，适用 `start/run/cases` |
 | `--preview` | 只预览计划，不调用模型 |
 | `--quiet` | 隐藏执行进度，保留结果与错误 |
 | `--skill-file <md>` | 追加用例表达规范（UTF-8、≤256 KiB） |
@@ -241,9 +276,9 @@ FAISS、中文关键词等扩展按需安装，主线不因此分叉。默认离
 
 ## 文档
 
-- [文档入口](docs/README.md)
+- [参考文档入口](docs/reference/README.md)
 - [目录结构与文件用途](docs/reference/directory_structure.md)
 - [架构设计](docs/design/design_spec.md)
 - [开发指南](docs/design/dev_guide.md)
 - [按模块学习](docs/learn/README.md)
-- [完整运行说明](docs/full_run_walkthrough.md)
+- [完整运行说明](docs/reference/full_run_walkthrough.md)

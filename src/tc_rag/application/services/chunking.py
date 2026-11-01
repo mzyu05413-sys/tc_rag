@@ -5,6 +5,7 @@ import re
 import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from tc_rag.domain.identity import fingerprint, new_id
 from tc_rag.domain.models import Chunk, ChunkSource, DocumentBlock, EvidenceSpan, Issue
@@ -148,7 +149,170 @@ def structural_chunks(
             group.append(span)
         if len(group) > 1:
             refined.append(table_chunk(group))
+    refined, header_issues = _repeat_cross_page_headers(refined, blocks, target, counter)
+    issues.extend(header_issues)
     return ChunkingResult(refined, issues)
+
+
+def _table_row_values(text: str, span: tuple[int, int]) -> list[Any] | None:
+    try:
+        value = json.loads(text[span[0] : span[1]])
+    except (ValueError, TypeError):
+        return None
+    return value if isinstance(value, list) else None
+
+
+def _normalized_row(row: list[Any] | None) -> tuple[str, ...]:
+    if row is None:
+        return ()
+    return tuple(" ".join(str(cell).split()) if cell is not None else "" for cell in row)
+
+
+def _header_index(rows: list[list[Any] | None]) -> int | None:
+    """取非空单元格最多的一行作为表头；同分取最早，避免把续页数据行当表头。"""
+    if not rows:
+        return None
+    scores = [
+        sum(cell not in (None, "") for cell in row) if row is not None else 0 for row in rows
+    ]
+    return max(range(len(rows)), key=lambda index: (scores[index], -index))
+
+
+@dataclass(frozen=True)
+class TableContinuation:
+    root_id: str
+    continuation_id: str
+    header_start: int
+    header_end: int
+
+
+def cross_page_table_continuations(blocks: list[DocumentBlock]) -> list[TableContinuation]:
+    """识别 PDF 跨页续表，返回续页 Block 与根表头区间；不修改任何 Block。"""
+    tables = sorted(
+        (block for block in blocks if block.kind == "table"),
+        key=lambda block: block.order,
+    )
+    spans = {block.block_id: _table_rows(block.content) for block in tables}
+    rows = {
+        block.block_id: [
+            _table_row_values(block.content, span) for span in spans[block.block_id]
+        ]
+        for block in tables
+    }
+    continuation: dict[str, str] = {}
+    for previous, current in zip(tables, tables[1:]):
+        previous_page = previous.locator.page
+        current_page = current.locator.page
+        if previous_page is None or current_page != previous_page + 1:
+            continue
+        if previous.heading_path != current.heading_path:
+            continue
+        if any(
+            block.locator.page == previous_page and block.order > previous.order
+            for block in tables
+        ):
+            continue
+        if any(
+            block.locator.page == current_page and block.order < current.order
+            for block in tables
+        ):
+            continue
+        previous_rows = rows[previous.block_id]
+        current_rows = rows[current.block_id]
+        previous_header = _header_index(previous_rows)
+        if previous_header is None or not current_rows:
+            continue
+        header = _normalized_row(previous_rows[previous_header])
+        first = _normalized_row(current_rows[0])
+        if not header or not first or len(header) != len(first):
+            continue
+        if first == header:
+            continue
+        continuation[current.block_id] = previous.block_id
+
+    result: list[TableContinuation] = []
+    for block_id in continuation:
+        root_id = block_id
+        while root_id in continuation:
+            root_id = continuation[root_id]
+        root_spans = spans.get(root_id) or []
+        root_header = _header_index(rows.get(root_id) or [])
+        if root_header is None or not root_spans:
+            continue
+        header_start, header_end = root_spans[root_header]
+        result.append(
+            TableContinuation(
+                root_id=root_id,
+                continuation_id=block_id,
+                header_start=header_start,
+                header_end=header_end,
+            )
+        )
+    return result
+
+
+def _repeat_cross_page_headers(
+    chunks: list[Chunk],
+    blocks: list[DocumentBlock],
+    target: int,
+    counter: TokenCounter,
+) -> tuple[list[Chunk], list[Issue]]:
+    """PDF 跨页续表补入起始表头；只重复来源区间，不改写任何原文。
+
+    解析库按页产出独立 table Block，续页片段没有表头。这里只在前一页最后一张表
+    与后一页第一张表同章节、同列数且首页首行不是重复表头时补入起始表头；
+    多页续表沿映射回溯到第一页表头。
+    """
+    by_id = {block.block_id: block for block in blocks}
+    usage: dict[str, list[int]] = {}
+    for index, chunk in enumerate(chunks):
+        for source in chunk.sources:
+            usage.setdefault(source.block_id, []).append(index)
+
+    issues: list[Issue] = []
+    for item in cross_page_table_continuations(blocks):
+        root = by_id.get(item.root_id)
+        if root is None:
+            continue
+        header_text = root.content[item.header_start : item.header_end]
+        for index in sorted(set(usage.get(item.continuation_id, []))):
+            chunk = chunks[index]
+            if any(
+                source.block_id == item.root_id
+                and source.start_char == item.header_start
+                and source.end_char == item.header_end
+                for source in chunk.sources
+            ):
+                continue
+            sources = [
+                ChunkSource(
+                    block_id=item.root_id,
+                    start_char=item.header_start,
+                    end_char=item.header_end,
+                ),
+                *chunk.sources,
+            ]
+            text = header_text + "\n" + chunk.text
+            digest = fingerprint([text, [source.model_dump() for source in sources]])
+            updated = Chunk(
+                chunk_id="chunk_" + digest,
+                text=text,
+                token_estimate=counter(text),
+                fingerprint=digest,
+                sources=sources,
+            )
+            chunks[index] = updated
+            if updated.token_estimate > target:
+                issues.append(
+                    Issue(
+                        issue_id=new_id("issue"),
+                        kind="gap",
+                        severity="warning",
+                        object_ids=[updated.chunk_id],
+                        description="跨页续表补入表头后超出分块预算，未截断原文",
+                    )
+                )
+    return chunks, issues
 
 
 def _table_rows(text: str) -> list[tuple[int, int]]:

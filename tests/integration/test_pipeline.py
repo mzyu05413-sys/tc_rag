@@ -141,18 +141,19 @@ async def test_one_pass_joint_export_and_sqlite_based_regeneration(tmp_path):
     assert model.calls == 3
     folder = Path(result["directory"])
     assert folder == tmp_path / "out" / "run_demo"
-    assert result["cases"] == 3
+    assert result["cases"] == 1
     assert Path(result["xmind"]).parent == Path(result["excel"]).parent == folder
     topics = point_topics(Path(result["xmind"]))
     payload = pipeline.read("run_demo", "cases")
     assert {n["tcRag"]["point_id"] for n in topics} == {
         point_id for case in payload["cases"] for point_id in case["point_ids"]
     }
-    assert len(topics) == 3
+    assert len(topics) == 1
+    assert all(case.get("module_path") for case in payload["cases"])
     assert "review_id" not in payload and "reviewed_checksum" not in payload
     book = load_workbook(result["excel"])
-    assert book.active.max_column == 11 and book.active.max_row == 4
-    assert len(payload["coverage"]) == 3
+    assert book.active.max_column == 11 and book.active.max_row == 2
+    assert len(payload["coverage"]) == 1
     assert (folder / "reports" / "quality.md").is_file()
     assert pipeline.read("run_demo", "progress")["current_stage"] == "completed"
     with sqlite3.connect(pipeline.config.storage.database) as connection:
@@ -163,17 +164,19 @@ async def test_one_pass_joint_export_and_sqlite_based_regeneration(tmp_path):
     repeated = await pipeline.cases(request)
     assert model.calls == 3
     assert repeated["directory"] != result["directory"]
-    assert len(point_topics(Path(repeated["xmind"]))) == 3
+    assert len(point_topics(Path(repeated["xmind"]))) == 1
     runner = CliRunner()
     assert runner.invoke(app, ["status", "run_demo", "--config", str(cfg_file)]).exit_code == 0
     assert (
         runner.invoke(
             app,
             [
-                "export",
+                "inspect",
                 "run_demo",
-                "--output-dir",
-                str(tmp_path / "again"),
+                "--stage",
+                "cases",
+                "--output",
+                str(tmp_path / "again" / "cases.xlsx"),
                 "--format",
                 "xlsx",
                 "--config",
@@ -205,12 +208,36 @@ async def test_case_failure_can_retry_saved_points_without_reparsing(tmp_path):
     doc.unlink()  # 证明重试读取已保存事实，不重新访问原文或要求用户回传脑图。
     request = CasesRequest.model_validate(pipeline.read("run_demo", "generation_request"))
     result = await pipeline.cases(request)
-    assert result["cases"] == 3
+    assert result["cases"] == 1
     assert pipeline.read("run_demo", "progress")["current_stage"] == "completed"
 
 
 @pytest.mark.asyncio
-async def test_directory_lists_all_points_while_excel_keeps_cases(tmp_path):
+async def test_uncovered_point_triggers_bounded_coverage_repair(tmp_path):
+    pipeline, doc, _, _ = setup(tmp_path)
+
+    class OmitFirst(FixtureLLM):
+        omitted = False
+
+        async def generate(self, request, schema):
+            result = await super().generate(request, schema)
+            if request["stage"] == "generate" and not self.omitted:
+                self.omitted = True
+                result.output.cases = []
+            return result
+
+    pipeline.llm = OmitFirst()
+    result = await pipeline.generate(doc, "生成边界用例", tmp_path / "out", run_id="run_demo")
+    assert result["cases"] == 1
+    payload = pipeline.read("run_demo", "cases")
+    assert any(
+        item["kind"] == "coverage" and "定向补生成" in item["description"]
+        for item in payload["issues"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_directory_keeps_points_when_generation_is_incomplete(tmp_path):
     pipeline, doc, _, _ = setup(tmp_path)
     pipeline.config.export.formats = ["json"]
 
@@ -218,17 +245,19 @@ async def test_directory_lists_all_points_while_excel_keeps_cases(tmp_path):
         async def generate(self, request, schema):
             result = await super().generate(request, schema)
             if request["stage"] == "generate":
-                result.output.cases = result.output.cases[:1]
+                result.output.cases = []
             return result
 
     pipeline.llm = Incomplete()
     result = await pipeline.generate(doc, "生成边界用例", tmp_path / "out", run_id="run_demo")
-    assert result["cases"] == 1 and Path(result["excel"]).is_file()
+    assert result["cases"] == 0 and Path(result["excel"]).is_file()
     topics = point_topics(Path(result["xmind"]))
-    assert len(topics) == 3  # XMind 展示全部测试点，Excel 只保留已生成用例
+    assert len(topics) == 1  # XMind 展示全部测试点；Excel 没有可生成用例
     payload = pipeline.read("run_demo", "cases")
-    assert len(payload["points"]) == 3
-    assert sum(i["kind"] == "coverage" for i in payload["issues"]) == 2
+    assert len(payload["points"]) == 1
+    coverage_issues = [i for i in payload["issues"] if i["kind"] == "coverage"]
+    assert len(coverage_issues) == 1
+    assert coverage_issues[0]["object_ids"] == [topics[0]["tcRag"]["point_id"]]
     assert pipeline.repository.get("runs", "run_demo", m.Run).status == "partial_failed"
 
 
@@ -245,7 +274,7 @@ async def test_empty_generation_exports_empty_directory_and_gap_report(tmp_path)
     pipeline.llm = Empty()
     result = await pipeline.generate(doc, "生成用例", tmp_path / "out", run_id="run_demo")
     assert result["cases"] == 0 and result["issues"] > 0
-    assert len(point_topics(Path(result["xmind"]))) == 3
+    assert len(point_topics(Path(result["xmind"]))) == 1
     assert load_workbook(result["excel"]).active.max_row == 1
 
 
@@ -483,11 +512,37 @@ async def test_truncated_batch_splits_instead_of_repairing_incomplete_json(tmp_p
             )
         ],
     )
-    points = plan_points(extraction.rules, ["boundary"])
+    base = plan_points(extraction.rules, ["boundary"])[0]
+    points = [
+        base.model_copy(update={"point_id": f"p{index}", "objective": f"边界{index}"})
+        for index in range(3)
+    ]
     await pipeline.retriever.prepare("fiction", extraction.evidence)
     output = await pipeline._generate_batch("生成边界用例", points, extraction)
     assert len(output.cases) == 3
     assert seen == [3, 1, 2, 1, 1]
+
+
+@pytest.mark.asyncio
+async def test_generation_sends_point_limit_and_chapter_option_is_wired(tmp_path):
+    pipeline, doc, _, _ = setup(tmp_path)
+    seen = []
+
+    class Checking(FixtureLLM):
+        async def generate(self, request, schema):
+            if request["stage"] == "generate":
+                seen.append(request["limits"])
+                assert schema.model_json_schema()["properties"]["cases"]["maxItems"] == 6
+            return await super().generate(request, schema)
+
+    pipeline.llm = Checking()
+    pipeline.config.generation.max_cases_per_point = 6
+    pipeline.config.export.point_tree_layout = "chapter"
+    result = await pipeline.generate(doc, "生成边界用例", tmp_path / "out", run_id="run_demo")
+    assert result["cases"] == 1
+    assert seen == [{"max_cases_per_point": 6}]
+    with ZipFile(result["xmind"]) as archive:
+        assert "未定位章节" in archive.read("content.json").decode("utf-8")
 
 
 @pytest.mark.asyncio

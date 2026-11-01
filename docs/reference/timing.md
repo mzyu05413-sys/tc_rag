@@ -33,6 +33,16 @@ summary 按 stage/name/kind 统计次数、失败数、累计、均值、p50、p
 
 ## 当前运行中另有哪些耗时
 
+终端普通批次/图片进度与等待心跳共享约 20 秒显示间隔；完成、图片失败和结构修复即时显示。
+这是 `TerminalProgress(interval=20)` 的构造参数，尚无 YAML 开关，也不会改变实际模型调度速度。
+结构修复最多展示前三条安全字段诊断；完整的过滤后诊断见：
+
+```powershell
+rag inspect RUN_ID --stage invocations --config workdir/local.yaml
+```
+
+返回快照的 `validation_errors` 按调用 ID 对应诊断，调用 `items` 保持旧结构；不保存错误输出值。
+
 | 来源 | 保存内容 | 查看方式 |
 |---|---|---|
 | 通用 Timer | 内存事件和分组汇总 | `events`、`summary()`、`export_events()`；不自动写库 |

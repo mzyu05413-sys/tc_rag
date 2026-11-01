@@ -3,9 +3,30 @@
 import json
 from copy import deepcopy
 
+import pytest
 from openpyxl import load_workbook
 
 from tc_rag.infrastructure.exporters.reports import ReportExporter
+
+
+def test_boundary_data_variants_are_visible_in_remarks(tmp_path):
+    output = tmp_path / "data.xlsx"
+    ReportExporter().export(
+        {
+            "cases": [
+                {
+                    "case_id": "c1",
+                    "title": "学习承诺长度",
+                    "status": "validated",
+                    "data": {"data_variants": ["34", "35", "36"]},
+                    "steps": [{"action": "输入", "expected": "保存"}],
+                }
+            ]
+        },
+        output,
+    )
+    sheet = load_workbook(output)["模版"]
+    assert "[数据] 34、35、36" in sheet["H2"].value
 
 
 def test_remarks_use_specific_case_issues(tmp_path):
@@ -94,6 +115,8 @@ def test_quality_sheets_and_formula_text(tmp_path):
         "覆盖矩阵",
         "问题清单",
         "未解析范围",
+        "用例追溯",
+        "质量说明",
     ]
     assert book["规则"]["B2"].value == "=1+1"
     assert book["规则"]["B2"].data_type == "s"
@@ -177,6 +200,8 @@ def test_appendix_sheets_are_human_readable(tmp_path):
             "警告",
             "测试点没有用例覆盖",
             "测试点：金额校验",
+            "具体问题或需求待明确",
+            "待处理",
         )
     finally:
         book.close()
@@ -251,3 +276,131 @@ def test_excel_controls_in_custom_headers_and_literal_escape(tmp_path):
         assert list(book["模版"].values) == [(r"标题\u0001", "等级"), (r"字面量\u0001", None)]
     finally:
         book.close()
+
+
+@pytest.mark.parametrize(
+    "description,severity",
+    [
+        ("预期为解释性断言，需人工核对语义", "warning"),
+        ("预期为业务表达，未逐字出现在原文中，建议人工确认", "info"),
+    ],
+)
+def test_trace_separates_generic_notices_case_risks_and_shared_source_issues(
+    tmp_path, description, severity
+):
+    payload = {
+        "cases": [
+            {
+                "case_id": case_id,
+                "title": f"检查-{case_id}",
+                "status": "needs_review",
+                "remarks": "原始备注" if case_id == "c2" else None,
+                "point_ids": ["p1"],
+                "steps": [
+                    {"action": "输入", "expected": "拒绝", "rule_ids": ["r1"],
+                     "evidence_ids": ["e1"]},
+                ],
+            }
+            for case_id in ("c1", "c2")
+        ],
+        "points": [{"point_id": "p1", "objective": "校验输入", "rule_ids": ["r1"]}],
+        "rules": [{"rule_id": "r1", "statement": "允许范围有待确认", "evidence_ids": ["e1"]}],
+        "evidence": [{"evidence_id": "e1", "quote": "范围由管理员配置"}],
+        "issues": [
+            {"issue_id": "i1", "kind": "unsupported_expectation", "severity": severity,
+             "description": description, "object_ids": ["c1", "c2"]},
+            {"issue_id": "i2", "kind": "unsupported_expectation", "severity": "warning",
+             "description": "预期数值或证据范围缺乏直接依据", "object_ids": ["c2"]},
+            {"issue_id": "i3", "kind": "gap", "severity": "warning",
+             "description": "需求缺少允许范围", "object_ids": ["r1", "e1"]},
+            {"issue_id": "i4", "kind": "other", "severity": "info",
+             "description": "可读性提示", "object_ids": ["c1"]},
+        ],
+    }
+    before = deepcopy(payload)
+    output = tmp_path / "trace.xlsx"
+    ReportExporter().export(payload, output)
+    book = load_workbook(output)
+    try:
+        assert book["模版"]["H2"].value is None
+        assert book["模版"]["H3"].value == (
+            "原始备注\n[需核实] 预期数值或证据范围缺乏直接依据"
+        )
+        trace = book["用例追溯"]
+        assert list(trace.values)[1] == (
+            "c1", "检查-c1", "needs_review（需人工核实）", "p1", "校验输入",
+            "r1", "允许范围有待确认", "e1", "范围由管理员配置", None, "需求缺少允许范围",
+        )
+        assert trace["J3"].value == "预期数值或证据范围缺乏直接依据"
+        assert trace["K3"].value == "需求缺少允许范围"
+        assert book["问题清单"].max_row == 5
+        assert book["问题清单"]["E2"].value == "通用语义复核提醒"
+        assert book["问题清单"]["E5"].value == "信息提示"
+        summary = dict(list(book["质量说明"].values)[1:])
+        assert summary["问题记录总数"] == 4
+        assert summary["通用语义复核提醒记录数"] == 1
+        assert summary["其他问题或提示记录数"] == 3
+        assert summary["具体风险记录数（排除通用提醒与info）"] == 2
+        assert summary["用例自身关联具体风险的数量"] == 1
+        assert summary["关联需求或来源问题的用例数量"] == 2
+        assert "不是缺陷或用例数" in summary["计数口径"]
+    finally:
+        book.close()
+    assert payload == before
+
+
+@pytest.mark.parametrize("status", ["validated", "future_status"])
+def test_specific_risks_are_visible_without_rewriting_technical_status(tmp_path, status):
+    payload = {
+        "cases": [{"case_id": "c", "title": "检查", "status": status, "steps": []}],
+        "issues": [
+            {"issue_id": "i", "kind": "unsupported_expectation", "severity": "warning",
+             "description": "明确的预期依据风险", "object_ids": ["c"]},
+        ],
+    }
+    before = deepcopy(payload)
+    output = tmp_path / "state.xlsx"
+    ReportExporter().export(payload, output)
+    book = load_workbook(output)
+    try:
+        assert "明确的预期依据风险" in book["模版"]["H2"].value
+        assert book["用例追溯"]["C2"].value.startswith(status)
+        assert book["用例追溯"]["J2"].value == "明确的预期依据风险"
+    finally:
+        book.close()
+    assert payload == before
+
+
+def test_new_trace_sheets_escape_controls_and_preserve_formula_text(tmp_path):
+    payload = {
+        "cases": [
+            {"case_id": "=case", "title": "+title\x01", "status": "validated",
+             "point_ids": ["@point"],
+             "steps": [{"action": "a", "expected": "e", "rule_ids": ["-rule"],
+                        "evidence_ids": ["=evidence"]}]},
+        ],
+        "points": [{"point_id": "@point", "objective": "=point\x01"}],
+        "rules": [{"rule_id": "-rule", "statement": "=rule\x01"}],
+        "evidence": [{"evidence_id": "=evidence", "quote": "@evidence\x01"}],
+        "issues": [
+            {"issue_id": "i", "kind": "gap", "description": "=source\x01",
+             "severity": "warning", "object_ids": ["-rule"]},
+        ],
+    }
+    before = deepcopy(payload)
+    output = tmp_path / "trace-controls.xlsx"
+    ReportExporter().export(payload, output)
+    book = load_workbook(output)
+    try:
+        trace = book["用例追溯"]
+        assert trace["A2"].value == "=case" and trace["A2"].data_type == "s"
+        assert trace["B2"].value == r"+title\u0001"
+        assert trace["E2"].value == r"=point\u0001"
+        assert trace["G2"].value == r"=rule\u0001"
+        assert trace["I2"].value == r"@evidence\u0001"
+        assert trace["K2"].value == r"=source\u0001"
+        assert not any(cell.data_type == "f" for page in book for row in page for cell in row)
+        assert trace.freeze_panes == "A2" and trace.auto_filter.ref == trace.dimensions
+    finally:
+        book.close()
+    assert payload == before
