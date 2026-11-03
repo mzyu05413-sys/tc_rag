@@ -31,6 +31,7 @@ class ProgressEvent:
     error: str | None = None
     failed: int = 0
     cached: int = 0
+    skipped: int = 0
     # pacing=本地请求间隔；cooldown=429/重试后的冷却。
     wait_reason: Literal["pacing", "cooldown"] | None = None
     rerank_status: Literal["disabled", "succeeded", "fallback"] | None = None

@@ -334,10 +334,14 @@ evaluate 需要人工规则 / 相关性标注，默认不调用模型；具体�
 | [workflow.py](../../src/tc_rag/interfaces/workflow.py) / [progress.py](../../src/tc_rag/interfaces/progress.py) | CLI、阶段编号、错误与进度 |
 | [bootstrap.py](../../src/tc_rag/bootstrap.py) / [config.py](../../src/tc_rag/core/config.py) | 装配、角色、Prompt / Skill、配置校验 |
 | [pipeline.py](../../src/tc_rag/application/orchestration/pipeline.py) | 连续 points → cases、预算、批次、缓存及校验导出 |
-| [design.py](../../src/tc_rag/application/services/design.py) | 引文、约束、边界点、重复及依据风险 |
+| [design 包入口](../../src/tc_rag/application/services/design/__init__.py) | 兼容旧导入；按 constraints / extraction / planning / ui_display / dedupe / vision_policy / case_validation 阅读 |
+| [quality 报告](../../src/tc_rag/application/services/quality/report.py) | 按原顺序汇总各阶段只读检查 |
+| [point_tree.py](../../src/tc_rag/application/services/point_tree.py) / [extraction_namespace.py](../../src/tc_rag/application/services/extraction_namespace.py) | 无状态树构建和类型 ID 命名空间；旧 Pipeline 静态入口保留 |
 | [context.py](../../src/tc_rag/infrastructure/retrieval/context.py) | 空间、向量缓存、索引准备、召回与重排 |
 | [openai_sdk.py](../../src/tc_rag/infrastructure/providers/openai_sdk.py) | HTTP 重试与安全结构修复 |
 | [领域契约](contracts.md) | 字段、引用、来源、批次 point_id 和历史读取边界 |
+
+上述代码于 2026-11-03 完成 A/B/C 结构拆分；运行步骤、提示词、快照及输出契约不变。`points()` / `cases()` 有状态方法尚未分解，阶段验证见[拆分记录](../reviews/module_split_20261103.md)。上方 2026-10-29 测试数字保留为当日记录。
 
 ## 附录 A：2026-10-27 历史真实运行与离线补导
 

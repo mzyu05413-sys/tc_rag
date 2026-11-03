@@ -252,6 +252,8 @@ class TerminalProgress:
             ):
                 self.last_update = perf_counter()
                 outcome = "失败，已列为待确认" if event.error else "成功"
+                if event.skipped:
+                    outcome = "图片过小，已跳过"
                 if event.error in VISION_ERRORS:
                     outcome = VISION_ERRORS[event.error] + "，失败，已列为待确认"
                 if self.total >= 10:
@@ -266,6 +268,8 @@ class TerminalProgress:
                 f"[图片汇总] 共 {event.total} 张，成功 {event.completed} 张"
                 f"（含缓存 {event.cached} 张），失败 {event.failed} 张；图片解释需人工核对"
             )
+            if event.skipped:
+                message += f"；跳过 {event.skipped} 张"
         elif event.kind == "repair":
             self.repairs += 1
             message = "⚠ " + _style(

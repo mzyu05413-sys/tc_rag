@@ -3,6 +3,7 @@
 import io
 import json
 
+import pytest
 import yaml
 from PIL import Image
 from typer.testing import CliRunner
@@ -14,7 +15,12 @@ from tc_rag.infrastructure.storage.sqlite import SqliteRepository
 from tc_rag.interfaces.cli import app
 
 
-def test_prepare_never_builds_models_and_preserves_source_database(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "switch,expected", [(None, True), ("--verify", True), ("--no-verify", False)]
+)
+def test_prepare_never_builds_models_and_preserves_source_database(
+    tmp_path, monkeypatch, switch, expected
+):
     def forbidden(*args, **kwargs):
         raise AssertionError("offline mode must not create model clients")
 
@@ -44,16 +50,20 @@ def test_prepare_never_builds_models_and_preserves_source_database(tmp_path, mon
         "project": {"workdir": str(store.root)},
         "storage": {"database": str(source.database)},
     }), encoding="utf-8")
-    result = CliRunner().invoke(app, [
+    args = [
         "vision", "--run-id", "run", "--config", str(config_path),
         "--output-dir", str(tmp_path / "out"),
-    ])
+    ]
+    result = CliRunner().invoke(app, [*args, *([switch] if switch else [])])
     assert result.exit_code == 0, result.output
     reports = list((tmp_path / "out").glob("*/results.json"))
     assert len(reports) == 1
     report = json.loads(reports[0].read_text(encoding="utf-8"))
     assert report["summary"]["model_calls"] == 0 and not report["summary"]["live"]
     assert report["summary"]["business_accuracy"] is None
+    assert report["summary"]["processing"]["verify"] is expected
+    assert report["summary"]["skipped_images"] == 1
+    assert report["summary"]["plan_failed_images"] == 0
     assert report["images"][0]["baseline"] == old.content
     assert source.get("stage_snapshots", "run:chunk", StageSnapshot) == snapshot
     html = reports[0].with_name("review.html").read_text(encoding="utf-8")
@@ -73,3 +83,29 @@ def test_missing_snapshot_fails_without_printing_config_credentials(tmp_path):
         "--output-dir", str(tmp_path / "out"),
     ])
     assert result.exit_code == 2 and "secret-sentinel" not in result.output
+
+
+def test_score_saved_results_never_loads_config_or_builds_models(tmp_path, monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("offline scoring cannot load credentials or create models")
+
+    monkeypatch.setattr("tc_rag.interfaces.vision_check.load_config", forbidden)
+    config = tmp_path / "not-read.yaml"
+    config.write_text("{}", encoding="utf-8")
+    results = tmp_path / "results.json"
+    results.write_text(json.dumps({"images": [{"number": 1, "result": None}]}), encoding="utf-8")
+    gold = tmp_path / "gold.json"
+    gold.write_text(json.dumps({"images": {"001": {"must_have": ["必填"]}}}), encoding="utf-8")
+    result = CliRunner().invoke(app, [
+        "vision", "--results", str(results), "--gold", str(gold),
+        "--config", str(config), "--output-dir", str(tmp_path / "out"),
+    ])
+    assert result.exit_code == 0, result.output
+    path = next((tmp_path / "out").glob("*/score.json"))
+    score = json.loads(path.read_text(encoding="utf-8"))
+    assert score["recall"] is None and score["unavailable_images"] == ["001"]
+    denied = CliRunner().invoke(app, [
+        "vision", "--results", str(results), "--gold", str(gold), "--live",
+        "--config", str(config), "--output-dir", str(tmp_path / "denied"),
+    ])
+    assert denied.exit_code == 2

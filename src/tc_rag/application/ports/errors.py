@@ -39,3 +39,7 @@ class VisionReadError(RuntimeError):
     def __init__(self, code: str) -> None:
         self.code = code
         super().__init__("图片读取失败：" + code)
+
+
+class VisionImageSkipped(Exception):
+    """图片被确定性过滤，不是识别失败，不消耗模型预算。"""

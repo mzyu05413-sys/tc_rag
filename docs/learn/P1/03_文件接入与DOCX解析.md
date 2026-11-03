@@ -66,9 +66,9 @@ repo.save_many(
 
 ## 解析边界
 
-- 主文档按XML顺序输出；Heading N样式恢复标题路径，自定义标题样式尚不自动识别。
+- 主文档按 XML 顺序输出；默认识别 Heading N。`parsing.docx_extended=true` 时增加大纲级别和中文“标题 N”样式，优先级为显式 Heading N → 段落/样式继承的大纲 → 中文标题样式。大纲 9 不作为标题；`infer_docx_headings` 仍是独立兜底。
 - 文本保留否定词、单位、制表符和换行；同一段落内按图片锚点拆成文字/图片/文字。
-- DOCX无可靠固定页码，使用段落、表格、单元格索引；order为块序号。
+- DOCX 无可靠固定页码，使用段落、表格、单元格索引；order 为块序号。扩展模式按阅读序展开正文内容控件内的段落、表格和嵌套控件；目录控件跳过并记 info。索引沿展开的正文序列计数，不能直接用 python-docx 的 `document.paragraphs`（不含控件段落）回查，应结合原件 XML 和相同遍历规则。
 - 表格content保存带schema_version的二维rows；合并单元格可能重复显示，明确记录Issue。
 - 表格单元格图片携带行列定位，在整个表格块后提取；不承诺恢复复杂单元格内所有布局顺序。
 - 本解析器仅提取和登记图片，并记录未解析范围。Pipeline 可按配置接入视觉解释，来源和不确定性见 [P2 图片证据](../P2/07_图片证据.md)；未启用时不能视为已理解。
@@ -81,5 +81,8 @@ repo.save_many(
 `tests/integration/test_docx.py` 动态创建虚构 DOCX 和图片，检查去重、顺序、标题、表格、图片字节/位置、持久化及坏文件、超限、路径越界等失败路径。
 
 人工抽查复杂表格、图文顺序和未解析清单；能读取文件不等于已理解所有内容。
+
+扩展默认关闭，默认配置快照不增加字段。开启可能改变 Block 顺序、ID、章节和 Chunk，受影响的提炼缓存将失效；应新建运行比较。自动编号前缀尚未恢复，仅诊断 numPr 数量。
+扩展回归见 `tests/integration/test_parsing_structure.py`；[统一验收指南](../../reference/chunk_structure_quality.md)提供逐块对照入口。
 
 [返回 P1 导航](README.md) · [PDF 解析](04_PDF解析.md)

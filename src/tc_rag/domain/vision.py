@@ -83,5 +83,7 @@ class VisionAudit(DomainModel):
     draft_valid: bool
     model_verified: bool
     human_verified: Literal[False] = False
+    verify_error: str | None = None
+    review_model: str | None = None
     context: dict[str, Any]
     views: list[dict[str, Any]] = Field(min_length=1)

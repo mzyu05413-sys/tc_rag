@@ -85,6 +85,16 @@ class _PdfSession:
     def page_count(self) -> int:
         return int(self.document.page_count)
 
+    def finalize(
+        self, blocks: list[DocumentBlock]
+    ) -> tuple[list[DocumentBlock], list[Issue]]:
+        if self.parser.running_text == "keep":
+            return blocks, []
+        from tc_rag.infrastructure.parsing.layout_diagnostics import isolate_running_blocks
+
+        heights = {index + 1: float(page.rect.height) for index, page in enumerate(self.document)}
+        return isolate_running_blocks(blocks, heights)
+
     def parse_page(self, page_index: int, state: ParseState) -> PageOutcome:
         page = self.document[page_index]
         page_no = page_index + 1
@@ -214,11 +224,15 @@ class PdfParser:
         self,
         store: ArtifactStore,
         min_text_chars: int = 20,
+        *, running_text: str = "keep",
     ) -> None:
         if min_text_chars < 1:
             raise ValueError("文本质量阈值必须为正整数")
         self.store = store
         self.min_text_chars = min_text_chars
+        if running_text not in {"keep", "isolate"}:
+            raise ValueError("未知 PDF 页眉页脚策略")
+        self.running_text = running_text
 
     @contextmanager
     def session(self, asset: Asset, *, install_filter: bool = True) -> Iterator[_PdfSession]:
@@ -299,6 +313,8 @@ class PdfParser:
                 result.assets.extend(outcome.assets)
                 result.issues.extend(outcome.issues)
                 state = outcome.state
+            result.blocks, extra_issues = session.finalize(result.blocks)
+            result.issues.extend(extra_issues)
         return result
 
     @staticmethod

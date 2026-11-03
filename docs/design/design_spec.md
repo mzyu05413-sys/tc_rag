@@ -54,6 +54,9 @@ flowchart LR
 | `application/orchestration/pipeline.py` | `generate()` 连续调用内部 `points()` 和 `cases()`，保留预算、快照和检索增强 |
 | `application/ports/contracts.py` | LLM、Embedder、Parser、Repository、RetrievalContext 等替换边界 |
 | `application/services/` | 接入、分块、引文校验、规则归并、测试设计、质量评估 |
+| `application/services/design/` | 按约束、提炼、规划、展示、去重、图片策略及用例校验分模块；旧导入入口保留 |
+| `application/services/quality/` | 按阶段只读检查并按原顺序汇总报告；不替代业务语义审核 |
+| `application/services/point_tree.py`、`extraction_namespace.py` | 树构建与类型 ID 命名空间纯函数，保留 Pipeline 静态兼容入口 |
 | `domain/models.py`、`pipeline.py`、`review.py`、`rag.py` | 原文、规则、用例、测试点树、向量空间及检索记录；旧审核模型只兼容历史数据 |
 | `infrastructure/parsing/` | DOCX、PDF 图文与结构读取 |
 | `infrastructure/providers/` | 生成、embedding、vision、rerank 和离线替身 |
@@ -62,6 +65,8 @@ flowchart LR
 | `core/config.py`、`bootstrap.py` | 配置校验、凭据引用、适配器装配；检索器必须注入 |
 
 依赖方向为 interfaces → application → domain；infrastructure 实现端口。领域层不导入 SDK、不访问数据库、不执行文件 I/O。CLI 状态查询与计划预览不创建真实模型客户端。
+
+本轮结构拆分只移动无状态逻辑；`Pipeline.points()` / `cases()` 的阶段、异常、取消和恢复行为保持原函数正文，尚未进行有状态方法分解。`workflow.py` 不拆。验证与后续边界见[拆分记录](../reviews/module_split_20261103.md)。
 
 ## 4. 领域对象与证据链
 

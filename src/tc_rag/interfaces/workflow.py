@@ -787,8 +787,11 @@ def estimate(
             store = LocalArtifactStore(root)
             ingest = ingest_document(doc, store, repo)
             parser = (
-                DocxParser(store, infer_headings=cfg.parsing.infer_docx_headings)
-                if doc.suffix.lower() == ".docx" else PdfParser(store)
+                DocxParser(store, infer_headings=cfg.parsing.infer_docx_headings,
+                           **({"extended": True} if cfg.parsing.docx_extended else {}))
+                if doc.suffix.lower() == ".docx" else PdfParser(
+                    store, running_text=cfg.parsing.pdf_running_text
+                )
             )
             parsed = parser.parse(ingest.asset)
             chunked = structural_chunks(
@@ -796,6 +799,9 @@ def estimate(
                 cfg.chunking.target_tokens,
                 cfg.chunking.overlap_tokens,
                 token_counter(cfg.chunking.token_counter),
+                attach_headings=cfg.chunking.attach_headings,
+                min_tokens=cfg.chunking.min_tokens,
+                split_long_paragraphs=cfg.chunking.split_long_paragraphs,
             )
             typer.echo(
                 json.dumps(

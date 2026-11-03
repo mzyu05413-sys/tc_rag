@@ -180,4 +180,7 @@ async def test_isolated_verification_uses_only_vision_and_separate_database(tmp_
     assert all(record.stage == "vision" for record in records)
     assert rows[0]["result"]["origin"] == "vision"
     assert rows[0]["structured"]["model_verified"]
+    assert rows[0]["request_stats"]["requests"] == 2
+    assert rows[0]["request_stats"]["input_tokens"] == 6
+    assert rows[0]["request_stats"]["output_tokens"] == 4
     assert (directory / "vision.sqlite").exists()

@@ -51,7 +51,9 @@ def test_wide_picture_has_no_gaps_between_horizontal_tiles():
 
 
 def test_transparent_text_background_becomes_white_without_enlargement():
-    views = prepare_views(picture((20, 10), mode="RGBA", color=(0, 0, 0, 0)), VisionProcessing())
+    views = prepare_views(
+        picture((20, 10), mode="RGBA", color=(0, 0, 0, 0)), VisionProcessing(min_edge=0)
+    )
     assert len(views) == 1 and views[0].size == (20, 10)
     with Image.open(io.BytesIO(views[0].png)) as result:
         assert result.getpixel((0, 0)) == (255, 255, 255)

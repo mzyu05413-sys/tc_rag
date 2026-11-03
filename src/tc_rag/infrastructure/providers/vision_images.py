@@ -6,7 +6,7 @@ from typing import Any
 
 from PIL import Image, ImageOps
 
-from tc_rag.application.ports.errors import VisionReadError
+from tc_rag.application.ports.errors import VisionImageSkipped, VisionReadError
 from tc_rag.core.config import VisionProcessing
 
 
@@ -36,8 +36,16 @@ def _view(image: Image.Image, name: str, bounds: tuple[int, int, int, int]) -> I
     return ImageView(name, bounds, image.size, buffer.getvalue())
 
 
+def check_image_size(image: bytes, min_edge: int) -> None:
+    """只读取尺寸；在缓存和预算之前过滤极小图，避免把跳过记为失败。"""
+    with Image.open(io.BytesIO(image)) as source:
+        if max(source.size) < min_edge:
+            raise VisionImageSkipped()
+
+
 def prepare_views(image: bytes, options: VisionProcessing) -> list[ImageView]:
     """总览用于理解全局连线；大图局部保持原像素，不锐化或生成不存在的细节。"""
+    check_image_size(image, options.min_edge)
     with Image.open(io.BytesIO(image)) as source:
         oriented = ImageOps.exif_transpose(source)
         rgba = oriented.convert("RGBA")

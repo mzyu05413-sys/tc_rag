@@ -94,12 +94,18 @@ class PageOutcome:
 
 
 class PageSession(Protocol):
-    """按页解析会话；只暴露页码与单页解析，不暴露底层文档对象。"""
+    """按页解析与全文汇总后处理，不暴露底层文档对象。"""
 
     @property
     def page_count(self) -> int: ...
 
     def parse_page(self, page_index: int, state: ParseState) -> PageOutcome: ...
+
+    def finalize(
+        self, blocks: list[DocumentBlock]
+    ) -> tuple[list[DocumentBlock], list[Issue]]:
+        """全部页面（含恢复页）合并后调用；原始页检查点不改写。"""
+        ...
 
 
 class PagedDocumentParser(Protocol):

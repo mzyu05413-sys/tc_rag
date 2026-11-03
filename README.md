@@ -94,6 +94,20 @@ XMind 展示**全部测试点**（含待澄清），不复用为生成输入。
 - 正式运行必须配置 `models.llm` 与 `models.embedding`；
   `retrieval.embedding_dimension` 必须等于向量模型实际维度；
 - `vision`、`rerank` 按需启用。
+- 视觉质量选项见下表；公共示例在 `config/defaults.yaml`、`config/example.yaml`，日常仅改私有配置。
+
+| 配置 | 默认值 | 用途 |
+|---|---|---|
+| `parsing.vision.verify` | `true` | 完整复核；`false` 单遍，`auto` 是待真实 A/B 验证的可选模式 |
+| `parsing.vision.verify_failure` | `fail` | 复核失败则本图失败；`keep_draft` 仅保留结构和引用有效的未复核草稿 |
+| `parsing.vision.min_edge` | `64` | 最长边小于此值跳过；`0` 禁用尺寸过滤 |
+| `parsing.vision.detail` | `high` | 兼容接口拒绝此字段时用 `null` 不发送 |
+| `parsing.vision.auto_fact_threshold` | `20` | auto 模式的事实数阈值；其余条件见视觉指南 |
+| `models.vision.supports_json_object` | `false` | 明确支持 JSON Object 的服务才开启 |
+| `models.vision_review` | `enabled=false` | 可选第二模型复核；启用会向第二端点发送图片与邻近正文 |
+
+新增项取默认值时不改变此前默认快照及视觉缓存身份；小图尺寸过滤仍会在缓存前执行。
+
 - `planning.ui_display_policy` 默认 `merge`：同一功能的纯 vision 界面展示点合并为一条概括点；
   `keep` 保留逐条展示点。
 
@@ -111,6 +125,27 @@ export:
 字段级修复诊断可用 `rag inspect RUN_ID --stage invocations` 查询。
 离线检索实验材料准备见 [eval 指南](eval/README.md)，
 本轮更新及审核点见 [采纳记录](docs/reference/main_updates_20261031.md)。
+
+分块与解析新增开关均默认保持旧行为：
+
+| 配置 | 默认值 | 用途 |
+|---|---|---|
+| `chunking.attach_headings` | `false` | 标题随下文进入分块，减少纯标题块 |
+| `chunking.min_tokens` | `0` | 同父小节合并阈值，0 关闭；必须小于目标预算 |
+| `chunking.split_long_paragraphs` | `false` | 只在句界拆超长段，保留精确字符区间及风险提醒 |
+| `parsing.docx_extended` | `false` | 大纲、中文标题样式、正文内容控件；目录控件跳过并记录 |
+| `parsing.pdf_running_text` | `keep` | 可选 isolate 标记边缘重复行/页码为 other，保留追溯 |
+
+[分块质量与统一验收指南](docs/reference/chunk_structure_quality.md)包含逐块对照方法。
+下面两条命令只读已保存的分块快照，零模型调用，产物在 `workdir/diagnostics/chunking/`：
+
+```powershell
+rag chunk-stats <run_id>
+rag chunk-stats <run_id> --compare --min-tokens 200 --split-long-paragraphs
+```
+
+第二条仅在离线对照中开启标题合并、小节合并和按句拆段，不改本地配置或原快照。
+改变正式分块策略会改变 Chunk ID，受影响的提炼缓存可能失效，后续真实运行会重新调用模型。
 
 配置选择顺序：显式 `--config` → `workdir/local.yaml` → `config/defaults.yaml` → 内置默认。
 
@@ -197,6 +232,14 @@ rag vision --run-id <已有运行ID> --limit 6
 默认离线生成原图、视图计划和历史解释对照页，不调用模型。加 `--live` 才真实调用当前视觉模型；
 默认每图识别、复核各一次，产生费用，不执行后续 RAG 或用例生成。
 新版视觉支持原像素局部图、邻近正文和结构化复核；配置与逐图验收见[视觉质量指南](docs/reference/vision_quality.md)。
+
+`--verify` / `--no-verify` 仅覆盖该次验收的复核开关。对已有结果评分无需模型调用：
+
+```powershell
+rag vision --results "workdir/diagnostics/vision/vision_check_实际ID/results.json" --gold "workdir/dev/demo/vision_gold.json"
+```
+
+子串匹配评分仅辅助检查，不能代替人工审核。使用 `--results` 时不能同时指定 `--live` 或 `--run-id`。
 
 ### 查看运行与重新导出
 
@@ -288,6 +331,7 @@ FAISS、中文关键词等扩展按需安装，主线不因此分叉。默认离
 
 - [参考文档入口](docs/reference/README.md)
 - [目录结构与文件用途](docs/reference/directory_structure.md)
+- [大文件拆分与兼容验证](docs/reviews/module_split_20261103.md)
 - [架构设计](docs/design/design_spec.md)
 - [开发指南](docs/design/dev_guide.md)
 - [按模块学习](docs/learn/README.md)

@@ -1,10 +1,14 @@
 """组织图文上下文和可追溯的视觉文字，不调用外部服务。"""
 
 import json
+from contextvars import ContextVar
 from typing import Any
 
 from tc_rag.domain.models import DocumentBlock
 from tc_rag.domain.vision import VisionDescription
+
+# 只关联本地审计回调，不放入模型消息，也不改变业务 ID。
+vision_image_id: ContextVar[str | None] = ContextVar("vision_image_id", default=None)
 
 
 def image_context(

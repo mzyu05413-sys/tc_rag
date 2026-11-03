@@ -4,10 +4,10 @@ import asyncio
 from typing import Any
 
 from tc_rag.application.ports.contracts import ArtifactStore, Repository, VisionReader
-from tc_rag.application.ports.errors import VisionReadError
+from tc_rag.application.ports.errors import VisionImageSkipped, VisionReadError
 from tc_rag.application.progress import ProgressEvent, ProgressReporter, report
 from tc_rag.application.services.design import issue
-from tc_rag.application.services.vision_content import image_context
+from tc_rag.application.services.vision_content import image_context, vision_image_id
 from tc_rag.domain.identity import fingerprint
 from tc_rag.domain.models import Asset, DocumentBlock, Issue
 from tc_rag.domain.rag import RagRecord
@@ -45,18 +45,21 @@ class VisionEvidenceService:
         total = len(image_blocks)
         # 阶段边界由编排层统一记录（Pipeline._apply_vision），这里不再发 stage 事件。
 
-        completed = failed = cached_count = 0
+        completed = failed = cached_count = skipped = 0
 
         async def describe(
             block: DocumentBlock, position: int
         ) -> tuple[DocumentBlock | None, Issue | None]:
-            nonlocal completed, failed, cached_count
+            nonlocal completed, failed, cached_count, skipped
             error = None
             derived: DocumentBlock | None = None
             problem: Issue | None = None
             try:
                 asset = Asset.model_validate_json(block.content)
                 content = self.store.read(asset)
+                check_image = getattr(self.reader, "check_image", None)
+                if callable(check_image):
+                    check_image(content)
                 context = " / ".join(block.heading_path) or "需求文档图片"
                 if self.context_blocks:
                     context = image_context(
@@ -72,7 +75,11 @@ class VisionEvidenceService:
                     data = cached.payload
                     cached_count += 1
                 else:
-                    description = await self.reader.read(content, context)
+                    token = vision_image_id.set(block.block_id)
+                    try:
+                        description = await self.reader.read(content, context)
+                    finally:
+                        vision_image_id.reset(token)
                     if not description.text.strip():
                         raise ValueError("图片描述为空")
                     data = {
@@ -103,6 +110,18 @@ class VisionEvidenceService:
                     processing_version=data["version"],
                 )
                 problem = issue("validation", "图片解释存在不确定性，需人工核实", [block.block_id])
+                details = data.get("details") or {}
+                if details.get("verify_error"):
+                    # 复核失败码来自适配器白名单，不携带供应商响应正文。
+                    problem = issue(
+                        "validation", "图片解释未完成复核，保留第一遍结果："
+                        + details["verify_error"], [block.block_id]
+                    )
+            except VisionImageSkipped:
+                skipped += 1
+                problem = issue(
+                    "other", "图片过小，已跳过", [block.block_id, asset.asset_id], severity="info"
+                )
             except Exception as exc:
                 failed += 1
                 # 只展开适配器保证安全的错误码，其他异常只保留类型。
@@ -112,7 +131,8 @@ class VisionEvidenceService:
             report(
                 self.progress,
                 ProgressEvent(
-                    "image_completed", "vision", completed=completed, total=total, error=error
+                    "image_completed", "vision", completed=completed, total=total, error=error,
+                    skipped=int(problem is not None and problem.description == "图片过小，已跳过"),
                 ),
             )
             return derived, problem
@@ -150,6 +170,10 @@ class VisionEvidenceService:
                 result.append(derived)
             if problem is not None:
                 issues.append(problem)
+                if problem.description.startswith("图片解释未完成复核，保留第一遍结果："):
+                    issues.append(issue(
+                        "validation", "图片解释存在不确定性，需人工核实", [block.block_id]
+                    ))
 
         if total:
             report(
@@ -158,9 +182,10 @@ class VisionEvidenceService:
                     "vision_summary",
                     "vision",
                     total=total,
-                    completed=total - failed,
+                    completed=total - failed - skipped,
                     failed=failed,
                     cached=cached_count,
+                    skipped=skipped,
                 ),
             )
         # 派生 Block 紧随图片，重新编号保持确定阅读顺序。

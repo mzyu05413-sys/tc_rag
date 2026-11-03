@@ -9,13 +9,30 @@ storage:
 parsing:
   formats: [pdf, docx]
   vision_enabled: false
+  vision:
+    max_edge: 2048
+    tile_edge: 1536
+    tile_overlap: 192
+    max_tiles: 16
+    detail: high                     # 不兼容时设 null；不会自动静默降级
+    context_blocks: 2
+    context_chars: 6000
+    min_edge: 64                     # 0=不按尺寸跳过
+    verify: true                     # 可选 false/auto；默认保持完整两遍
+    verify_failure: fail              # 显式 keep_draft 才保留复核失败的有效草稿
+    auto_fact_threshold: 20
   infer_docx_headings: false          # 可选的保守视觉标题推断，默认关闭
+  docx_extended: false               # 大纲/中文标题样式与正文内容控件展开
+  pdf_running_text: keep             # isolate 为可选保守隔离，不删除原文
 
 chunking:
   strategy: structural
   target_tokens: 900
   overlap_tokens: 100
   token_counter: tiktoken_approx      # 中文需实测
+  attach_headings: false             # 默认兼容旧分块；验收后可开启
+  min_tokens: 0                      # 0 关闭；例如 200，必须小于目标预算
+  split_long_paragraphs: false       # 按换行/句末标点拆超长段，保留原文区间
 
 models:
   llm:
@@ -40,6 +57,20 @@ models:
   vision:
     enabled: false
     api_key: null
+    supports_images: false
+    supports_json_object: false
+    max_output_tokens: null
+  vision_review:                      # 可选跨模型复核，默认不开启、不外发
+    enabled: false
+    adapter: openai_sdk
+    api_mode: chat_completions
+    supports_images: false
+    supports_json_object: false
+    model: ""
+    base_url: ""
+    max_output_tokens: null
+    api_key: null
+    api_key_env: TC_RAG_VISION_REVIEW_API_KEY
   rerank:
     enabled: false
     adapter: http

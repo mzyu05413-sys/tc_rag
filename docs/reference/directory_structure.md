@@ -99,6 +99,42 @@ src/tc_rag/
 └─ bootstrap.py               装配具体实现
 ```
 
+### 测试设计与质检按主题拆分
+
+```text
+application/services/
+├─ design/
+│  ├─ __init__.py             保留原 design 导入入口和公共名称
+│  ├─ _common.py              共享问题构造、文本归一化、证据和单位常量
+│  ├─ constraints.py          原文中的结构化约束推导
+│  ├─ extraction.py           提炼校验、规则归并及冲突保留
+│  ├─ planning.py             确定性边界和测试点规划
+│  ├─ ui_display.py           纯界面展示点归并
+│  ├─ dedupe.py               测试点及问题去重
+│  ├─ vision_policy.py        图片来源策略与已解决图片问题清理
+│  └─ case_validation.py      用例、引用、数值依据及覆盖校验
+├─ quality/
+│  ├─ __init__.py             保留原 inspect_quality 导入入口
+│  ├─ _common.py              检查结果、只读快照访问及共享工具
+│  ├─ snapshots.py            阶段快照结构校验
+│  ├─ ingest_checks.py        输入和解析范围检查
+│  ├─ chunk_checks.py         分块检查
+│  ├─ extract_checks.py       提炼检查
+│  ├─ point_checks.py         测试点检查
+│  ├─ case_checks.py          用例检查
+│  ├─ retrieval_checks.py     检索上下文检查
+│  ├─ invocation_checks.py    调用记录检查
+│  ├─ output_checks.py        导出产物检查
+│  └─ report.py               按原顺序汇总质量报告
+├─ point_tree.py              测试点分组、排序和树构建纯函数
+└─ extraction_namespace.py    提炼对象的类型命名空间纯函数
+```
+
+`from tc_rag.application.services.design import ...` 和 quality 的旧导入路径继续可用。
+`Pipeline._tree` / `_namespace` 是兼容静态入口；`points()`、`cases()` 的有状态流程尚未拆分，
+`interfaces/workflow.py` 仍保留原位。本轮只重组代码，不改变 RAG 流程、配置、提示词或事实结构。
+阶段验证、原函数 AST 对照和回滚边界见[大文件拆分记录](../reviews/module_split_20261103.md)。
+
 ## 哪些不能随手移动或删除
 
 `local.yaml` 包含当前配置和密钥；备份时仍按私有文件保管。

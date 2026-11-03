@@ -18,6 +18,8 @@ def export_vision_review(
         image = f"data:{mime};base64," + base64.b64encode(original.read_bytes()).decode()
         result = row.get("result") or {}
         text = result.get("content", "尚未调用模型" if not summary["live"] else "本图解释失败")
+        if row.get("status") == "skipped":
+            text = "图片过小，已跳过；不产生派生文字，不计识别失败。"
         previews = []
         for view in row["views"]:
             previews.append(
@@ -27,7 +29,10 @@ def export_vision_review(
             f'<section data-image="{escape(row["block_id"], quote=True)}">'
             f'<h2>图片 {row["number"]} · {escape(row["heading"])}</h2>'
             f'<p>视图：{" · ".join(previews)}；'
-            f'{escape(row.get("plan_error") or "局部覆盖检查通过")}</p>'
+            f'{escape(row.get("plan_error") or row.get("skip_reason") or "局部覆盖检查通过")}</p>'
+            f'<p>同图出现 {row.get("checksum_occurrences", 1)} 次；'
+            f'本轮视图 {len(row["views"])} 张；总像素 {row.get("total_pixels", "未记录")}。'
+            f'{escape(" ".join(row.get("warnings", [])))}</p>'
             f'<div class="grid"><div><h3>原图</h3><img src="{image}" alt="原图"></div>'
             f'<div><h3>历史解释（对照）</h3><pre>{escape(row["baseline"] or "无历史解释")}</pre>'
             f'<h3>本轮解释</h3><pre>{escape(text)}</pre></div></div>'

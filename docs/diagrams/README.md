@@ -80,7 +80,7 @@ Boardmix 官方帮助说明支持直接拖入 SVG，见 [导入说明](https://b
 | 适配器和 Prompt / Skill 装配 | [bootstrap.py](../../src/tc_rag/bootstrap.py) |
 | 主线编排、两轮 RAG、批次和导出 | [pipeline.py](../../src/tc_rag/application/orchestration/pipeline.py) |
 | 外部能力协议 | [contracts.py](../../src/tc_rag/application/ports/contracts.py) |
-| 引文、约束、基础点与用例校验 | [design.py](../../src/tc_rag/application/services/design.py) |
+| 引文、约束、基础点与用例校验 | [design 包入口](../../src/tc_rag/application/services/design/__init__.py) |
 | 图片派生证据 | [vision.py](../../src/tc_rag/application/services/vision.py) |
 | 检索和索引准备 | [context.py](../../src/tc_rag/infrastructure/retrieval/context.py) |
 | HTTP 重试与结构修复 | [openai_sdk.py](../../src/tc_rag/infrastructure/providers/openai_sdk.py) |

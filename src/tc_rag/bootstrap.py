@@ -64,6 +64,9 @@ def validate_runtime_config(
         if not vision.supports_images or vision.api_mode != "chat_completions":
             raise StartupConfigurationError("vision 需要 supports_images 声明及兼容 Chat 协议")
         required.append(("vision", vision, "openai_sdk", False))
+        if config.models.vision_review.enabled:
+            validate_review_config(config)
+            required.append(("vision_review", config.models.vision_review, "openai_sdk", False))
     for role, endpoint, adapter, injected in required:
         if injected:
             continue
@@ -119,6 +122,23 @@ def resolve_prompt_root() -> Path:
     return target if target.exists() else Path(sys.prefix) / "share" / "tc_rag" / "prompts"
 
 
+def validate_review_config(config: AppConfig) -> None:
+    """只有显式启用第二模型时才检查；不创建客户端或外发任何资料。"""
+    if not config.models.vision_review.enabled:
+        return
+    from tc_rag.infrastructure.providers.vision import validate_vision_endpoint
+
+    try:
+        validate_vision_endpoint(config.models.vision_review)
+    except ValueError:
+        raise StartupConfigurationError("models.vision_review 需要兼容 Chat 的图片模型") from None
+    main, review = config.models.vision, config.models.vision_review
+    if (main.base_url.rstrip("/"), main.model) == (review.base_url.rstrip("/"), review.model):
+        raise StartupConfigurationError("视觉主模型与复核模型不能是相同端点和模型")
+    if not resolve_api_key(review):
+        raise StartupConfigurationError("models.vision_review 缺少有效密钥")
+
+
 def build_vision_service(
     config: AppConfig,
     repository: Repository,
@@ -135,9 +155,13 @@ def build_vision_service(
     from tc_rag.infrastructure.providers.vision import OpenAICompatVision
 
     options = config.parsing.vision
+    validate_review_config(config)
     vision = OpenAICompatVision(
         config.models.vision, config.runtime, run_id, record, prompts["vision"],
         processing=options, review_prompt=prompts["vision_verify"],
+        review_endpoint=(
+            config.models.vision_review if config.models.vision_review.enabled else None
+        ),
     )
     vision.admit = admit
     identity: dict[str, object] = {
@@ -152,6 +176,10 @@ def build_vision_service(
         identity["max_output_tokens"] = config.models.vision.max_output_tokens
     if config.models.vision.thinking_mode != "default":
         identity["thinking_mode"] = config.models.vision.thinking_mode
+    if config.models.vision.supports_json_object:
+        identity["supports_json_object"] = True
+    if config.models.vision_review.enabled:
+        identity["review_endpoint"] = config.models.vision_review.model_dump()
     return VisionEvidenceService(
         repository, store, vision, identity, cache_enabled=config.runtime.cache_enabled,
         concurrency=config.models.vision.concurrency,
@@ -292,9 +320,14 @@ def build_pipeline(
         repository,
         store,
         lambda suffix: (
-            DocxParser(store, infer_headings=config.parsing.infer_docx_headings)
+            DocxParser(
+                store, infer_headings=config.parsing.infer_docx_headings,
+                **({"extended": True} if config.parsing.docx_extended else {}),
+            )
             if suffix == ".docx"
-            else PdfParser(store)
+            else PdfParser(
+                store, running_text=config.parsing.pdf_running_text
+            )
         ),
         provider,
         XMindAdapter(),

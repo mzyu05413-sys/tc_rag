@@ -17,10 +17,13 @@ from tc_rag.domain.models import Asset, DocumentBlock, Issue, Locator
 
 
 class DocxParser:
-    def __init__(self, store: ArtifactStore, infer_headings: bool = False) -> None:
+    def __init__(
+        self, store: ArtifactStore, infer_headings: bool = False, *, extended: bool = False
+    ) -> None:
         self.store = store
         # 标题推断会改变 heading_path 和后续分块；默认只认 Word 明确的标题样式。
         self.infer_headings = infer_headings
+        self.extended = extended
 
     def parse(self, asset: Asset) -> ParsedDocument:
         """DOCX 不提供可靠排版页码，使用段落/表格/单元格索引定位。"""
@@ -28,7 +31,11 @@ class DocxParser:
         result = ParsedDocument(blocks=[])
         document_id = "doc_" + asset.checksum
         headings: dict[int, str] = {}
-        inferred_levels = self._visual_headings(document) if self.infer_headings else {}
+        children, control_messages = self._body_elements(document)
+        outline_count = 0
+        inferred_levels = self._visual_headings(
+            document, children, extended=self.extended
+        ) if self.infer_headings else {}
         if inferred_levels:
             result.issues.append(
                 Issue(
@@ -114,10 +121,13 @@ class DocxParser:
             flush()
 
         paragraph_index = table_index = 0
-        for child in document.element.body:
+        for child in children:
             if child.tag == qn("w:p"):
                 value = Paragraph(child, document)
                 level = self._explicit_level(value)
+                if level is None and self.extended:
+                    level, from_outline = self._extended_level(value)
+                    outline_count += from_outline
                 if level is None:
                     level = inferred_levels.get(paragraph_index)
                 locator = Locator(paragraph_index=paragraph_index)
@@ -165,6 +175,13 @@ class DocxParser:
             name = str(part.partname)
             if any(key in name for key in ("/header", "/footer", "/footnotes", "/endnotes")):
                 issue(f"附属内容 {name} 尚未解析")
+        for message in control_messages + (
+            [f"按大纲级别识别了 {outline_count} 个标题"] if outline_count else []
+        ):
+            result.issues.append(Issue(
+                issue_id=f"{document_id}_issue_{len(result.issues)}", kind="validation",
+                severity="info", object_ids=[document_id], description=message,
+            ))
         if not result.blocks:
             issue("主文档没有可解析正文")
         return result
@@ -174,6 +191,58 @@ class DocxParser:
         style = value.style.name if value.style else ""
         match = re.fullmatch(r"Heading (\d+)", style)
         return int(match.group(1)) if match else None
+
+    def _body_elements(self, document: Any) -> tuple[list[Any], list[str]]:
+        """扩展模式下按实际阅读序展开控件；Locator 索引沿该顺序计数。"""
+        messages: list[str] = []
+
+        def walk(parent: Any) -> list[Any]:
+            children = []
+            for child in parent:
+                if not self.extended or child.tag != qn("w:sdt"):
+                    children.append(child)
+                    continue
+                properties = child.find(qn("w:sdtPr"))
+                galleries = list(properties.iter(qn("w:docPartGallery"))) \
+                    if properties is not None else []
+                if any((item.get(qn("w:val")) or item.text or "").strip().casefold()
+                       == "table of contents" for item in galleries):
+                    messages.append("跳过目录内容控件，目录原件保留，未作为正文需求")
+                    continue
+                content = child.find(qn("w:sdtContent"))
+                if content is None:
+                    children.append(child)  # 交给既有未支持元素路径报告，不能静默吞掉。
+                else:
+                    children.extend(walk(content))
+            return children
+
+        return walk(document.element.body), messages
+
+    @classmethod
+    def _extended_level(cls, value: Paragraph) -> tuple[int | None, bool]:
+        properties = value._p.find(qn("w:pPr"))
+        candidates = [properties] if properties is not None else []
+        style = value.style
+        seen = set()
+        while style is not None and style.style_id not in seen:
+            seen.add(style.style_id)
+            properties = style.element.find(qn("w:pPr"))
+            if properties is not None:
+                candidates.append(properties)
+            style = style.base_style
+        for properties in candidates:
+            outline = properties.find(qn("w:outlineLvl"))
+            if outline is None:
+                continue
+            try:
+                level = int(outline.get(qn("w:val")))
+            except (ValueError, TypeError):
+                break
+            if 0 <= level <= 8:
+                return level + 1, True
+            break  # 9 明确为正文，不能继续继承父样式的大纲级别。
+        match = re.fullmatch(r"标题\s*([1-9]\d*)", value.style.name if value.style else "")
+        return (int(match.group(1)), False) if match else (None, False)
 
     @staticmethod
     def _style_font(style: Any, field: str) -> Any:
@@ -222,11 +291,13 @@ class DocxParser:
         return float(value.pt) if field == "size" else value
 
     @classmethod
-    def _visual_headings(cls, document: Any) -> dict[int, int]:
+    def _visual_headings(
+        cls, document: Any, children: list[Any] | None = None, *, extended: bool = False
+    ) -> dict[int, int]:
         """保守补认视觉标题；不以局部强调替代标题，也不覆盖显式章节的父层级。"""
         paragraphs = [
             Paragraph(child, document)
-            for child in document.element.body
+            for child in (children if children is not None else document.element.body)
             if child.tag == qn("w:p")
         ]
         default_size = cls._default_font(document, "size")
@@ -236,6 +307,8 @@ class DocxParser:
         explicit: dict[int, int] = {}
         for index, paragraph in enumerate(paragraphs):
             level = cls._explicit_level(paragraph)
+            if level is None and extended:
+                level, _ = cls._extended_level(paragraph)
             if level is not None:
                 explicit[index] = level
                 continue

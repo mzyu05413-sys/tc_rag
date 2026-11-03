@@ -89,6 +89,13 @@ PointTree 的正式节点绑定 point_id；导出 XMind 展示全部测试点，
 
 Run.config_snapshot 是普通数据容器，调用方须传入无密钥配置。ModelInvocation 的 usage 未知为 None，不能填 0 冒充无消耗。
 
+视觉 JSON 审计 `VisionAudit` 保留原图视图、正文、原始草稿和结构化最终结果；新增可选
+`verify_error`、`review_model`，旧载荷缺省为 null，可继续读取。`model_verified=false` 不表示人工确认；
+显式 `keep_draft` 仅接受已通过结构和引用校验的草稿，并保留错误码、未复核标记和问题。
+跨模型复核的调用记录 `stage=vision_review`，主视觉及同模型复核仍为 `vision`；阶段字段是字符串，
+两者均计入用量和总调用预算，不新增数据库列。密钥仍是排除序列化的 SecretStr。
+小图跳过单独记 info 问题，不生成派生 Block，不计识别失败，不占请求预算，不伪造成功。
+
 `ModelInvocation.validation_errors` 是排除序列化的运行时诊断元数据，持久化到
 `invocations` 阶段快照的 `validation_errors[invocation_id]`；`items` 和 model_invocations 表中的
 调用 JSON 结构保持兼容。诊断只含过滤后的契约字段路径、错误类型与固定约束，不含错误输出值。
@@ -105,3 +112,17 @@ RAG 空间绑定服务、模型、维度、归一化与模板版本；manifest �
 旧配置不符合当前契约时，cases/resume 需要新建运行，不强行复用旧输入配置。
 
 参考测试：`tests/unit/test_domain.py`、`test_review.py` 与 `tests/integration/test_sqlite.py`、`test_rag.py`。具体语义和业务覆盖仍须人工审核。
+
+### 可选分块与结构解析（2026-11-03）
+
+`chunking.attach_headings=false`、`min_tokens=0`、`split_long_paragraphs=false`，以及
+`parsing.docx_extended=false`、`pdf_running_text=keep` 在默认值时从快照省略，保持旧形状；
+启用值必须保存，不能将旧缓存强行冒充新策略结果。没有新增数据库列或领域字段。
+
+ChunkSource 仍引用 Block 的 `[start_char,end_char)`；段内连续区间合并时不插入原文不存在的换行。
+按句拆段保留字符序列、Locator 和 origin，vision 仍是模型解释，不能变成已确认原文。
+JSON 表格切片以完整行为来源（包装字段/分隔符不必进入 Chunk），整表 Block 保留；标题前缀仅进首组。
+PDF 隔离沿用已有 kind=other，Block 仍保留在事实和快照中，分块/块覆盖检查明确排除 other；
+历史 Chunk 引用了 other 时仍能读取。隔离是启发式，不表示这些文字业务上无效。
+DOCX 扩展 Locator 按展开的正文 XML 阅读序计数，包含内容控件段落/表格、不含目录控件。
+不恢复自动编号，不重新排列多栏，不改变原有证据核验和 RAG 引用闭包。

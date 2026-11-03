@@ -338,14 +338,16 @@ async def test_resume_reuses_only_completed_extraction_batches_from_parent(tmp_p
 
 
 @pytest.mark.asyncio
-async def test_pdf_page_checkpoints_are_reused_on_resume(tmp_path):
+@pytest.mark.parametrize("running_text", ["keep", "isolate"])
+async def test_pdf_page_checkpoints_are_reused_on_resume(tmp_path, running_text):
     """PDF 解析中断后按页恢复：父运行的页检查点复用到子运行，块结果保持一致。"""
     path = tmp_path / "requirements.pdf"
     with pymupdf.open() as document:
         for index in range(3):
             page = document.new_page()
+            page.insert_text((40, 30), f"Header {index + 1}", fontsize=11)
             page.insert_text(
-                (40, 40),
+                (40, 140),
                 f"第{index + 1}页：批量操作每次最多选择300个对象，数量为整数；"
                 "超过300个时拒绝执行。",
                 fontsize=11,
@@ -357,6 +359,8 @@ async def test_pdf_page_checkpoints_are_reused_on_resume(tmp_path):
             "project": {"workdir": str(tmp_path / "work")},
             "storage": {"database": str(tmp_path / "data.sqlite")},
             "chunking": {"token_counter": "character_approx"},
+            "parsing": {"pdf_running_text": running_text},
+            "runtime": {"max_context_tokens": 20000},  # 字符粗估包含六个块的定位和 Schema。
             "planning": {"methods": ["boundary"]},
             "models": {
                 "embedding": {
@@ -409,9 +413,12 @@ async def test_pdf_page_checkpoints_are_reused_on_resume(tmp_path):
                 raise RuntimeError("flaky-parse")
             return self.session.parse_page(index, state)
 
+        def finalize(self, blocks):
+            return self.session.finalize(blocks)
+
     from tc_rag.infrastructure.parsing.pdf import PdfParser
 
-    pipeline.parser = lambda suffix: FlakyPdf(PdfParser(pipeline.store))
+    pipeline.parser = lambda suffix: FlakyPdf(PdfParser(pipeline.store, running_text=running_text))
     with pytest.raises(RuntimeError, match="flaky-parse"):
         await pipeline.points(path, "生成测试点", tmp_path / "out", run_id="run_parent")
     # 中断发生在解析阶段，父运行没有 chunk 快照，但已完成页已有检查点。
@@ -419,7 +426,7 @@ async def test_pdf_page_checkpoints_are_reused_on_resume(tmp_path):
     first_page = pipeline.repository.get("stage_snapshots", "run_parent:pdf_page:1", StageSnapshot)
     assert first_page is not None
 
-    pipeline.parser = lambda suffix: PdfParser(pipeline.store)
+    pipeline.parser = lambda suffix: PdfParser(pipeline.store, running_text=running_text)
     await pipeline.points(
         path,
         "生成测试点",
@@ -435,6 +442,8 @@ async def test_pdf_page_checkpoints_are_reused_on_resume(tmp_path):
     child_third = pipeline.repository.get("stage_snapshots", "run_child:pdf_page:3", StageSnapshot)
     assert child_first is not None and child_first.payload == first_page.payload
     assert child_third is not None
+    expected_other = 3 if running_text == "isolate" else 0
+    assert sum(b["kind"] == "other" for b in child_blocks) == expected_other
 
 
 @pytest.mark.asyncio

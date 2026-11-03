@@ -74,10 +74,10 @@ P0 的配置、领域和计时仍是当前实现基础，CLI 使用说明以当�
 | 1.3 PDF | PDF 资产 → 页码坐标块；`infrastructure/parsing/pdf.py` | 文字/表格去重、图片定位、扫描页报告、加密/损坏文件失败 |
 | 1.4 清洗与分块 | Block → Chunk 和来源区间；`application/services/chunking.py` | 否定词/条件/例外保留、超长片段报告、引文回查 |
 | 1.5 模型运行底座 | 结构请求 → 校验结果及调用记录；`infrastructure/providers/openai_sdk.py` | 完整输入预算、超时、重试/修复上限、鉴权失败、usage 未知值 |
-| 1.6 功能与规则 | Chunk → 功能/规则/引文；`application/services/design.py` 与 Pipeline | 引文属于输入、引用闭包、重复归并与冲突；语义需人工审核 |
-| 1.7 测试点设计 | 规则 → 测试意图；`application/services/design.py` | 整数上限 300 的边界为 299/300/301；未知精度/权限不编造 |
+| 1.6 功能与规则 | Chunk → 功能/规则/引文；`application/services/design/extraction.py`、`constraints.py` 与 Pipeline | 引文属于输入、引用闭包、重复归并与冲突；语义需人工审核 |
+| 1.7 测试点设计 | 规则 → 测试意图；`application/services/design/planning.py`、`ui_display.py` | 整数上限 300 的边界为 299/300/301；未知精度/权限不编造 |
 | 1.8 用例生成 | 审核点与 RAG 上下文 → 用例步骤；`application/orchestration/pipeline.py` | 每步动作/预期与证据引用；Skill 不能覆盖业务依据 |
-| 1.9 校验与覆盖 | 用例 → 关联矩阵和 Issue；`application/services/design.py` | 无依据预期、无效引用、重复、未覆盖规则；自动关联不等于正确率 |
+| 1.9 校验与覆盖 | 用例 → 关联矩阵和 Issue；`application/services/design/case_validation.py` | 无依据预期、无效引用、重复、未覆盖规则；自动关联不等于正确率 |
 | 1.10 脑图与导出 | 全部测试点 → XMind 目录；实际用例 → Excel/报告 | 两份文件同批同目录、无步骤进入脑图、覆盖和缺漏可追溯；可选章节视图仍保留状态/维度/功能 |
 | 1.11 编排与恢复 | 阶段快照 → 一次连续运行；`application/orchestration/pipeline.py` | 规划与生成均检索；Skill 仅约束表达；有限恢复保持输入/配置一致 |
 

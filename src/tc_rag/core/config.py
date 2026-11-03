@@ -31,12 +31,26 @@ class Chunking(Section):
     target_tokens: int = Field(default=900, gt=0)  # 默认值+约束
     overlap_tokens: int = Field(default=100, ge=0)
     token_counter: Literal["tiktoken_approx", "character_approx"] = "tiktoken_approx"
+    attach_headings: bool = False  # 显式开启标题与下文合并，默认保持旧分块
+    min_tokens: int = Field(default=0, ge=0)
+    split_long_paragraphs: bool = False
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        for key, default in (("attach_headings", False), ("min_tokens", 0),
+                             ("split_long_paragraphs", False)):
+            if getattr(self, key) == default:
+                data.pop(key, None)
+        return data
 
     # model_validator(mode="after"): 单字段约束表达不了"两者的关系"，需整对象构建后再校验
     @model_validator(mode="after")
     def check_overlap(self) -> "Chunking":
         if self.overlap_tokens >= self.target_tokens:
             raise ValueError("overlap_tokens must be less than target_tokens")
+        if self.min_tokens >= self.target_tokens:
+            raise ValueError("min_tokens must be less than target_tokens")
         return self
 
 
@@ -62,9 +76,28 @@ class Endpoint(Section):
     batch_size: int = Field(default=16, gt=0)
     enabled: bool = True
     supports_images: bool = False  # 开启视觉前必须由部署方明确声明能力
+    supports_json_object: bool = False  # 视觉端点显式声明支持 JSON Object，默认不发送
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if not self.supports_json_object:
+            data.pop("supports_json_object", None)
+        return data
 
 
 class Models(Section):
+    @model_validator(mode="before")
+    @classmethod
+    def review_defaults(cls, value: Any) -> Any:
+        # 部分配置也必须默认关闭，不能落入通用 Endpoint.enabled=True。
+        if isinstance(value, dict) and isinstance(value.get("vision_review"), dict):
+            return {**value, "vision_review": {
+                "enabled": False, "api_key_env": "TC_RAG_VISION_REVIEW_API_KEY",
+                **value["vision_review"],
+            }}
+        return value
+
     # 各端点必须用 default_factory 生成独立实例，否则会共享同一可变默认值（pydantic 可变默认陷阱）
     # vision/rerank 默认 disabled：这两类能力是 P2 才启用，P1 不参与主线
     llm: Endpoint = Field(default_factory=lambda: Endpoint(api_key_env="TC_RAG_LLM_API_KEY"))
@@ -74,11 +107,21 @@ class Models(Section):
     vision: Endpoint = Field(
         default_factory=lambda: Endpoint(enabled=False, api_key_env="TC_RAG_VISION_API_KEY")
     )
+    vision_review: Endpoint = Field(default_factory=lambda: Endpoint(
+        enabled=False, api_key_env="TC_RAG_VISION_REVIEW_API_KEY"
+    ))
     rerank: Endpoint = Field(
         default_factory=lambda: Endpoint(
             enabled=False, adapter="http", api_key_env="TC_RAG_RERANK_API_KEY"
         )
     )
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if not self.vision_review.enabled:
+            data.pop("vision_review", None)
+        return data
 
 
 class Retrieval(Section):
@@ -129,10 +172,23 @@ class VisionProcessing(Section):
     tile_edge: int = Field(default=1536, ge=512, le=4096)
     tile_overlap: int = Field(default=192, ge=0)
     max_tiles: int = Field(default=16, ge=0, le=64)
-    detail: Literal["auto", "high", "low"] = "high"
+    detail: Literal["auto", "high", "low"] | None = "high"
     context_blocks: int = Field(default=2, ge=0, le=8)
     context_chars: int = Field(default=6000, ge=0, le=24000)
-    verify: bool = True
+    verify: bool | Literal["auto"] = True
+    verify_failure: Literal["fail", "keep_draft"] = "fail"
+    min_edge: int = Field(default=64, ge=0, le=4096)
+    auto_fact_threshold: int = Field(default=20, ge=1)
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        # 新字段默认不进入快照及预处理身份，避免使既有视觉缓存全部失效。
+        for key, default in (("verify_failure", "fail"), ("min_edge", 64),
+                             ("auto_fact_threshold", 20)):
+            if getattr(self, key) == default:
+                data.pop(key, None)
+        return data
 
     @model_validator(mode="after")
     def valid_overlap(self) -> "VisionProcessing":
@@ -149,6 +205,8 @@ class Parsing(Section):
     vision: VisionProcessing = Field(default_factory=VisionProcessing)
     # 非标准 Word 标题的保守推断；关闭时保持既有标题样式识别和分块行为。
     infer_docx_headings: bool = False
+    docx_extended: bool = False
+    pdf_running_text: Literal["keep", "isolate"] = "keep"
 
     @model_serializer(mode="wrap")
     def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
@@ -156,6 +214,10 @@ class Parsing(Section):
         # 新能力默认关闭时不改变旧快照的形状，既有运行仍可用原配置续跑。
         if not self.infer_docx_headings:
             data.pop("infer_docx_headings", None)
+        if not self.docx_extended:
+            data.pop("docx_extended", None)
+        if self.pdf_running_text == "keep":
+            data.pop("pdf_running_text", None)
         return data
 
 
@@ -319,11 +381,11 @@ def load_config(
                 nested = {part: nested}
             _merge(data, nested)
     # 扁平式环境变量覆盖：TC_RAG_LLM_BASE_URL/... 直接映射到 models.<role>.<field>
-    for role in ("llm", "embedding", "vision", "rerank"):
+    for role in ("llm", "embedding", "vision", "vision_review", "rerank"):
         for field in ("base_url", "model"):
             key = f"TC_RAG_{role.upper()}_{field.upper()}"
             if key in env:
-                data["models"][role][field] = env[key]
+                data["models"].setdefault(role, {})[field] = env[key]
     # CLI 参数最后覆盖，优先级最高
     _merge(data, cli_overrides or {})
     # 展开 ${VAR} 必须放在 CLI 覆盖之后：CLI 可用真实值替换掉 defaults 里未填的占位，从而避免报缺失
