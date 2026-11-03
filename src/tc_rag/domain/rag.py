@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from tc_rag.domain.models import Asset, DomainModel, EvidenceSpan
+from tc_rag.domain.vision import VisionAudit
 
 
 class SpacePayload(DomainModel):
@@ -76,6 +77,7 @@ class VisionPayload(DomainModel):
     text: str = Field(min_length=1)
     model: str = Field(min_length=1)
     version: str = Field(min_length=1)
+    details: VisionAudit | None = None
 
 
 class RagRecord(DomainModel):

@@ -156,6 +156,8 @@ class VisionResult:
     text: str
     model: str
     version: str
+    # 结构化解释、视图区间与核对状态；存入既有 JSON 缓存，不新增数据库列。
+    details: dict[str, Any] | None = None
 
 
 class DocumentParser(Protocol):

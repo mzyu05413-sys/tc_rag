@@ -122,11 +122,31 @@ class Storage(Section):
     database: str = "./workdir/data.sqlite"
 
 
+class VisionProcessing(Section):
+    """只控制图片解释质量，不改变生成、embedding 或检索配置。"""
+
+    max_edge: int = Field(default=2048, ge=512, le=4096)
+    tile_edge: int = Field(default=1536, ge=512, le=4096)
+    tile_overlap: int = Field(default=192, ge=0)
+    max_tiles: int = Field(default=16, ge=0, le=64)
+    detail: Literal["auto", "high", "low"] = "high"
+    context_blocks: int = Field(default=2, ge=0, le=8)
+    context_chars: int = Field(default=6000, ge=0, le=24000)
+    verify: bool = True
+
+    @model_validator(mode="after")
+    def valid_overlap(self) -> "VisionProcessing":
+        if self.tile_overlap >= self.tile_edge // 2:
+            raise ValueError("图片重叠必须小于局部图边长的一半")
+        return self
+
+
 class Parsing(Section):
     formats: list[Literal["pdf", "docx"]] = ["pdf", "docx"]
     # 保留既有配置与快照字段；扫描页仅报告未解析，不再提供独立识别路线。
     scan_policy: Literal["report_unsupported"] = "report_unsupported"
     vision_enabled: bool = False
+    vision: VisionProcessing = Field(default_factory=VisionProcessing)
     # 非标准 Word 标题的保守推断；关闭时保持既有标题样式识别和分块行为。
     infer_docx_headings: bool = False
 

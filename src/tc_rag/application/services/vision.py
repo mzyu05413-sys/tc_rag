@@ -7,6 +7,7 @@ from tc_rag.application.ports.contracts import ArtifactStore, Repository, Vision
 from tc_rag.application.ports.errors import VisionReadError
 from tc_rag.application.progress import ProgressEvent, ProgressReporter, report
 from tc_rag.application.services.design import issue
+from tc_rag.application.services.vision_content import image_context
 from tc_rag.domain.identity import fingerprint
 from tc_rag.domain.models import Asset, DocumentBlock, Issue
 from tc_rag.domain.rag import RagRecord
@@ -22,6 +23,8 @@ class VisionEvidenceService:
         cache_enabled: bool = True,
         *,
         concurrency: int = 4,
+        context_blocks: int = 0,
+        context_chars: int = 6000,
     ):
         self.repository, self.store, self.reader, self.identity = (
             repository,
@@ -33,6 +36,7 @@ class VisionEvidenceService:
         if concurrency <= 0:
             raise ValueError("图片工作协程数必须为正数")
         self.concurrency = concurrency
+        self.context_blocks, self.context_chars = context_blocks, context_chars
         self.progress: ProgressReporter | None = None
 
     async def process(self, blocks: list[DocumentBlock]) -> tuple[list[DocumentBlock], list[Issue]]:
@@ -43,7 +47,9 @@ class VisionEvidenceService:
 
         completed = failed = cached_count = 0
 
-        async def describe(block: DocumentBlock) -> tuple[DocumentBlock | None, Issue | None]:
+        async def describe(
+            block: DocumentBlock, position: int
+        ) -> tuple[DocumentBlock | None, Issue | None]:
             nonlocal completed, failed, cached_count
             error = None
             derived: DocumentBlock | None = None
@@ -52,6 +58,10 @@ class VisionEvidenceService:
                 asset = Asset.model_validate_json(block.content)
                 content = self.store.read(asset)
                 context = " / ".join(block.heading_path) or "需求文档图片"
+                if self.context_blocks:
+                    context = image_context(
+                        blocks, position, self.context_blocks, self.context_chars
+                    )
                 key = "vision_" + fingerprint([asset.checksum, self.identity, context])
                 cached = (
                     self.repository.get("rag_records", key, RagRecord)
@@ -70,7 +80,11 @@ class VisionEvidenceService:
                         "model": description.model,
                         "version": description.version,
                     }
-                    if self.cache_enabled:
+                    if description.details is not None:
+                        data["details"] = description.details
+                    # 关闭缓存只禁止复用；新版结构化审计仍需落库，才能核查识别质量。
+                    # 旧端口没有审计数据时，保持原来的缓存开关语义。
+                    if self.cache_enabled or description.details is not None:
                         self.repository.save(
                             "rag_records",
                             key,
@@ -106,11 +120,12 @@ class VisionEvidenceService:
         # 在应用层限制整个图片任务，而不只限制适配器里的 HTTP。
         # 避免一次读入、解码全部图片，挤占内存并阻塞其他请求的响应处理。
         outcomes: list[tuple[DocumentBlock | None, Issue | None]] = [(None, None)] * total
-        pending = iter(enumerate(image_blocks))
+        positions = [position for position, block in enumerate(blocks) if block.kind == "image"]
+        pending = iter(enumerate(positions))
 
         async def worker() -> None:
-            for index, block in pending:
-                outcomes[index] = await describe(block)
+            for index, position in pending:
+                outcomes[index] = await describe(blocks[position], position)
 
         workers = [asyncio.create_task(worker()) for _ in range(min(self.concurrency, total))]
         try:

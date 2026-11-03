@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import io
+import json
 import re
 from collections.abc import Callable
 from math import isfinite
@@ -16,9 +17,12 @@ from PIL import Image, ImageOps
 from tc_rag.application.ports.contracts import VisionResult
 from tc_rag.application.ports.errors import VisionReadError
 from tc_rag.application.progress import ProgressEvent, ProgressReporter, report
-from tc_rag.core.config import Endpoint, Runtime, resolve_api_key
+from tc_rag.application.services.vision_content import render_description
+from tc_rag.core.config import Endpoint, Runtime, VisionProcessing, resolve_api_key
 from tc_rag.domain.identity import new_id
 from tc_rag.domain.models import ModelInvocation, Timing, Usage
+from tc_rag.domain.vision import VisionDescription
+from tc_rag.infrastructure.providers.vision_images import ImageView, prepare_views
 
 
 class OpenAICompatVision:
@@ -50,6 +54,9 @@ class OpenAICompatVision:
         record: Callable[[ModelInvocation], None],
         prompt: str,
         client: AsyncOpenAI | None = None,
+        *,
+        processing: VisionProcessing | None = None,
+        review_prompt: str = "",
     ):
         if (
             not endpoint.enabled
@@ -61,6 +68,8 @@ class OpenAICompatVision:
             raise ValueError("vision 需要声明 supports_images 并配置兼容 Chat 模型")
         if "@" in endpoint.base_url or "?" in endpoint.base_url:
             raise ValueError("vision 端点不可包含凭据或查询参数")
+        if processing is not None and processing.verify and not review_prompt.strip():
+            raise ValueError("视觉复核需要独立版本的核对提示词")
         key = resolve_api_key(endpoint)
         if client is None and not key:
             raise ValueError("vision 缺少 api_key 或有效的密钥环境变量")
@@ -72,6 +81,9 @@ class OpenAICompatVision:
         )
         self.endpoint, self.runtime, self.run_id, self.record = endpoint, runtime, run_id, record
         self.prompt = prompt
+        self.processing, self.review_prompt = processing, review_prompt
+        if processing is not None:
+            self.preprocessing = {"version": "v2", "format": "PNG", **processing.model_dump()}
         self.admit: Callable[[], None] | None = None
         self.progress: ProgressReporter | None = None
         self.calls = 0
@@ -131,12 +143,87 @@ class OpenAICompatVision:
     async def read(self, image: bytes, context: str) -> VisionResult:
         if self._blocked_error:
             raise VisionReadError(self._blocked_error)
+        if self.processing is not None:
+            return await self._read_quality(image, context)
+        # 兼容旧端口调用；正式装配显式传入 v2 处理配置。
         # Pillow 自带像素炸弹检查；转换后只发送像素，不携带原文件元数据。
         with Image.open(io.BytesIO(image)) as original:
             converted = ImageOps.exif_transpose(original).convert("RGB")
             converted.thumbnail((1600, 1600))
             buffer = io.BytesIO()
             converted.save(buffer, format="PNG", optimize=True)
+        text = await self._request(self.prompt, [
+            {"type": "text", "text": context},
+            {"type": "image_url", "image_url": {
+                "url": "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
+            }},
+        ])
+        return VisionResult(text, self.endpoint.model, "vision/v1")
+
+    async def _read_quality(self, image: bytes, context: str) -> VisionResult:
+        options = self.processing
+        assert options is not None
+        views = await asyncio.to_thread(prepare_views, image, options)
+        try:
+            supplied = json.loads(context)
+        except ValueError:
+            supplied = {"heading_path": [context], "neighbors": []}
+        if not isinstance(supplied, dict):
+            raise VisionReadError("INVALID_CONTEXT")
+        contexts = {item["context_id"] for item in supplied.get("neighbors", [])}
+        request = {
+            "document_context": supplied,
+            "views": [view.metadata() for view in views],
+            "output_schema": VisionDescription.model_json_schema(),
+        }
+
+        def content(payload: dict[str, Any]) -> list[dict[str, Any]]:
+            # 总览与局部图在同一次请求中提供，不通过多次独立描述拼接业务逻辑。
+            parts: list[dict[str, Any]] = [
+                {"type": "text", "text": json.dumps(payload, ensure_ascii=False)}
+            ]
+            for view in views:
+                parts.append({"type": "text", "text": json.dumps(view.metadata())})
+                parts.append({"type": "image_url", "image_url": {
+                    "url": "data:image/png;base64," + base64.b64encode(view.png).decode(),
+                    "detail": options.detail,
+                }})
+            return parts
+
+        draft = await self._request(self.prompt, content(request))
+        try:
+            parsed = self._parse(draft, views, contexts)
+            draft_valid = True
+        except ValueError:
+            parsed, draft_valid = None, False
+        if options.verify:
+            # 复核重新查看同一组图片；JSON 不合法也走同一有界复核，不无限修复。
+            if len(draft) > 100_000:
+                raise VisionReadError("OUTPUT_TOO_LARGE")
+            checked = await self._request(
+                self.review_prompt, content({**request, "draft": draft, "draft_valid": draft_valid})
+            )
+            try:
+                parsed = self._parse(checked, views, contexts)
+            except ValueError:
+                raise VisionReadError("INVALID_VISUAL_STRUCTURE") from None
+        if parsed is None:
+            raise VisionReadError("INVALID_VISUAL_STRUCTURE")
+        return VisionResult(
+            render_description(parsed), self.endpoint.model, "vision/v2",
+            {"description": parsed.model_dump(mode="json"), "draft": draft,
+             "draft_valid": draft_valid, "model_verified": options.verify,
+             "human_verified": False, "context": supplied,
+             "views": [view.metadata() for view in views]},
+        )
+
+    @staticmethod
+    def _parse(raw: str, views: list[ImageView], contexts: set[str]) -> VisionDescription:
+        description = VisionDescription.model_validate_json(raw)
+        description.check_references({view.view_id for view in views}, contexts)
+        return description
+
+    async def _request(self, prompt: str, content: list[dict[str, Any]]) -> str:
         if self.runtime.budget.max_cost is not None:
             raise ValueError("未配置价格表，不能执行金额预算")
         async with self.semaphore:
@@ -160,25 +247,13 @@ class OpenAICompatVision:
                         options["max_tokens"] = self.endpoint.max_output_tokens
                     if self.endpoint.thinking_mode != "default":
                         options["extra_body"] = {"thinking": {"type": self.endpoint.thinking_mode}}
+                    options["messages"] = [
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": content},
+                    ]
                     response = await asyncio.wait_for(
                         self.client.chat.completions.create(
                             model=self.endpoint.model,
-                            messages=[
-                                {"role": "system", "content": self.prompt},
-                                {
-                                    "role": "user",
-                                    "content": [
-                                        {"type": "text", "text": context},
-                                        {
-                                            "type": "image_url",
-                                            "image_url": {
-                                                "url": "data:image/png;base64,"
-                                                + base64.b64encode(buffer.getvalue()).decode()
-                                            },
-                                        },
-                                    ],
-                                },
-                            ],
                             **options,
                         ),
                         self.runtime.request_timeout_seconds,
@@ -193,9 +268,13 @@ class OpenAICompatVision:
                     if not response.choices:
                         raise VisionReadError("EMPTY_RESPONSE")
                     choice = response.choices[0]
-                    if choice.finish_reason != "stop" or not choice.message.content:
+                    if (
+                        choice.finish_reason != "stop"
+                        or not isinstance(choice.message.content, str)
+                        or not choice.message.content.strip()
+                    ):
                         raise VisionReadError("INCOMPLETE_OUTPUT")
-                    return VisionResult(choice.message.content, self.endpoint.model, "vision/v1")
+                    return choice.message.content
                 except APIStatusError as exc:
                     error = self._status_code(exc)
                     business = error.removeprefix("HTTP_429_BIGMODEL_")

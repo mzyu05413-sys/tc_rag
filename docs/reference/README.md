@@ -6,6 +6,7 @@
 - [领域契约](contracts.md)：字段、来源、状态、引用、审核和向量记录约定。
 - [计时与指标](timing.md)：装饰器、并发统计及实际阶段/检索耗时口径。
 - [提示词版本](prompt_versions.md)：提炼、检索增强、生成、视觉提示词及审计约束。
+- [图片转文字质量与独立验收](vision_quality.md)：原像素局部图、邻近正文、视觉复核及仅视觉对照页面；默认不调用模型。
 - [五页 Draw.io 架构图](../diagrams/tc_rag_architecture_atlas.drawio)及[核对记录](../reviews/architecture_atlas_review.md)：按当前全量测试点与诊断契约校正的原生图。
 - [2026-10-31 更新采纳与故障修复](../reviews/main_updates_20261031.md)：改动文件、离线验证及审核重点。
 

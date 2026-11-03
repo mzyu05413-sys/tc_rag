@@ -88,9 +88,13 @@ def format_duration(seconds: float) -> str:
 
 
 class TerminalProgress:
-    def __init__(self, *, interval: float = 20, stage_total: int | None = None) -> None:
+    def __init__(
+        self, *, interval: float = 20, stage_total: int | None = None,
+        flow_label: str | None = None,
+    ) -> None:
         self.interval = interval
         self.stage_total = stage_total
+        self.flow_label = flow_label
         self.stage = ""
         self.started = perf_counter()
         self.stage_started = self.started
@@ -323,9 +327,11 @@ class TerminalProgress:
         with suppress(Exception):
             typer.echo(
                 _style(
+                    self.flow_label or (
                     "[流程] 接入 → 图文解析 → 分块 → 规则提炼 → 索引 → RAG 测试点规划"
                     " → RAG + Skill 用例生成 → 校验 → 联合导出\n"
-                    "       编号按本次实际执行顺序显示；图片解释按配置和图片数量执行。",
+                    "       编号按本次实际执行顺序显示；图片解释按配置和图片数量执行。"
+                    ),
                     "1",
                 ),
                 err=True,

@@ -9,7 +9,9 @@ import pytest
 from tc_rag.bootstrap import PROMPT_VERSIONS, load_prompts
 from tc_rag.domain.models import BusinessEntity, Issue, RequirementRule, TestPoint
 
-STAGES = ("extract", "plan_points", "generate", "rag_context", "vision", "case_skill")
+STAGES = (
+    "extract", "plan_points", "generate", "rag_context", "vision", "vision_verify", "case_skill"
+)
 REPO_PROMPTS = Path(__file__).resolve().parents[2] / "prompts"
 
 

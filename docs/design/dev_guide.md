@@ -95,7 +95,7 @@ P0 的配置、领域和计时仍是当前实现基础，CLI 使用说明以当�
 | 2.4 范围检索 | `infrastructure/retrieval/context.py`、`keyword.py` | 当前文档范围；每批查询可追溯；关键词/RRF 分数独立记录 |
 | 2.5 重排 | `infrastructure/providers/rerank.py` | 候选集合和顺序合法；HTTP 失败记录降级；未启用时不请求 |
 | 2.6 检索增强 | `application/orchestration/pipeline.py`、`prompts/rag_context/` | 规划和生成都检索；保留核心依据；补充裁剪可审计；检索故障停止 |
-| 2.7 图片证据 | `infrastructure/providers/vision.py`、`application/services/vision.py` | 图文分离、图片解释、来源/模型/不确定性、未解析范围、缓存与预算 |
+| 2.7 图片证据 | `infrastructure/providers/vision.py`、`application/services/vision.py` | 图文分离、多视图与邻近正文、结构化解释与视觉复核、来源/不确定性、缓存与预算；`vision` 独立离线/显式真实验收，语义质量待核实 |
 | 2.8 Excel | `infrastructure/exporters/reports.py` | 十一列模板、步骤/预期对齐、可配置映射、用例追溯/质量说明与人工客户端验收 |
 | 2.9 评估 | `application/services/evaluation.py`、CLI `evaluate` | 人工语义匹配与相关性标注；缺标注为 null；自动与人工指标分开 |
 

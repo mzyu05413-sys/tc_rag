@@ -41,7 +41,8 @@ where = ["src"]
 "share/tc_rag/prompts/case_skill" = ["prompts/case_skill/v1.md"]
 "share/tc_rag/prompts/plan_points" = ["prompts/plan_points/v1.md", "prompts/plan_points/v2.md"]
 "share/tc_rag/prompts/rag_context" = ["prompts/rag_context/v1.md"]
-"share/tc_rag/prompts/vision" = ["prompts/vision/v1.md"]
+"share/tc_rag/prompts/vision" = ["prompts/vision/v1.md", "prompts/vision/v2.md"]
+"share/tc_rag/prompts/vision_verify" = ["prompts/vision_verify/v1.md"]
 
 # pytest初始化配置
 [tool.pytest.ini_options]

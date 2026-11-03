@@ -2,17 +2,26 @@
 
 import importlib.util
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from tc_rag.application.ports.contracts import Embedder, Reranker, StructuredLLM
+from tc_rag.application.ports.contracts import (
+    ArtifactStore,
+    Embedder,
+    Repository,
+    Reranker,
+    StructuredLLM,
+)
 from tc_rag.application.ports.errors import StartupConfigurationError
 from tc_rag.core.config import AppConfig, resolve_api_key
 from tc_rag.infrastructure.providers.fakes import FakeEmbedder, FakeLLM
 
 if TYPE_CHECKING:
     from tc_rag.application.orchestration.pipeline import Pipeline
+    from tc_rag.application.services.vision import VisionEvidenceService
+    from tc_rag.domain.models import ModelInvocation
 
 
 @dataclass
@@ -75,13 +84,16 @@ def validate_runtime_config(
             )
 
 
-PROMPT_STAGES = ("extract", "plan_points", "generate", "rag_context", "vision", "case_skill")
+PROMPT_STAGES = (
+    "extract", "plan_points", "generate", "rag_context", "vision", "vision_verify", "case_skill"
+)
 PROMPT_VERSIONS = {
     "extract": "v2",
     "plan_points": "v2",
     "generate": "v2",
     "rag_context": "v1",
-    "vision": "v1",
+    "vision": "v2",
+    "vision_verify": "v1",
     "case_skill": "v1",
 }
 
@@ -96,6 +108,55 @@ def load_prompts(prompt_root: Path) -> tuple[dict[str, str], dict[str, str]]:
         prompts[stage] = path.read_text(encoding="utf-8")
         versions[stage] = chosen
     return prompts, versions
+
+
+def resolve_prompt_root() -> Path:
+    """源码与安装包使用同一套已发布视觉资源。"""
+    root = Path(__file__).resolve().parents[2] / "prompts"
+    if root.exists():
+        return root
+    target = Path(__file__).resolve().parents[1] / "share" / "tc_rag" / "prompts"
+    return target if target.exists() else Path(sys.prefix) / "share" / "tc_rag" / "prompts"
+
+
+def build_vision_service(
+    config: AppConfig,
+    repository: Repository,
+    store: ArtifactStore,
+    run_id: str,
+    record: Callable[["ModelInvocation"], None],
+    prompts: dict[str, str],
+    *,
+    admit: Callable[[], None] | None = None,
+) -> "VisionEvidenceService":
+    """正式流程与仅视觉验收共用装配，不初始化生成或向量模型。"""
+    from tc_rag.application.services.vision import VisionEvidenceService
+    from tc_rag.domain.identity import fingerprint
+    from tc_rag.infrastructure.providers.vision import OpenAICompatVision
+
+    options = config.parsing.vision
+    vision = OpenAICompatVision(
+        config.models.vision, config.runtime, run_id, record, prompts["vision"],
+        processing=options, review_prompt=prompts["vision_verify"],
+    )
+    vision.admit = admit
+    identity: dict[str, object] = {
+        "endpoint": config.models.vision.base_url,
+        "model": config.models.vision.model,
+        "prompt_version": "vision/" + PROMPT_VERSIONS["vision"],
+        "prompt_fingerprint": fingerprint(prompts["vision"]),
+        "review_prompt_fingerprint": fingerprint(prompts["vision_verify"]),
+        "preprocessing": vision.preprocessing,
+    }
+    if config.models.vision.max_output_tokens is not None:
+        identity["max_output_tokens"] = config.models.vision.max_output_tokens
+    if config.models.vision.thinking_mode != "default":
+        identity["thinking_mode"] = config.models.vision.thinking_mode
+    return VisionEvidenceService(
+        repository, store, vision, identity, cache_enabled=config.runtime.cache_enabled,
+        concurrency=config.models.vision.concurrency,
+        context_blocks=options.context_blocks, context_chars=options.context_chars,
+    )
 
 
 def build_pipeline(
@@ -121,15 +182,7 @@ def build_pipeline(
     validate_runtime_config(config, llm, embedder, reranker)
     repository = SqliteRepository(config.storage.database)
     store = LocalArtifactStore(Path(config.project.workdir))
-    prompt_root = Path(__file__).resolve().parents[2] / "prompts"
-    if not prompt_root.exists():
-        # 同时支持常规虚拟环境安装和 pip --target 安装。
-        target_root = Path(__file__).resolve().parents[1] / "share" / "tc_rag" / "prompts"
-        prompt_root = (
-            target_root
-            if target_root.exists()
-            else Path(sys.prefix) / "share" / "tc_rag" / "prompts"
-        )
+    prompt_root = resolve_prompt_root()
     prompts, prompt_versions = load_prompts(prompt_root)
     # 规划和生成共用 RAG 证据约束，检索结果不能覆盖原文事实。
     for stage in ("plan_points", "generate"):
@@ -253,32 +306,7 @@ def build_pipeline(
         prompt_versions=prompt_versions,
     )
     if config.parsing.vision_enabled:
-        from tc_rag.application.services.vision import VisionEvidenceService
-        from tc_rag.domain.identity import fingerprint
-        from tc_rag.infrastructure.providers.vision import OpenAICompatVision
-
-        vision = OpenAICompatVision(
-            config.models.vision, config.runtime, run_id, record, prompts["vision"]
-        )
-        vision.admit = admit
-        vision_identity: dict[str, object] = {
-            "endpoint": config.models.vision.base_url,
-            "model": config.models.vision.model,
-            "prompt_version": "vision/v1",
-            "prompt_fingerprint": fingerprint(prompts["vision"]),
-            "preprocessing": vision.preprocessing,
-        }
-        # 未改变请求参数时沿用已有图片缓存；显式修改输出/思考参数才更新缓存标识。
-        if config.models.vision.max_output_tokens is not None:
-            vision_identity["max_output_tokens"] = config.models.vision.max_output_tokens
-        if config.models.vision.thinking_mode != "default":
-            vision_identity["thinking_mode"] = config.models.vision.thinking_mode
-        pipeline.vision = VisionEvidenceService(
-            repository,
-            store,
-            vision,
-            vision_identity,
-            cache_enabled=config.runtime.cache_enabled,
-            concurrency=config.models.vision.concurrency,
+        pipeline.vision = build_vision_service(
+            config, repository, store, run_id, record, prompts, admit=admit,
         )
     return pipeline
