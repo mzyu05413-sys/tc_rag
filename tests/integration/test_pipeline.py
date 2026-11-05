@@ -119,6 +119,93 @@ def setup(tmp_path):
     return pipeline, document, config_file, model
 
 
+@pytest.mark.asyncio
+async def test_v2_neighbor_background_reaches_fake_pipeline_without_expanding_sources(tmp_path):
+    from tc_rag.application.services.chunking import structural_chunks
+
+    class RecordingLLM(FixtureLLM):
+        def __init__(self):
+            super().__init__()
+            self.extractions = []
+
+        async def generate(self, request, output_schema):
+            if request["stage"] == "extract":
+                self.extractions.append(request)
+            return await super().generate(request, output_schema)
+
+    pipeline, doc, _, _ = setup(tmp_path)
+    pipeline.config.chunking.strategy = "structural_v2"
+    pipeline.config.chunking.target_tokens = 20
+    pipeline.config.chunking.overlap_tokens = 0
+    pipeline.config.chunking.extraction_context_blocks = 1
+    pipeline.config.chunking.extraction_context_chars = 100
+    model = RecordingLLM()
+    pipeline = build_pipeline(pipeline.config, "run_context", model, FakeEmbedder())
+    assert pipeline.parser(".docx").table_headers is True
+    document = Document()
+    document.add_paragraph("最多300个，数量为整数。")
+    document.add_paragraph("总量最多300个，数量为整数。")
+    document.save(doc)
+    result = await pipeline.generate(doc, "生成边界用例", tmp_path / "out", run_id="run_context")
+    assert Path(result["excel"]).is_file() and Path(result["xmind"]).is_file()
+    assert len(model.extractions) == 2
+    for request in model.extractions:
+        allowed = {s["block_id"] for s in request["chunk"]["sources"]}
+        assert allowed == {b["block_id"] for b in request["document_blocks"]}
+        assert request["neighbor_context"]
+        assert all(b["block_id"] not in allowed for b in request["neighbor_context"])
+        assert "不能" in request["system"] and "neighbor_context" in request["system"]
+    saved = pipeline.read("run_context", "chunk")
+    blocks = [m.DocumentBlock.model_validate(b) for b in saved["blocks"]]
+    expected = structural_chunks(blocks, 20, 0, strategy="structural_v2")
+    assert saved["chunks"] == [c.model_dump(mode="json") for c in expected.chunks]
+    manifest = pipeline.manifest("run_context")
+    assert manifest["prompts"]["extract_context"]["version"] == "v2"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("outside", ["neighbor", "same_block_other_range"])
+async def test_neighbor_cannot_authorize_evidence_or_its_dependent_rule(
+    tmp_path, monkeypatch, outside,
+):
+    pipeline, _, _, _ = setup(tmp_path)
+    core = m.DocumentBlock(
+        block_id="core", document_id="doc", order=0, kind="paragraph",
+        content="当前规则。其他范围。", locator={},
+    )
+    chunk = m.Chunk(
+        chunk_id="chunk", text="当前规则。", token_estimate=5, fingerprint="fixture",
+        sources=[m.ChunkSource(block_id="core", start_char=0, end_char=5)],
+    )
+    candidate = Extraction.model_validate({
+        "evidence": [{
+            "evidence_id": "e", "block_id": "neighbor" if outside == "neighbor" else "core",
+            "quote": "其他范围。", "locator": {},
+        }],
+        "features": [{
+            "feature_id": "f", "name": "提交", "description": "", "evidence_ids": ["e"],
+        }],
+        "rules": [{
+            "rule_id": "r", "feature_id": "f", "kind": "other",
+            "statement": "其他范围。", "evidence_ids": ["e"],
+        }],
+    })
+
+    async def invalid_model(request, schema):
+        return ModelResult(output=candidate)
+
+    monkeypatch.setattr(pipeline, "_model", invalid_model)
+    checked = await pipeline._extract_chunk(chunk, [core], {
+        "neighbor_context": [], "neighbor_context_omitted": ["far_block"],
+    }, "run")
+    assert checked.evidence == checked.features == checked.rules == []
+    descriptions = [i.description for i in checked.issues]
+    assert any("邻文不能扩展" in text for text in descriptions)
+    assert any("功能引用了无效证据" in text for text in descriptions)
+    assert any("上下文预算不足" in i.description and i.object_ids == ["far_block"]
+               for i in checked.issues)
+
+
 def point_topics(path):
     with ZipFile(path) as archive:
         root = json.loads(archive.read("content.json"))[0]["rootTopic"]
@@ -447,7 +534,8 @@ async def test_pdf_page_checkpoints_are_reused_on_resume(tmp_path, running_text)
 
 
 @pytest.mark.asyncio
-async def test_later_oversized_chunk_is_rejected_before_any_model_call(tmp_path):
+@pytest.mark.parametrize("with_neighbors", [False, True])
+async def test_later_oversized_chunk_is_rejected_before_any_model_call(tmp_path, with_neighbors):
     """第一块可发送而后续块超限时，应整组预检失败，避免先产生无效消耗。"""
     from tc_rag.application.ports.errors import ContextBudgetError
 
@@ -458,6 +546,10 @@ async def test_later_oversized_chunk_is_rejected_before_any_model_call(tmp_path)
     document.save(doc)
     pipeline.config.chunking.target_tokens = 50
     pipeline.config.chunking.overlap_tokens = 0
+    if with_neighbors:
+        pipeline.config.chunking.extraction_context_blocks = 1
+        pipeline.config.chunking.strategy = "structural_v2"
+        pipeline = build_pipeline(pipeline.config, "run_precheck", model, FakeEmbedder())
     pipeline.max_context = 12000
 
     with pytest.raises(ContextBudgetError) as error:

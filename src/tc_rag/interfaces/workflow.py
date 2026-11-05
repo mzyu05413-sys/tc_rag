@@ -788,7 +788,9 @@ def estimate(
             ingest = ingest_document(doc, store, repo)
             parser = (
                 DocxParser(store, infer_headings=cfg.parsing.infer_docx_headings,
-                           **({"extended": True} if cfg.parsing.docx_extended else {}))
+                           **({"extended": True} if cfg.parsing.docx_extended else {}),
+                           **({"table_headers": True} if cfg.chunking.strategy == "structural_v2"
+                              else {}))
                 if doc.suffix.lower() == ".docx" else PdfParser(
                     store, running_text=cfg.parsing.pdf_running_text
                 )
@@ -802,6 +804,7 @@ def estimate(
                 attach_headings=cfg.chunking.attach_headings,
                 min_tokens=cfg.chunking.min_tokens,
                 split_long_paragraphs=cfg.chunking.split_long_paragraphs,
+                strategy=cfg.chunking.strategy,
             )
             typer.echo(
                 json.dumps(

@@ -37,6 +37,7 @@ where = ["src"]
 
 [tool.setuptools.data-files]
 "share/tc_rag/prompts/extract" = ["prompts/extract/v1.md", "prompts/extract/v2.md"]
+"share/tc_rag/prompts/extract_context" = ["prompts/extract_context/v1.md", "prompts/extract_context/v2.md"]
 "share/tc_rag/prompts/generate" = ["prompts/generate/v1.md", "prompts/generate/v2.md"]
 "share/tc_rag/prompts/case_skill" = ["prompts/case_skill/v1.md"]
 "share/tc_rag/prompts/plan_points" = ["prompts/plan_points/v1.md", "prompts/plan_points/v2.md"]

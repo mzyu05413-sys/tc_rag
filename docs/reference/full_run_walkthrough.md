@@ -106,6 +106,9 @@ Vision 仅处理已提取图片。缓存命中不重复请求，失败图片记�
 配置、数据位置与逐图验收见[图片转文字质量指南](vision_quality.md)，不执行后续 RAG 或生成。
 
 原始 Block 不被清洗结果覆盖。ChunkSource 保留 Block 内 `[start_char,end_char)` 区间；提炼只引用当前输入区间中的文字，heading_path 仅给章节范围。
+默认 `chunking.strategy=structural` 保留原有结构策略；可选 `structural_v2` 增加预算内完整尾句重叠、大表按行预分组和明确表头策略。超长段按句拆仍需 `split_long_paragraphs=true`。提炼邻文默认关闭，开启后单独作为背景输入，不扩大当前 Chunk 的引文范围；预算不足先移除背景。版本、表格风险、历史对照和回退见[第二批分块记录](../reviews/chunk_structure_v2_20261104.md)。这些开关不增加主流程阶段或恢复人工审批。
+分块参数可通过 `rag chunk-stats --compare` 的预算网格和抽样标注离线评估，原文覆盖与边界完整率分开呈现，尚未确认的标注不计分。命令及 36 组现成材料见[第三批评估说明](../reviews/chunk_evaluation_20261104.md)；不调用真实模型，不据此自动修改正式参数。
+第四批邻文窗口还覆盖同一原始 Block 的其他区间和 sources 内部空隙，作为背景输入并保持不可引用；可在 `extraction_context.md` 中分别核对正文与背景。正式请求仍会按 token 预算裁减背景，跨 Chunk 联合证据未实现，见[第四批说明及统一审核入口](../reviews/extraction_context_20261104.md)。
 程序核对 block_id、Locator、区间、最短引文及引用闭包；引文比对兼容受限的排版空白和全半角差异，不擅自改写需求含义。
 同功能、同来源及同约束的精确重复才保守归并，条件不同、冲突和缺漏保留为问题。
 

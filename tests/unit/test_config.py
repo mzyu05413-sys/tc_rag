@@ -1,7 +1,28 @@
 import pytest
 from pydantic import ValidationError
 
-from tc_rag.core.config import load_config, resolve_api_key
+from tc_rag.core.config import Chunking, load_config, resolve_api_key
+
+
+def test_chunk_v2_is_opt_in_and_default_snapshot_stays_compatible():
+    assert Chunking().model_dump() == {
+        "strategy": "structural", "target_tokens": 900, "overlap_tokens": 100,
+        "token_counter": "tiktoken_approx",
+    }
+    configured = Chunking(
+        strategy="structural_v2", extraction_context_blocks=2, extraction_context_chars=800
+    )
+    assert Chunking.model_validate_json(configured.model_dump_json()) == configured
+
+
+@pytest.mark.parametrize("value", [
+    {"strategy": "bytes"}, {"extraction_context_blocks": -1},
+    {"extraction_context_blocks": 5}, {"extraction_context_chars": -1},
+    {"extraction_context_chars": 12001},
+])
+def test_chunk_v2_rejects_unknown_strategy_and_unbounded_context(value):
+    with pytest.raises(ValidationError):
+        Chunking.model_validate(value)
 
 
 def test_priority_and_deep_merge(tmp_path):

@@ -27,19 +27,22 @@ class Section(BaseModel):
 class Chunking(Section):
     """分块参数"""
 
-    strategy: Literal["structural"] = "structural"  # 枚举限制输入
+    strategy: Literal["structural", "structural_v2"] = "structural"  # 显式启用新策略
     target_tokens: int = Field(default=900, gt=0)  # 默认值+约束
     overlap_tokens: int = Field(default=100, ge=0)
     token_counter: Literal["tiktoken_approx", "character_approx"] = "tiktoken_approx"
     attach_headings: bool = False  # 显式开启标题与下文合并，默认保持旧分块
     min_tokens: int = Field(default=0, ge=0)
     split_long_paragraphs: bool = False
+    extraction_context_blocks: int = Field(default=0, ge=0, le=4)
+    extraction_context_chars: int = Field(default=2000, ge=0, le=12000)
 
     @model_serializer(mode="wrap")
     def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         data: dict[str, Any] = handler(self)
         for key, default in (("attach_headings", False), ("min_tokens", 0),
-                             ("split_long_paragraphs", False)):
+                             ("split_long_paragraphs", False),
+                             ("extraction_context_blocks", 0), ("extraction_context_chars", 2000)):
             if getattr(self, key) == default:
                 data.pop(key, None)
         return data

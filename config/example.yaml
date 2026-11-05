@@ -26,13 +26,15 @@ parsing:
   pdf_running_text: keep             # isolate 为可选保守隔离，不删除原文
 
 chunking:
-  strategy: structural
+  strategy: structural             # structural_v2 可选：完整尾句重叠、大表按行预分组
   target_tokens: 900
   overlap_tokens: 100
   token_counter: tiktoken_approx      # 中文需实测
   attach_headings: false             # 默认兼容旧分块；验收后可开启
   min_tokens: 0                      # 0 关闭；例如 200，必须小于目标预算
   split_long_paragraphs: false       # 按换行/句末标点拆超长段，保留原文区间
+  extraction_context_blocks: 0       # 前/后/内部各最多 N 个背景片段；0 关闭，不扩展引文范围
+  extraction_context_chars: 2000     # 全部邻文字符上限；正式请求还会按上下文预算裁减
 
 models:
   llm:

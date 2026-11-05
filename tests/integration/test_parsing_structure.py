@@ -50,6 +50,38 @@ def save_word(document, tmp_path):
     return store, store.put("sample.docx", stream.getvalue()), stream.getvalue()
 
 
+def test_docx_table_headers_require_explicit_contiguous_repeat_flags(tmp_path):
+    document = Document()
+    table = document.add_table(rows=4, cols=2)
+    for i, row in enumerate(table.rows):
+        row.cells[0].text, row.cells[1].text = str(i), "规则" * 12
+        flag = OxmlElement("w:tblHeader")
+        if i == 2:
+            flag.set(qn("w:val"), "false")
+        row._tr.get_or_add_trPr().append(flag)
+    store, asset, _ = save_word(document, tmp_path)
+    blocks = DocxParser(store, table_headers=True).parse(asset).blocks
+    parsed = next(b for b in blocks if b.kind == "table")
+    data = json.loads(parsed.content)
+    assert data["header_rows"] == [0, 1]
+    assert data["header_source"] == "docx_repeat_header"
+    legacy = next(b for b in DocxParser(store).parse(asset).blocks if b.kind == "table")
+    assert "header_rows" not in json.loads(legacy.content)
+    result = structural_chunks([parsed], 110, 0, strategy="structural_v2")
+    assert len(result.chunks) == 2
+    assert all('"0"' in c.text and '"1"' in c.text for c in result.chunks)
+    assert sum('"2"' in c.text for c in result.chunks) == 1
+    assert sum('"3"' in c.text for c in result.chunks) == 1
+
+
+def test_unmarked_docx_table_keeps_legacy_payload(tmp_path):
+    document = Document()
+    document.add_table(rows=1, cols=1).cell(0, 0).text = "普通数据"
+    store, asset, _ = save_word(document, tmp_path)
+    block = next(b for b in DocxParser(store).parse(asset).blocks if b.kind == "table")
+    assert json.loads(block.content) == {"schema_version": "1.0", "rows": [["普通数据"]]}
+
+
 def test_outline_priority_inheritance_and_body_override(tmp_path):
     document = Document()
     heading = document.add_heading("Explicit", 1)

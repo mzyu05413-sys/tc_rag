@@ -87,26 +87,33 @@ def _piece_chunk(items: list[_Piece], counter: TokenCounter) -> Chunk:
 _EXCEPTION = re.compile(r"^(但是|但|除非|例外|except\b|unless\b)")
 
 
-def _paragraph_pieces(block: DocumentBlock, target: int, counter: TokenCounter) -> list[_Piece]:
-    """只使用原文句界；无法切开的长句保留，不按字符数硬截断。"""
+def _sentence_atoms(piece: _Piece) -> list[_Piece]:
+    """原区间内按句界枚举原子单元，例外句跟随条件；不截半句。"""
+    block, offset, text = piece.block, piece.start, piece.text
     boundaries = [
         match.end()
         for match in re.finditer(
-            r"\n+|[。！？；!?;]+[\"'’”）)]*|(?<!\d)\.(?!\d)[\"'’”）)]*", block.content
+            r"\n+|[。！？；!?;]+[\"'’”）)]*|(?<!\d)\.(?!\d)[\"'’”）)]*", text
         )
     ]
-    boundaries.append(len(block.content))
+    boundaries.append(len(text))
     atoms: list[_Piece] = []
     start = 0
     for end in sorted(set(boundaries)):
         if end <= start:
             continue
-        part = _Piece(block, start, end)
+        part = _Piece(block, start + offset, end + offset)
         if atoms and (not part.text.strip() or _EXCEPTION.match(part.text.strip())):
-            atoms[-1] = _Piece(block, atoms[-1].start, end)
+            atoms[-1] = _Piece(block, atoms[-1].start, end + offset)
         else:
             atoms.append(part)
         start = end
+    return atoms
+
+
+def _paragraph_pieces(block: DocumentBlock, target: int, counter: TokenCounter) -> list[_Piece]:
+    """只使用原文句界；无法切开的长句保留，不按字符数硬截断。"""
+    atoms = _sentence_atoms(_Piece(block, 0, len(block.content)))
     pieces: list[_Piece] = []
     for atom in atoms:
         if pieces and counter(block.content[pieces[-1].start : atom.end]) <= target:
@@ -125,19 +132,33 @@ def structural_chunks(
     attach_headings: bool = False,
     min_tokens: int = 0,
     split_long_paragraphs: bool = False,
+    strategy: str = "structural",
 ) -> ChunkingResult:
     """按章节和原文区间打包；不删除原文，不把段落中间硬切断。
 
-    默认保留旧打包行为；标题、小章节与长段策略均显式开启。
+    标题、小章节与长段策略均显式开启；所有模式均遵守章节和文档边界。
     疑似页眉页脚仅在解析器显式隔离后跳过，不凭重复文字自动删除。
     """
     if target <= 0 or not 0 <= overlap < target or not 0 <= min_tokens < target:
         raise ValueError("分块预算必须为正，重叠和最小分块均小于目标预算")
+    if strategy not in {"structural", "structural_v2"}:
+        raise ValueError("未知分块策略")
+    # 延迟导入扩展，旧版默认行为与既有调用入口保持稳定。
+    from tc_rag.application.services.chunk_structure_v2 import (
+        overlap_tail,
+        table_context_issues,
+        table_units,
+    )
     units: list[list[_Piece]] = []
     issues: list[Issue] = []
     enhanced = attach_headings or bool(min_tokens) or split_long_paragraphs
     for block in sorted(blocks, key=lambda item: item.order):
         if block.kind in {"image", "other"} or not block.content.strip():
+            continue
+        if strategy == "structural_v2" and block.kind == "table":
+            groups, problems = table_units(block, target, counter)
+            units.extend(groups)
+            issues.extend(problems)
             continue
         pieces = [_Piece(block, 0, len(block.content))]
         if split_long_paragraphs and block.kind == "paragraph" and counter(block.content) > target:
@@ -153,8 +174,13 @@ def structural_chunks(
                     )
                 )
         for piece in pieces:
-            same_chapter = bool(units and units[-1][-1].block.heading_path == block.heading_path)
-            if units and _EXCEPTION.match(piece.text.strip()) and (same_chapter or not enhanced):
+            same_chapter = bool(
+                units
+                and units[-1][-1].block.document_id == block.document_id
+                and units[-1][-1].block.heading_path == block.heading_path
+            )
+            # 例外词只能连接同章的条件，不能吞掉新章节的边界。
+            if same_chapter and _EXCEPTION.match(piece.text.strip()):
                 units[-1].append(piece)
             else:
                 units.append([piece])
@@ -171,18 +197,34 @@ def structural_chunks(
 
     for original_unit in units:
         unit = original_unit
-        changed = bool(pending and pending[-1].block.heading_path != unit[0].block.heading_path)
+        first = unit[0].block
+        changed = bool(pending and (
+            pending[-1].block.document_id != first.document_id
+            or pending[-1].block.heading_path != first.heading_path
+        ))
         # 标题链随下文进入同一单元，不制造孤立标题请求；末尾标题仍由 emit 保存。
-        if attach_headings and pending and all(p.block.kind == "heading" for p in pending):
-            if changed or unit[0].block.kind != "heading":
+        headings_only = bool(pending) and all(p.block.kind == "heading" for p in pending)
+        # 只有本章或其祖先标题可以带入下文；小节合并也不能绕过这个限制。
+        leads_to_unit = headings_only and all(
+            p.block.document_id == first.document_id
+            and (p.block.heading_path == first.heading_path or (
+                bool(p.block.heading_path)
+                and first.heading_path[:len(p.block.heading_path)] == p.block.heading_path
+            ))
+            for p in pending
+        )
+        if attach_headings and leads_to_unit:
+            if changed or first.kind != "heading":
                 unit = pending + unit
                 pending, pending_units = [], []
                 changed = False
-        if changed and min_tokens and counter(text_of(pending)) < min_tokens:
+        if (changed and min_tokens and counter(text_of(pending)) < min_tokens
+                and not (headings_only and not leads_to_unit)):
             left, right = pending[-1].block.heading_path, unit[0].block.heading_path
             related = bool(
                 left
                 and right
+                and pending[-1].block.document_id == first.document_id
                 and left[0] == right[0]
                 and (
                     (len(left) > 1 and left[:-1] == right[:-1])
@@ -198,7 +240,10 @@ def structural_chunks(
             emit()
             tail: list[_Piece] = []
             tail_units: list[list[_Piece]] = []
-            if not changed:
+            if not changed and strategy == "structural_v2":
+                tail_units = overlap_tail(pending_units, unit, overlap, target, counter)
+                tail = [piece for group in tail_units for piece in group]
+            elif not changed:
                 candidates = pending_units if enhanced else [[part] for part in pending]
                 for previous in reversed(candidates):
                     if counter(text_of(previous + tail)) > overlap:
@@ -214,6 +259,9 @@ def structural_chunks(
     refined: list[Chunk] = []
     by_id = {block.block_id: block for block in blocks}
     for chunk in chunks:
+        if strategy == "structural_v2":
+            refined.append(chunk)
+            continue
         # 单表或“标题前缀+单表”按行分组；前缀仅保留到第一组。
         table_sources = [
             source for source in chunk.sources if by_id[source.block_id].kind == "table"
@@ -249,7 +297,10 @@ def structural_chunks(
             group.append(span)
         if len(group) > 1:
             refined.append(table_chunk(group))
-    refined, header_issues = _repeat_cross_page_headers(refined, blocks, target, counter)
+    refined, header_issues = (
+        _repeat_cross_page_headers(refined, blocks, target, counter)
+        if strategy == "structural" else (refined, table_context_issues(blocks))
+    )
     issues.extend(header_issues)
     for chunk in refined:
         if chunk.token_estimate > target and not any(

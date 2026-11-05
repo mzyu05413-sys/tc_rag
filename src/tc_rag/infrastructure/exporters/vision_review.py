@@ -18,6 +18,9 @@ def export_vision_review(
         image = f"data:{mime};base64," + base64.b64encode(original.read_bytes()).decode()
         result = row.get("result") or {}
         text = result.get("content", "尚未调用模型" if not summary["live"] else "本图解释失败")
+        if summary["live"] and row.get("status") == "failed":
+            reasons = [item["description"] for item in row.get("issues", [])]
+            text += "\n" + "\n".join(reasons or ["未产生通过校验的图片解释，请查看结构化记录。"])
         if row.get("status") == "skipped":
             text = "图片过小，已跳过；不产生派生文字，不计识别失败。"
         previews = []
@@ -77,7 +80,8 @@ document.querySelector('button').onclick=()=>{const items=sections.map(s=>({
         '.grid{grid-template-columns:1fr}}</style>'
         f'<body data-review="{escape(summary["review_id"], quote=True)}"><header>'
         '<h1>仅图片转文字验收</h1><p>不执行规则提炼、embedding、重排、测试点和用例生成。'
-        '模型复核不等于人工确认；程序检查通过不等于识别准确。</p>'
+        '模型复核不等于人工确认；程序检查通过不等于识别准确。'
+        '历史解释仅供对照，不代表本轮成功；报告已生成也不代表图片解释成功。</p>'
         f'<pre>{escape(json.dumps(summary, ensure_ascii=False, indent=2))}</pre>'
         '<button>导出人工审核 JSON</button></header>' + "".join(sections)
         + '<script>' + script + '</script></body></html>'

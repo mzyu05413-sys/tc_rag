@@ -125,7 +125,15 @@ async def execute(
                 service.reader.progress = progress
             progress(ProgressEvent("stage", "vision"))
             processed, issues = await service.process(blocks)
-            progress(ProgressEvent("stage", "completed"))
+            # 请求正常返回不等于图片解释有效；失败图也要导出报告，但不能提示成功。
+            succeeded = all(
+                any(block.origin == "vision" and block.block_id.startswith(row["block_id"] + "_")
+                    for block in processed)
+                or any(item.description == "图片过小，已跳过"
+                       and row["block_id"] in item.object_ids for item in issues)
+                for row in rows
+            )
+            progress(ProgressEvent("stage", "completed" if succeeded else "failed"))
     finally:
         if isinstance(service.reader, OpenAICompatVision):
             await service.reader.close()
@@ -249,6 +257,10 @@ def vision(
         if any(row.get("plan_error") for row in rows) or (
             live and summary["completed"] + summary["skipped_images"] != len(rows)
         ):
+            typer.echo(
+                "视觉验收失败：存在解释失败的图片；报告已生成，请查看本轮失败原因。",
+                err=True,
+            )
             raise typer.Exit(2)
     except (ValueError, OSError, KeyError, TypeError) as exc:
         typer.echo(

@@ -1,6 +1,7 @@
 """验证分块策略的原文守恒、章节限制与旧版默认输出兼容。"""
 
 import json
+from itertools import product
 from pathlib import Path
 
 import pytest
@@ -65,6 +66,54 @@ def test_default_exception_detection_keeps_legacy_case_sensitivity():
     assert len(structural_chunks(blocks, 100, 0).chunks) == 2
     blocks[1] = block(1, "except " + "y" * 25)
     assert len(structural_chunks(blocks, 100, 0).chunks) == 1
+
+
+@pytest.mark.parametrize(
+    "attach,minimum,split", list(product([False, True], [0, 8], [False, True]))
+)
+@pytest.mark.parametrize("path", [["另一模块"], ["模块", "另一小节"]])
+def test_exception_does_not_cross_chapters_under_any_options(attach, minimum, split, path):
+    blocks = [block(0, "允许保存。"), block(1, "但是需要补充说明。", path=path)]
+    result = structural_chunks(
+        blocks, 14, 3, attach_headings=attach, min_tokens=minimum,
+        split_long_paragraphs=split,
+    )
+    # 合计超出 target，正常的小节合并不能发生；错误归并例外组却会绕过预算。
+    assert len(result.chunks) == 2
+    assert_sources(blocks, result.chunks)
+
+
+@pytest.mark.parametrize("attach,minimum", list(product([False, True], [0, 20])))
+@pytest.mark.parametrize("path", [["另一模块"], ["模块", "另一小节"]])
+def test_orphan_heading_cannot_attach_to_unrelated_section(attach, minimum, path):
+    blocks = [block(0, "旧标题", kind="heading"), block(1, "新的正文。", path=path)]
+    result = structural_chunks(blocks, 100, 0, attach_headings=attach, min_tokens=minimum)
+    assert len(result.chunks) == 2
+    assert_sources(blocks, result.chunks)
+
+
+@pytest.mark.parametrize(
+    "attach,minimum,split", list(product([False, True], [0, 20], [False, True]))
+)
+def test_no_grouping_or_overlap_across_documents(attach, minimum, split):
+    blocks = [block(0, "旧标题", kind="heading"), block(1, "但是新文档不能保存。")]
+    blocks[1] = blocks[1].model_copy(update={"document_id": "other"})
+    result = structural_chunks(
+        blocks, 100, 10, attach_headings=attach, min_tokens=minimum,
+        split_long_paragraphs=split,
+    )
+    assert len(result.chunks) == 2
+    assert_sources(blocks, result.chunks)
+
+
+def test_heading_chain_still_attaches_to_descendant_and_is_deterministic():
+    blocks = [block(0, "模块", kind="heading", path=["模块"]),
+              block(1, "子节", kind="heading", path=["模块", "子节"]),
+              block(2, "正文。", path=["模块", "子节"])]
+    first = structural_chunks(blocks, 100, 0, attach_headings=True)
+    assert len(first.chunks) == 1
+    assert first.chunks == structural_chunks(blocks, 100, 0, attach_headings=True).chunks
+    assert_sources(blocks, first.chunks)
 
 
 def test_heading_attachment_and_small_sibling_merge_are_lossless_and_stable():

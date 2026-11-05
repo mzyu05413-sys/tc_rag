@@ -5,6 +5,7 @@ from math import ceil
 from statistics import median
 from typing import Any
 
+from tc_rag.application.services.chunk_boundaries import boundary_statistics
 from tc_rag.application.services.chunking import TokenCounter
 from tc_rag.domain.models import Chunk, DocumentBlock, Issue
 
@@ -59,6 +60,11 @@ def chunk_statistics(
                 }
             )
     visual = [block for block in blocks if block.origin == "vision"]
+    boundaries = boundary_statistics(blocks, chunks, counter)
+    boundaries["overlap"]["token_distribution"] = distribution([
+        pair["shared_tokens"] for pair in boundaries["overlap"]["pairs"]
+        if pair["eligible"] and pair["shared_tokens"] is not None
+    ])
     return {
         "chunks": len(chunks),
         "tokens": distribution([chunk.token_estimate for chunk in chunks]),
@@ -93,4 +99,5 @@ def chunk_statistics(
             }
             for block in visual
         ],
+        **boundaries,
     }

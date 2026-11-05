@@ -101,7 +101,9 @@ PROMPT_VERSIONS = {
 }
 
 
-def load_prompts(prompt_root: Path) -> tuple[dict[str, str], dict[str, str]]:
+def load_prompts(
+    prompt_root: Path, *, extraction_context: bool = False,
+) -> tuple[dict[str, str], dict[str, str]]:
     """只装载需求 RAG 使用的版本，保留实际版本及文本指纹用于审计。"""
     prompts: dict[str, str] = {}
     versions: dict[str, str] = {}
@@ -110,6 +112,11 @@ def load_prompts(prompt_root: Path) -> tuple[dict[str, str], dict[str, str]]:
         path = prompt_root / stage / f"{chosen}.md"
         prompts[stage] = path.read_text(encoding="utf-8")
         versions[stage] = chosen
+    if extraction_context:
+        prompts["extract_context"] = (prompt_root / "extract_context/v2.md").read_text(
+            encoding="utf-8"
+        )
+        versions["extract_context"] = "v2"
     return prompts, versions
 
 
@@ -211,7 +218,11 @@ def build_pipeline(
     repository = SqliteRepository(config.storage.database)
     store = LocalArtifactStore(Path(config.project.workdir))
     prompt_root = resolve_prompt_root()
-    prompts, prompt_versions = load_prompts(prompt_root)
+    prompts, prompt_versions = load_prompts(
+        prompt_root, extraction_context=bool(
+            config.chunking.extraction_context_blocks and config.chunking.extraction_context_chars
+        ),
+    )
     # 规划和生成共用 RAG 证据约束，检索结果不能覆盖原文事实。
     for stage in ("plan_points", "generate"):
         prompts[stage] += "\n" + prompts["rag_context"]
@@ -323,6 +334,7 @@ def build_pipeline(
             DocxParser(
                 store, infer_headings=config.parsing.infer_docx_headings,
                 **({"extended": True} if config.parsing.docx_extended else {}),
+                **({"table_headers": True} if config.chunking.strategy == "structural_v2" else {}),
             )
             if suffix == ".docx"
             else PdfParser(

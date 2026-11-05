@@ -130,21 +130,32 @@ export:
 
 | 配置 | 默认值 | 用途 |
 |---|---|---|
+| `chunking.strategy` | `structural` | 可选 `structural_v2`：完整尾句重叠、大表预分组与明确表头策略 |
 | `chunking.attach_headings` | `false` | 标题随下文进入分块，减少纯标题块 |
 | `chunking.min_tokens` | `0` | 同父小节合并阈值，0 关闭；必须小于目标预算 |
 | `chunking.split_long_paragraphs` | `false` | 只在句界拆超长段，保留精确字符区间及风险提醒 |
+| `chunking.extraction_context_blocks` | `0` | 前/后/内部空隙各最多 N 个背景片段，包含同 Block 其他区间；0 关闭，不扩展引文范围 |
+| `chunking.extraction_context_chars` | `2000` | 全部邻文文字的字符上限；正式请求还会按模型上下文预算移除较远背景 |
 | `parsing.docx_extended` | `false` | 大纲、中文标题样式、正文内容控件；目录控件跳过并记录 |
 | `parsing.pdf_running_text` | `keep` | 可选 isolate 标记边缘重复行/页码为 other，保留追溯 |
 
 [分块质量与统一验收指南](docs/reference/chunk_structure_quality.md)包含逐块对照方法。
-下面两条命令只读已保存的分块快照，零模型调用，产物在 `workdir/diagnostics/chunking/`：
+以下命令只读已保存的分块快照，零模型调用，产物在 `workdir/diagnostics/chunking/`：
 
 ```powershell
 rag chunk-stats <run_id>
-rag chunk-stats <run_id> --compare --min-tokens 200 --split-long-paragraphs
+rag chunk-stats <run_id> --compare --attach-headings --min-tokens 200 --split-long-paragraphs
+rag chunk-stats <run_id> --compare --strategy structural_v2 --attach-headings --min-tokens 150 --split-long-paragraphs --context-blocks 1 --context-chars 2000
+rag chunk-stats <run_id> --compare --strategy structural_v2 --attach-headings --min-tokens 150 --split-long-paragraphs --targets 600 --targets 900 --targets 1200 --overlaps 0 --overlaps 100 --prepare-gold
 ```
 
 第二条仅在离线对照中开启标题合并、小节合并和按句拆段，不改本地配置或原快照。
+第三条试验新策略，并输出 `extraction_context.json/md` 邻文预览及阅读版；不调用模型。预览尚未经过正式请求的 token 预算裁减。
+第四条生成 6 组预算对照和待确认需求单元；未确认前边界完整率为 null，不自动选参数。
+单个预算可用 `--target-tokens` / `--overlap-tokens`；已有抽样标注用 `--gold 私有标注.json`。
+三批统一审核、36 组离线结果和标注契约见[第三批交付记录](docs/reviews/chunk_evaluation_20261104.md)。
+第四批补齐同 Block 子块背景与引用隔离，最新四批统一入口见[第四批交付记录](docs/reviews/extraction_context_20261104.md)；默认配置保持不变。
+新旧策略的真实分块统计、PDF 续表取舍、代码索引与统一审核入口见[第二批交付记录](docs/reviews/chunk_structure_v2_20261104.md)。
 改变正式分块策略会改变 Chunk ID，受影响的提炼缓存可能失效，后续真实运行会重新调用模型。
 
 配置选择顺序：显式 `--config` → `workdir/local.yaml` → `config/defaults.yaml` → 内置默认。

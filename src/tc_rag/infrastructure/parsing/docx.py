@@ -18,12 +18,14 @@ from tc_rag.domain.models import Asset, DocumentBlock, Issue, Locator
 
 class DocxParser:
     def __init__(
-        self, store: ArtifactStore, infer_headings: bool = False, *, extended: bool = False
+        self, store: ArtifactStore, infer_headings: bool = False, *, extended: bool = False,
+        table_headers: bool = False,
     ) -> None:
         self.store = store
         # 标题推断会改变 heading_path 和后续分块；默认只认 Word 明确的标题样式。
         self.infer_headings = infer_headings
         self.extended = extended
+        self.table_headers = table_headers  # 新策略显式读取表头，旧策略默认保留原 payload
 
     def parse(self, asset: Asset) -> ParsedDocument:
         """DOCX 不提供可靠排版页码，使用段落/表格/单元格索引定位。"""
@@ -143,9 +145,25 @@ class DocxParser:
                 table = Table(child, document)
                 # 保留二维行列而不扁平拼接；合并单元格的重复值不当成独立业务事实。
                 rows = [[cell.text for cell in row.cells] for row in table.rows]
+                # Word 明确的重复表头标记才作为表头来源；不根据第一行字体或内容猜测。
+                header_rows = []
+                header_candidates = enumerate(table.rows) if self.table_headers else ()
+                for row_index, row in header_candidates:
+                    properties = row._tr.trPr
+                    flag = properties.find(qn("w:tblHeader")) if properties is not None else None
+                    if flag is None or flag.get(qn("w:val"), "true").lower() in {
+                        "0", "false", "off"
+                    }:
+                        break
+                    header_rows.append(row_index)
+                table_payload: dict[str, Any] = {"schema_version": "1.0", "rows": rows}
+                if header_rows:
+                    table_payload.update(
+                        header_rows=header_rows, header_source="docx_repeat_header"
+                    )
                 add(
                     "table",
-                    json.dumps({"schema_version": "1.0", "rows": rows}, ensure_ascii=False),
+                    json.dumps(table_payload, ensure_ascii=False),
                     Locator(table_index=table_index),
                 )
                 if child.xpath(".//w:gridSpan | .//w:vMerge"):

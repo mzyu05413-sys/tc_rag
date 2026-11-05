@@ -11,7 +11,7 @@ from PIL import Image
 from tc_rag.application.ports.errors import VisionReadError
 from tc_rag.application.services.vision import VisionEvidenceService
 from tc_rag.core.config import AppConfig, Endpoint, Runtime, VisionProcessing
-from tc_rag.domain.models import DocumentBlock, Locator
+from tc_rag.domain.models import DocumentBlock, Locator, Run
 from tc_rag.domain.rag import RagRecord
 from tc_rag.infrastructure.providers.vision import OpenAICompatVision
 from tc_rag.infrastructure.storage.files import LocalArtifactStore
@@ -144,12 +144,16 @@ async def test_context_change_invalidates_cache_and_preserves_structured_result(
 
 
 @pytest.mark.asyncio
-async def test_isolated_verification_uses_only_vision_and_separate_database(tmp_path, monkeypatch):
+@pytest.mark.parametrize("valid_final", [True, False])
+async def test_isolated_verification_uses_only_vision_and_separate_database(
+    tmp_path, monkeypatch, capsys, valid_final
+):
     requests = []
 
     def handler(request):
         requests.append(json.loads(request.content))
-        return response(payload())
+        return response(payload(view="unknown" if not valid_final and len(requests) == 2
+                                else "overview"))
 
     client = AsyncOpenAI(
         api_key="fixture", max_retries=0,
@@ -178,8 +182,18 @@ async def test_isolated_verification_uses_only_vision_and_separate_database(tmp_
     records = await execute(config, [photo], rows, directory, "vision_test")
     assert len(records) == len(requests) == 2
     assert all(record.stage == "vision" for record in records)
-    assert rows[0]["result"]["origin"] == "vision"
-    assert rows[0]["structured"]["model_verified"]
+    output = capsys.readouterr().err
+    if valid_final:
+        assert rows[0]["result"]["origin"] == "vision"
+        assert rows[0]["structured"]["model_verified"]
+        assert "流程完成" in output and "流程失败" not in output
+    else:
+        assert rows[0]["result"] is None and rows[0]["status"] == "failed"
+        assert "INVALID_VISUAL_STRUCTURE" in rows[0]["issues"][0]["description"]
+        assert "流程失败" in output and "流程完成" not in output
+        assert "[失败] 01/1 图片解释" in output
+        saved = SqliteRepository(directory / "vision.sqlite", read_only=True)
+        assert saved.get("runs", "vision_test", Run).status == "partial_failed"
     assert rows[0]["request_stats"]["requests"] == 2
     assert rows[0]["request_stats"]["input_tokens"] == 6
     assert rows[0]["request_stats"]["output_tokens"] == 4

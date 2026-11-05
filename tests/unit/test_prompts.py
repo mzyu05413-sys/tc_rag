@@ -50,6 +50,34 @@ def test_missing_published_prompt_does_not_fall_back_to_experimental_version(tmp
         load_prompts(root)
 
 
+def test_extraction_context_prompt_is_explicit_versioned_and_packaged(tmp_path):
+    import tomllib
+
+    root = fake_root(tmp_path)
+    assert "extract_context" not in load_prompts(root)[0]
+    with pytest.raises(FileNotFoundError):
+        load_prompts(root, extraction_context=True)
+    (root / "extract_context").mkdir()
+    (root / "extract_context/v2.md").write_text("背景不能扩大引用范围", encoding="utf-8")
+    prompts, versions = load_prompts(root, extraction_context=True)
+    assert prompts["extract_context"] == "背景不能扩大引用范围"
+    assert versions == {**PROMPT_VERSIONS, "extract_context": "v2"}
+    repo = REPO_PROMPTS.parent
+    package = tomllib.loads((repo / "pyproject.toml").read_text(encoding="utf-8"))
+    files = package["tool"]["setuptools"]["data-files"]["share/tc_rag/prompts/extract_context"]
+    assert files == ["prompts/extract_context/v1.md", "prompts/extract_context/v2.md"]
+    assert all((repo / item).is_file() for item in files)
+
+
+def test_extraction_context_v2_enforces_ranges_even_with_same_block_id():
+    prompts, versions = load_prompts(REPO_PROMPTS, extraction_context=True)
+    assert versions["extract_context"] == "v2"
+    text = prompts["extract_context"]
+    assert "不能只凭 block_id 相同扩大引用范围" in text
+    assert "不能拼接不连续区间" in text
+    assert "source_window_v2" in text and "issues" in text
+
+
 CLOSED_ENUMS: dict[str, list[tuple[Any, str]]] = {
     "extract": [
         (RequirementRule, "kind"),

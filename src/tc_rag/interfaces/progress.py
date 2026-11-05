@@ -57,7 +57,7 @@ STAGE_DETAILS = {
     "export_cases": "输出同批测试点目录、用例文档与质量报告",
 }
 
-CONTROL_STAGES = {"completed", "points_ready"}
+CONTROL_STAGES = {"completed", "points_ready", "failed"}
 
 # 只展示程序内固定说明；不把供应商的任意错误正文直接写入终端。
 VISION_ERRORS = {
@@ -127,12 +127,12 @@ class TerminalProgress:
             items.append(f"结构修复 {self.repairs} 次")
         return "｜".join(items)
 
-    def _finish_stage(self, *, interrupted: bool = False) -> None:
+    def _finish_stage(self, *, interrupted: bool = False, failed: bool = False) -> None:
         if not self.stage_open:
             return
         elapsed = perf_counter() - self.stage_started
         label = STAGE_NAMES.get(self.stage, "模型处理")
-        state = "中断" if interrupted else "完成"
+        state = "中断" if interrupted else "失败" if failed else "完成"
         statistics = self._statistics()
         total = f"/{self.stage_total}" if self.stage_total else ""
         head = _style(
@@ -157,7 +157,7 @@ class TerminalProgress:
             # 编号只表示本次实际执行的顺序，跳过图片或恢复运行均不虚构进度。
             if self.stage == event.stage:
                 return
-            self._finish_stage()
+            self._finish_stage(failed=event.stage == "failed")
             self.stage, self.started = event.stage, perf_counter()
             self.stage_started = self.started
             self.last_update = self.started
@@ -357,11 +357,11 @@ class TerminalProgress:
         self._finish_stage(interrupted=interrupted)
         if not self.history:
             return
-        state = "流程中断" if interrupted else (
+        state = "流程中断" if interrupted else "流程失败" if self.stage == "failed" else (
             "流程完成" if self.stage == "completed" else "本次执行结束"
         )
         slowest = max(self.history, key=lambda item: item[2])
-        color = "31" if state == "流程中断" else "1;32"
+        color = "31" if state in {"流程中断", "流程失败"} else "1;32"
         typer.echo(
             _style(
                 f"\n[阶段汇总] {state}｜总用时 "

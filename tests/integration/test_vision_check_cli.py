@@ -109,3 +109,38 @@ def test_score_saved_results_never_loads_config_or_builds_models(tmp_path, monke
         "--config", str(config), "--output-dir", str(tmp_path / "denied"),
     ])
     assert denied.exit_code == 2
+
+
+def test_live_failure_keeps_report_and_returns_nonzero_with_reason(tmp_path, monkeypatch):
+    """报告能生成不代表识别成功；错误在本轮区域展示且经过 HTML 转义。"""
+    config = tmp_path / "local.yaml"
+    config.write_text("{}", encoding="utf-8")
+
+    def prepare(config, run_id, destination, limit):
+        destination.mkdir(parents=True)
+        Image.new("RGB", (100, 100), "white").save(destination / "image.png")
+        return [], [{
+            "number": 1, "block_id": "img", "heading": "登录", "original": "image.png",
+            "views": [], "baseline": "旧运行的解释", "result": None, "status": "prepared",
+            "checksum": "fixture",
+        }]
+
+    async def execute(config, blocks, rows, directory, review_id):
+        rows[0].update(status="failed", issues=[{
+            "description": "图片解释失败：INVALID_VISUAL_STRUCTURE<script>",
+        }])
+        return []
+
+    monkeypatch.setattr("tc_rag.interfaces.vision_check.prepare", prepare)
+    monkeypatch.setattr("tc_rag.interfaces.vision_check.execute", execute)
+    result = CliRunner().invoke(app, [
+        "vision", "--run-id", "run", "--config", str(config), "--live",
+        "--output-dir", str(tmp_path / "out"),
+    ])
+    assert result.exit_code == 2 and "视觉验收失败" in result.output
+    path = next((tmp_path / "out").glob("*/results.json"))
+    report = json.loads(path.read_text(encoding="utf-8"))
+    assert report["summary"]["failed_images"] == 1 and report["summary"]["completed"] == 0
+    html = path.with_name("review.html").read_text(encoding="utf-8")
+    assert "图片解释失败：INVALID_VISUAL_STRUCTURE&lt;script&gt;" in html
+    assert "历史解释仅供对照，不代表本轮成功" in html and html.count("<script>") == 1

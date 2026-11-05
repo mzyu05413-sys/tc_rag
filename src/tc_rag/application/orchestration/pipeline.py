@@ -42,6 +42,11 @@ from tc_rag.application.services.design import (
     reconcile,
     validate_cases,
 )
+from tc_rag.application.services.extraction_context import (
+    CONTEXT_POLICY,
+    fit_context_budget,
+    neighboring_context,
+)
 
 # 保留旧模块的纯函数和常量导入入口。
 from tc_rag.application.services.extraction_namespace import namespace_extraction
@@ -185,6 +190,7 @@ class Pipeline:
             attach_headings=self.config.chunking.attach_headings,
             min_tokens=self.config.chunking.min_tokens,
             split_long_paragraphs=self.config.chunking.split_long_paragraphs,
+            strategy=self.config.chunking.strategy,
         )
         return chunked.chunks, chunked.issues
 
@@ -398,13 +404,28 @@ class Pipeline:
                     relevant = [
                         b for b in blocks if b.block_id in {s.block_id for s in chunk.sources}
                     ]
-                    request = {
+                    request: dict[str, Any] = {
                         "stage": stage,
                         "system": self.prompts[stage],
                         "instruction": instruction,
                         "chunk": chunk.model_dump(mode="json"),
                         "document_blocks": [b.model_dump(mode="json") for b in relevant],
                     }
+                    if self.config.chunking.extraction_context_blocks:
+                        background = neighboring_context(
+                            chunk, blocks, self.config.chunking.extraction_context_blocks,
+                            self.config.chunking.extraction_context_chars,
+                        )
+                        if background:
+                            request["system"] = (
+                                self.prompts[stage] + "\n\n" + self.prompts["extract_context"]
+                            )
+                            request["neighbor_context"] = background
+                            request["neighbor_context_policy"] = CONTEXT_POLICY
+                            fit_context_budget(
+                                request, Extraction.model_json_schema(), self.max_context,
+                                self.counter,
+                            )
                     # 分块正文很短也可能因来源元数据而超限。先检查所有完整请求，
                     # 避免前面的分块已消耗模型额度，后面的分块才发现无法发送。
                     self._check_budget({**request, "output_schema": Extraction.model_json_schema()})
@@ -769,6 +790,11 @@ class Pipeline:
         candidate = self._namespace(
             Extraction.model_validate(result.output.model_dump()), run_id + "_" + chunk.chunk_id
         )
+        if request.get("neighbor_context_omitted"):
+            candidate.issues.append(issue(
+                "gap", "提炼邻文因上下文预算不足已省略；当前分块原文未裁减",
+                request["neighbor_context_omitted"], severity="info",
+            ))
         provenance = {b.block_id: b for b in blocks}
         for evidence in candidate.evidence:
             block = provenance.get(evidence.block_id)
@@ -783,6 +809,16 @@ class Pipeline:
             scoped.setdefault(source.block_id, []).append(
                 provenance[source.block_id].content[source.start_char : source.end_char]
             )
+        rejected = [
+            e.evidence_id for e in candidate.evidence if not any(
+                normalized_quote(e.quote) in normalized_quote(text)
+                for text in scoped.get(e.block_id, [])
+            )
+        ]
+        if rejected and "neighbor_context" in request:
+            candidate.issues.append(issue(
+                "validation", "证据超出当前分块允许区间，邻文不能扩展引用范围", rejected
+            ))
         candidate.evidence = [
             e
             for e in candidate.evidence

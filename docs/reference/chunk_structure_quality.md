@@ -1,8 +1,10 @@
 # 分块与解析结构优化：逻辑、实测与统一验收
 
-本轮完成离线统计、标题衔接、小节合并、DOCX 扩展结构、PDF 边缘文字隔离、超长段按句拆分及文档同步。没有新增依赖、领域字段或数据库列，没有修改提示词，没有调用真实模型。
+本文覆盖离线统计、标题衔接、小节合并、DOCX 扩展结构、PDF 边缘文字隔离、超长段按句拆分，以及 2026-11-04 的四批分块优化。没有新增依赖、领域字段或数据库列，没有调用真实模型。第二批新增可选邻文约束提示词，第三批增加只读预算网格和抽样边界评估，第四批补齐同 Block 背景与提炼隔离；主 extract/v2 未修改。
 
 所有新策略默认保留旧行为，`workdir/local.yaml` 未被修改。指南同时提出“标题合并建议默认开启”和“默认输出兼容旧版”，本轮优先兼容；请先审核对照，再决定启用项。
+
+**最新统一审核入口**：[第四批背景窗口与引用隔离](../reviews/extraction_context_20261104.md)。本机入口为 `workdir/diagnostics/chunking/fourth_batch_20261104/README.md`，含前三批链接；36 组预算与待确认单元继续保留在第三批目录。下文 2026-11-03 的表格保留当时结果，不与 11-04 新策略数据混用。
 
 ## 1. 先看哪里
 
@@ -32,13 +34,19 @@ flowchart TD
     C --> F[文字 Block 与可选视觉派生 Block]
     E --> F
     F --> G[按 order 排序 跳过 image / other / 空块]
-    G --> H[可选超长段按句界拆分 保留字符区间]
+    G --> V{分块策略}
+    V -->|structural_v2| T[超目标表格按完整行预分组 仅重复明确表头]
+    V -->|structural| H[可选超长段按句界拆分 保留字符区间]
+    T --> H
     H --> I[相邻条件与例外组成单元]
     I --> J[可选纯标题衔接与同父小节合并]
-    J --> K[目标预算内打包 同章节完整单元重叠]
-    K --> L[大表按行拆分并重复首行 / 续页表头补充]
-    L --> M[Chunk / 精确 sources / 风险 Issue]
-    M --> N[后续 LLM 提炼与两轮 RAG]
+    J --> K[预算内打包 同章节重叠 v2 可取完整尾句]
+    K --> L{structural_v2?}
+    L -->|否| O[旧表格细分与启发式续表表头补充]
+    L -->|是| P[不注入未确认表头 记录疑似续表风险]
+    O --> M[Chunk / 精确 sources / 风险 Issue]
+    P --> M
+    M --> N[提炼 可选背景邻文不扩展引文范围 再进入两轮 RAG]
 ```
 
 独立统计与试分块在 M 为止，绝不进入 N。
@@ -52,16 +60,22 @@ parsing:
   docx_extended: false
   pdf_running_text: keep
 chunking:
+  strategy: structural
   attach_headings: false
   min_tokens: 0
   split_long_paragraphs: false
+  extraction_context_blocks: 0
+  extraction_context_chars: 2000
 ```
 
 | 选项 | 开启后的规则 | 保守边界 |
 |---|---|---|
-| `attach_headings=true` | 待输出内容全是标题时，带入下一单元；末尾无正文的标题仍输出 | 不是删除标题；遇到大表，标题仅作为首组前缀，各组重复表头 |
+| `strategy=structural_v2` | 同章节完整尾句重叠、大表预分组、Word 显式表头 | 不截半句/表格行，不猜首行；PDF 续表承接不明记 Issue；旧策略仍可回退 |
+| `attach_headings=true` | 待输出内容全是标题且为后文的本章或祖先标题时，带入下一单元；末尾、无关章节标题仍输出 | 不跨文档或误挂兄弟章节；v2 不因标题而重复未确认表头 |
 | `min_tokens=200` | 当前块小于阈值，下一单元是同父小节或当前章节的下级，且合并不超 target 时继续打包 | 不跨一级章节；0 关闭；必须满足 `0 <= min_tokens < target_tokens` |
 | `split_long_paragraphs=true` | 超目标预算的 paragraph 按换行和句末标点分组，包括 vision 来源 | 不按字符硬截；小数点保守处理；无法切开的长句和条件例外组整块保留并警告 |
+| `extraction_context_blocks=1` | 前/后/内部空隙各至多一个背景片段，同 Block 近邻优先 | 默认 0 关闭；同文档；不能引用邻文或当前 Block 的其他未授权区间 |
+| `extraction_context_chars=2000` | 全部背景文字的字符预算 | 不是 token；正式请求仍核算模型预算，优先移除较远背景 |
 | `docx_extended=true` | Heading N 优先；其次段落/样式继承的大纲 0–8，再次中文标题样式；按序展开正文内容控件 | 大纲 9 不作为标题；目录控件跳过并记 info；不支持结构继续报问题；排版推断仍由独立 infer_docx_headings 控制 |
 | `pdf_running_text=isolate` | 真实页高顶部/底部各 8% 内，数字归一化去空白后在至少 `max(3, ceil(文字页数×50%))` 页重复的文字行标为 other；纯页码仅需满足位置 | 不删除原文；保留 ID/Locator；正文区重复文字不隔离；处理在全部页面汇总后进行，包含检查点恢复页 |
 
@@ -84,7 +98,7 @@ chunk.text == "\n".join(
 
 同一段内连续区间合在一个 Chunk 时先合并区间，避免插入原文没有的换行。测试检查每个应处理的非空 Block 至少被引用一次、段落字符完整覆盖、来源区间不越界、同输入 Chunk ID 稳定。
 
-表格沿用既有规则：引用 JSON 中每个完整行的真实字符范围；JSON 包装字段、逗号和外层括号不必进入 Chunk，整表原文仍保留在 Block。表头可能重复，这是上下文衔接，不是新增需求。按句拆段的条件例外尽量保持原子单元，仍需人工检查跨句含义。
+表格引用 JSON 中每个完整行的真实字符范围；JSON 包装字段、逗号和外层括号不必进入 Chunk，整表原文仍保留在 Block。旧策略重复首行并启发式补续表表头；v2 只重复 Word 明确标记的表头，未确认的跨页承接记风险。重复的表头是上下文衔接，不是新增需求。按句拆段的条件例外尽量保持原子单元，仍需人工检查跨句含义。
 
 DOCX 扩展 Locator 的 paragraph_index/table_index 按展开后的正文 XML 阅读序从 0 编号；包含内容控件，不包含跳过的目录。`python-docx.Document.paragraphs` 不能直接作为该模式的定位表，因为它不展开内容控件。PDF 页码从 1 开始，坐标和真实页高来自 PDF 页面。
 
@@ -122,10 +136,10 @@ PDF combined 剩余 4 个超预算块均含续表补入来源，最大 1042 toke
 ```powershell
 rag chunk-stats run_a188817f8471418991fa3d3556b77e39
 rag chunk-stats run_a188817f8471418991fa3d3556b77e39 --compare
-rag chunk-stats run_ee9660935a704e74b081554e27d55e41 --compare --min-tokens 200 --split-long-paragraphs
+rag chunk-stats run_ee9660935a704e74b081554e27d55e41 --compare --attach-headings --min-tokens 200 --split-long-paragraphs
 ```
 
-`--compare` 默认开启标题衔接；可用 `--keep-headings` 关闭它。该命令不修改正式配置。`--docx "原件路径.docx"` 可额外诊断 numPr、大纲、内容控件和文本框；统计写在每次唯一的子目录，不覆盖上次材料。PDF 直接从运行登记的受管理原件读取布局。
+`--compare` 未指定的选项继承该运行快照中的配置，旧快照缺少字段时使用原有默认值（false/0/false），不借用当前 YAML 的分块选项。可用 `--attach-headings` / `--keep-headings`、`--split-long-paragraphs` / `--keep-long-paragraphs` 显式开关；`--min-tokens 0` 显式关闭小节合并。报告同时记录历史选项、实际选项和 CLI 覆盖。该命令不修改正式配置。`--docx "原件路径.docx"` 可额外诊断 numPr、大纲、内容控件和文本框；统计写在每次唯一的子目录，不覆盖上次材料。PDF 直接从运行登记的受管理原件读取布局。
 
 统计优先使用快照已记录的 token；视觉文字补充计数仅在本地编码缓存可用时计算。缓存缺失时普通统计将其留空，试分块则明确失败，绝不联网下载或偷偷换另一种算法。
 
@@ -152,6 +166,8 @@ python scripts/history/chunk_structure_diagnostics.py run_a188817f8471418991fa3d
 
 默认新增字段从配置快照省略，兼容已有默认形状。启用值写入快照，恢复运行需要配置一致。改变分块文本/来源会改变 Chunk 指纹和 ID，**受影响的提炼缓存失效**；不要将旧提炼结果强行绑定新 Chunk。
 
+2026-11-04 边界修复不增加策略开关：例外句归并限定同文档、同完整章节，标题衔接限定本章/祖先关系，小节合并不能绕过标题归属检查。历史快照不重写；只读 `--compare` 会使用当前修复后的实现。关闭可选开关不能恢复已经修正的跨章误合并，代码回滚应单独撤回本次补丁。
+
 原历史快照、RAG 记录和视觉缓存不会因离线对照而被删改。后续新运行的提炼、索引及生成可能产生费用，尚未授权调用。解析扩展改变 Block 顺序/章节时，部分图文缓存的具体上下文也可能变化，不能承诺所有缓存一定命中。
 
 回滚新策略只需恢复五个默认值或删除这些新增私有配置项，然后新建运行；不需要删库、移动资产或迁移字段。历史对照目录属于派生产物，可保留审计。旧快照不能通过修改参数原地变成新策略结果。
@@ -163,6 +179,7 @@ python scripts/history/chunk_structure_diagnostics.py run_a188817f8471418991fa3d
 | `core/config.py` | 五项策略、预算关系校验、默认快照兼容 |
 | `application/services/chunking.py` | 标题衔接、小节合并、句界拆段、表格前缀与来源区间 |
 | `application/services/chunk_stats.py` | 纯统计：分位数、小块比例、超限原因、章节与视觉分布 |
+| `application/services/chunk_boundaries.py` | 2026-11-04 新增：来源交集、同章节相邻重叠和章节/文档边界诊断 |
 | `application/services/quality/chunk_checks.py` | other 不纳入应分块覆盖集合；原 quality.py 已按职责拆包 |
 | `application/orchestration/pipeline.py` | 传递分块配置、全文 PDF 后处理 |
 | `application/ports/contracts.py` | 分页会话明确声明 finalize 后处理接口，编排不依赖具体解析实现 |
@@ -177,7 +194,9 @@ python scripts/history/chunk_structure_diagnostics.py run_a188817f8471418991fa3d
 | `tests/fixtures/chunking_legacy.json` | 改动前合成文档的精确分块快照，不含真实资料 |
 | `config/defaults.yaml` / `example.yaml`、README、P1 三章与契约 | 参数、行为、定位与缓存说明同步 |
 
-最终完整离线测试：**708 passed、2 skipped**；`ruff check .` 通过，`mypy src` 通过（66 个源码文件）。诊断终端补全后另运行 CLI 回归，2 passed；`chunk-stats --help` 正常。合成测试覆盖 4 模块×2 小节从 12 块到 8 块、标题加大表、正文/视觉长段、坏预算、缺编码缓存、内容控件顺序、目录跳过、非标准标题、不同页高、边缘重复与正文重复区别，以及分页序列化恢复后的隔离一致性。
+2026-11-03 当时完整离线测试：**708 passed、2 skipped**；`ruff check .` 通过，`mypy src` 通过（66 个源码文件）。诊断终端补全后另运行 CLI 回归，2 passed；`chunk-stats --help` 正常。合成测试覆盖 4 模块×2 小节从 12 块到 8 块、标题加大表、正文/视觉长段、坏预算、缺编码缓存、内容控件顺序、目录跳过、非标准标题、不同页高、边缘重复与正文重复区别，以及分页序列化恢复后的隔离一致性。
+
+2026-11-04 第一批边界修复后：**756 passed、2 skipped**；Ruff、Mypy 通过（88 个源码文件）。当前指标口径、真实样本变化和待审核项以[本批交付记录](../reviews/chunk_boundaries_20261104.md)为准，不将早期更少的块数视为更优结论。
 
 ```powershell
 python -m pytest -q --basetemp=workdir/dev/tests/chunk-structure-final
