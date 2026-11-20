@@ -16,9 +16,9 @@
 
 ```powershell
 uv sync --extra dev
-# 首次使用且尚无 local.yaml 时复制；已有配置请保留。
+# 首次使用且尚无 local.yaml 时，从公共默认模板复制；已有配置请保留。
 if (-not (Test-Path -LiteralPath workdir/local.yaml)) {
-    Copy-Item -LiteralPath workdir/local.example.yaml -Destination workdir/local.yaml
+    Copy-Item -LiteralPath config/defaults.yaml -Destination workdir/local.yaml
 }
 # 填写 local.yaml 的模型、地址及密钥，再启动。
 rag

@@ -352,7 +352,7 @@
         <mxCell id="CLI" value="rag / tc-rag · Typer CLI&#10;cli.py + workflow.py" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
           <mxGeometry x="1662.47" y="143.0" as="geometry" width="243.16" height="74.6" />
         </mxCell>
-        <mxCell id="CFG" value="core/config.py · Pydantic&#10;复制 workdir/local.example.yaml 为 local.yaml&#10;默认值 → 选定 YAML → 环境变量 → CLI" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+        <mxCell id="CFG" value="core/config.py · Pydantic&#10;复制 config/defaults.yaml 为 workdir/local.yaml&#10;默认值 → 选定 YAML → 环境变量 → CLI" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
           <mxGeometry x="1129.45" y="509.2" as="geometry" width="365.19" height="74.6" />
         </mxCell>
         <mxCell id="BOOT" value="bootstrap.py · build_pipeline&#10;校验配置、装配并注入具体适配器" style="whiteSpace=wrap;fontColor=#0F172A;fontSize=16;strokeWidth=2;spacing=12;rounded=1;arcSize=10;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
