@@ -77,15 +77,23 @@ class Endpoint(Section):
     api_key_env: str = Field(default="", pattern=r"^$|^[A-Za-z_][A-Za-z0-9_]*$")
     concurrency: int = Field(default=3, gt=0)
     batch_size: int = Field(default=16, gt=0)
+    max_input_bytes: int | None = Field(default=None, ge=32)
     enabled: bool = True
     supports_images: bool = False  # 开启视觉前必须由部署方明确声明能力
     supports_json_object: bool = False  # 视觉端点显式声明支持 JSON Object，默认不发送
+
+    @property
+    def input_byte_limit(self) -> int | None:
+        """单条文本 UTF-8 字节预算；未显式配置时按模型给保守默认。"""
+        return self.max_input_bytes or (3000 if self.model == "embedding-3" else None)
 
     @model_serializer(mode="wrap")
     def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         data: dict[str, Any] = handler(self)
         if not self.supports_json_object:
             data.pop("supports_json_object", None)
+        if self.max_input_bytes is None:
+            data.pop("max_input_bytes", None)
         return data
 
 
@@ -134,10 +142,41 @@ class Retrieval(Section):
     backend: Literal["numpy", "faiss"] = "numpy"
     metric: Literal["cosine", "euclidean", "dot"] = "cosine"
     normalize: bool = True
+    # 检索模式：vector=纯向量；hybrid=向量+关键词 RRF 融合；keyword=纯关键词。
+    mode: Literal["vector", "hybrid", "keyword"] = "vector"
     vector_top_k: int = Field(default=20, gt=0)
-    keyword_enabled: bool = False
+    keyword_top_k: int = Field(default=20, gt=0)
+    keyword_scorer: Literal["tf", "bm25"] = "tf"
+    # RRF 融合常数与向量路权重；hybrid 下向量:关键词 = rrf_vector_weight:1。
+    rrf_constant: int = Field(default=60, gt=0)
+    rrf_vector_weight: float = Field(default=1.0, gt=0)
+    # 检索补充证据按 (block_id, quote) 去重并记录覆盖；默认 false 保持原行为。
+    dedupe_sources: bool = False
+    # 检索层重排开关；默认 true 保持旧行为（models.rerank.enabled 装配即重排），
+    # 显式设 false 可在已装配 reranker 时关闭检索层调用（如 A/B 不重排对照）。
+    rerank_enabled: bool = True
     rerank_top_n: int = Field(default=6, gt=0)
+    rerank_tie_policy: Literal["provider_order", "input_order"] = "provider_order"
     threshold_policy: Literal["disabled"] = "disabled"
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if self.rerank_tie_policy == "provider_order":
+            data.pop("rerank_tie_policy", None)
+        if self.keyword_scorer == "tf":
+            data.pop("keyword_scorer", None)
+        if not self.dedupe_sources:
+            data.pop("dedupe_sources", None)
+        if self.mode == "vector":
+            data.pop("mode", None)
+        if self.rrf_constant == 60:
+            data.pop("rrf_constant", None)
+        if self.rrf_vector_weight == 1.0:
+            data.pop("rrf_vector_weight", None)
+        if self.rerank_enabled:
+            data.pop("rerank_enabled", None)
+        return data
 
 
 class Budget(Section):
@@ -160,12 +199,12 @@ class Runtime(Section):
 # 简单配置分区使用带类型的模型定义，拒绝未声明字段。
 class Project(Section):
     name: str = "demo"
-    workdir: str = "./workdir"
+    workdir: str = "./workdir/rag/runtime"
 
 
 class Storage(Section):
     backend: Literal["sqlite"] = "sqlite"
-    database: str = "./workdir/data.sqlite"
+    database: str = "./workdir/rag/runtime/data.sqlite"
 
 
 class VisionProcessing(Section):
@@ -234,6 +273,12 @@ class Planning(Section):
         "permission",
     ]
     relation_enabled: bool = False
+    # 同功能内互补类型规则对生成组合候选点；默认 false 保持逐条映射。
+    combination_matrix: bool = False
+    # 报告同名/证据重叠的功能候选（只报告不合并）；默认 false。
+    feature_catalog_report: bool = False
+    # 遗漏规则缺口核查轮数；0 关闭。>0 时按指令检索并报告未被规则引用的证据，不自动改写规则集。
+    gap_check_rounds: int = Field(default=0, ge=0)
     # merge：同一功能的纯界面展示点合并为一条概括点；keep 保留旧行为。
     ui_display_policy: Literal["merge", "keep"] = "merge"
     # aggregate：仅图片证据不生成点并按功能汇总问题；downgrade/keep 保留旧行为。
@@ -243,6 +288,12 @@ class Planning(Section):
     def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         data: dict[str, Any] = handler(self)
         # 默认策略不改变旧快照形状，已有运行仍可按原配置恢复/重做用例。
+        if not self.combination_matrix:
+            data.pop("combination_matrix", None)
+        if not self.feature_catalog_report:
+            data.pop("feature_catalog_report", None)
+        if self.gap_check_rounds == 0:
+            data.pop("gap_check_rounds", None)
         if self.ui_display_policy == "merge":
             data.pop("ui_display_policy", None)
         if self.vision_policy == "aggregate":
@@ -255,8 +306,17 @@ class Generation(Section):
     skill_file: str | None = Field(default=None, min_length=1)
     max_cases_per_point: int = Field(default=3, gt=0)
     batch_point_limit: int = Field(default=5, gt=0)
+    # 先按规范功能/场景分组再切片；默认 false 保持旧的连续数量切片行为。
+    batch_by_feature: bool = False
     schema_repair_attempts: int = Field(default=1, ge=0)
     unsupported_expectation_policy: Literal["flag"] = "flag"
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if not self.batch_by_feature:
+            data.pop("batch_by_feature", None)
+        return data
 
 
 class Observability(Section):

@@ -145,9 +145,9 @@ PDF 页码、覆盖步骤号从 1 开始；DOCX 结构索引、块顺序及字�
 非零单位向量下 dot 与 cosine 相等，平方 L2 为 `2 - 2 × cosine`，理想排序等价；不能把不同独立生成运行的用例差异只归因于度量。
 
 ```powershell
-rag start --metric cosine --normalize --output-dir workdir/output/compare/cosine
-rag start --metric euclidean --normalize --output-dir workdir/output/compare/euclidean
-rag start --metric dot --normalize --output-dir workdir/output/compare/dot
+rag start --metric cosine --normalize --output-dir workdir/rag/output/compare/cosine
+rag start --metric euclidean --normalize --output-dir workdir/rag/output/compare/euclidean
+rag start --metric dot --normalize --output-dir workdir/rag/output/compare/dot
 ```
 
 第一轮用 **用户目标 + 当前规则陈述** 查询，帮助规划检查条件、例外与相关描述。
@@ -283,8 +283,8 @@ rag run 'D:\需求\订单.docx' -i '与原运行完全相同的指令' --resume 
 rag cases $runId --config workdir/local.yaml
 
 # 已有 cases 事实，仅重建一种派生文件：不调用模型
-rag inspect $runId --stage cases --format xlsx --output workdir/output/$runId/reexport.xlsx --config workdir/local.yaml
-rag inspect $runId --stage cases --format json --output workdir/output/$runId/reexport.json --config workdir/local.yaml
+rag inspect $runId --stage cases --format xlsx --output workdir/rag/output/$runId/reexport.xlsx --config workdir/local.yaml
+rag inspect $runId --stage cases --format json --output workdir/rag/output/$runId/reexport.json --config workdir/local.yaml
 rag inspect $runId --stage cases --format markdown --config workdir/local.yaml
 ```
 
@@ -353,7 +353,7 @@ evaluate 需要人工规则 / 相关性标注，默认不调用模型；具体�
 ### A.1 输入与模型组合
 
 运行 `run_b1603017bce04de6834328f5c7869f07`：用户称 48 页的 PDF 实际为 49 页。
-原件位于 `workdir/assets/50b1887f0b84e3b6245d12f82e79172faa4934d9622028fa57ed2c65e3d50546/original.pdf`。
+原件位于 `workdir/rag/runtime/assets/50b1887f0b84e3b6245d12f82e79172faa4934d9622028fa57ed2c65e3d50546/original.pdf`。
 指令沿用历史运行的输入，不复制正文。
 
 当时生成与视觉均为 `deepseek-flash`、并发 8；向量为 `embedding-3`、2048 维、每批 16、并发 2；
@@ -383,7 +383,7 @@ NumPy/cosine，持久缓存关闭，关键词和 Rerank 关闭。
 
 ### A.3 旧产物与数量
 
-旧目录 `workdir/output/run_b1603017bce04de6834328f5c7869f07/` 使用当时的固定名称
+旧目录 `workdir/rag/output/run_b1603017bce04de6834328f5c7869f07/` 使用当时的固定名称
 `testpoints.xmind`、`testcases.xlsx`，以及 JSON、报告、manifest、metrics 和专用 `reports/reexport.json`。
 当时规划点 887、XMind 只列已对应用例的 573 点、用例 656 条；这是旧导出语义，当前 XMind 已改为展示全部点。
 另有 428 条规则、1116 条覆盖关联、3240 条问题；638 条用例需核实、18 条自动 validated，未完成业务语义验收。

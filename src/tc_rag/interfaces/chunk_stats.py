@@ -34,7 +34,9 @@ from tc_rag.interfaces.chunk_evaluation import write_context_review, write_evalu
 def chunk_stats(
     run_id: str = typer.Argument(...),
     config: Path = typer.Option(Path("workdir/local.yaml"), "--config", exists=True),
-    output_dir: Path = typer.Option(Path("workdir/diagnostics/chunking"), "--output-dir"),
+    output_dir: Path = typer.Option(
+        Path("workdir/rag/runtime/diagnostics/chunking"), "--output-dir"
+    ),
     docx: Path | None = typer.Option(None, "--docx", exists=True, dir_okay=False),
     compare: bool = typer.Option(False, "--compare", help="用历史原文离线试分块，不改运行记录"),
     strategy: str | None = typer.Option(

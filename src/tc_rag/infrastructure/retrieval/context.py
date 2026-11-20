@@ -17,6 +17,7 @@ from tc_rag.domain.identity import fingerprint
 from tc_rag.domain.models import Asset, EvidenceSpan, Run
 from tc_rag.domain.pipeline import StageSnapshot
 from tc_rag.domain.rag import RagRecord
+from tc_rag.infrastructure.retrieval.dedupe import dedupe_sources
 from tc_rag.infrastructure.retrieval.index import NumpyIndex
 
 COLLECTIONS = {
@@ -40,13 +41,25 @@ class RagContext:
         run_id: str,
         *,
         backend: str = "numpy",
-        keyword_enabled: bool = False,
+        mode: str = "vector",
+        keyword_top_k: int = 20,
+        keyword_scorer: str = "tf",
+        rrf_constant: int = 60,
+        rrf_vector_weight: float = 1.0,
+        dedupe_sources: bool = False,
         reranker: Reranker | None = None,
+        rerank_enabled: bool = True,
         rerank_top_n: int = 6,
         cache_enabled: bool = True,
     ):
+        if mode not in {"vector", "hybrid", "keyword"}:
+            raise ValueError("未知检索模式")
         self.repository, self.store, self.embedder = repository, store, embedder
         self.space, self.top_k, self.run_id = space, top_k, run_id
+        self.mode = mode
+        self.keyword_top_k = keyword_top_k
+        self.rrf_constant = rrf_constant
+        self.rrf_vector_weight = rrf_vector_weight
         self.index = NumpyIndex(metric)
         if backend == "faiss":
             from tc_rag.infrastructure.retrieval.faiss_index import FaissIndex
@@ -56,8 +69,19 @@ class RagContext:
             raise ValueError("未知索引后端")
         from tc_rag.infrastructure.retrieval.keyword import KeywordIndex
 
-        self.keyword = KeywordIndex() if keyword_enabled else None
+        if keyword_scorer not in {"tf", "bm25"}:
+            raise ValueError("未知关键词算法")
+        self.keyword: KeywordIndex | None = None
+        if mode in {"hybrid", "keyword"}:
+            if keyword_scorer == "bm25":
+                from tc_rag.infrastructure.retrieval.bm25 import BM25Index
+
+                self.keyword = BM25Index()
+            else:
+                self.keyword = KeywordIndex()
         self.reranker, self.rerank_top_n = reranker, rerank_top_n
+        self.rerank_enabled = rerank_enabled
+        self.dedupe_sources = dedupe_sources
         self.evidence: dict[str, EvidenceSpan] = {}
         self.scope = ""
         self.space_id = fingerprint(asdict(space))
@@ -253,22 +277,39 @@ class RagContext:
         if not direct_ids <= self.evidence.keys():
             raise ValueError("直接证据不属于当前需求范围")
         started = perf_counter()
-        vector, cache_hit = await self.vector(query)
-        embedded = perf_counter()
-        hits = self.index.search(vector, self.top_k, set(self.evidence))
-        searched = perf_counter()
+        vector: list[float] | None = None
+        cache_hit = False
+        hits = []
+        if self.mode == "keyword":
+            embedded = searched = perf_counter()
+        else:
+            vector, cache_hit = await self.vector(query)
+            embedded = perf_counter()
+            hits = self.index.search(vector, self.top_k, set(self.evidence))
+            searched = perf_counter()
         vector_hits = [asdict(h) for h in hits]
         keyword_ids = (
-            self.keyword.search(query, self.top_k, set(self.evidence)) if self.keyword else []
+            self.keyword.search(query, self.keyword_top_k, set(self.evidence))
+            if self.keyword else []
         )
         # 命中记录保留原始向量分数；混合分数单独命名，不假装是余弦相似度。
         from tc_rag.infrastructure.retrieval.keyword import rrf
 
-        fusion = rrf([[h.object_id for h in hits], keyword_ids], self.top_k) if self.keyword else []
-        selected = [key for key, _ in fusion] if self.keyword else [h.object_id for h in hits]
+        if self.mode == "hybrid":
+            fusion = rrf(
+                [[h.object_id for h in hits], keyword_ids],
+                self.top_k, self.rrf_constant, [self.rrf_vector_weight, 1.0],
+            )
+            selected = [key for key, _ in fusion]
+        elif self.mode == "keyword":
+            fusion = []
+            selected = keyword_ids[: self.top_k]
+        else:
+            fusion = []
+            selected = [h.object_id for h in hits]
         rerank_event: dict[str, Any] = {"status": "disabled"}
         rerank_started = perf_counter()
-        if self.reranker:
+        if self.reranker and self.rerank_enabled:
             candidates = [
                 RankedCandidate(key, self.evidence[key].quote)
                 for key in selected[: self.rerank_top_n]
@@ -308,6 +349,14 @@ class RagContext:
             }
             for rank, key in enumerate(selected, 1)
         ]
+        supplemental = [
+            self.evidence[key].model_dump(mode="json")
+            for key in selected
+            if key not in direct_ids
+        ]
+        coverage: dict[str, list[str]] = {}
+        if self.dedupe_sources:
+            supplemental, coverage = dedupe_sources(supplemental)
         result = {
             "query_id": fingerprint(query),
             "scope": self.scope,
@@ -319,11 +368,8 @@ class RagContext:
             "keyword_ids": keyword_ids,
             "fusion": [{"object_id": key, "rrf_score": score} for key, score in fusion],
             "rerank": rerank_event,
-            "supplemental_evidence": [
-                self.evidence[key].model_dump(mode="json")
-                for key in selected
-                if key not in direct_ids
-            ],
+            "supplemental_evidence": supplemental,
+            "coverage": coverage,
             "query_embedding_cache_hit": cache_hit,
             "timings_ms": {
                 "query_embedding_ms": (embedded - started) * 1000,

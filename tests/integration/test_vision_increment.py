@@ -209,6 +209,10 @@ async def test_skipped_image_has_no_budget_failure_or_unresolved_placeholder(tmp
 def test_default_snapshots_exactly_match_pre_increment_baseline_and_env_role(tmp_path):
     baseline = json.loads((Path(__file__).parents[1] / "fixtures" /
                            "vision_defaults_before_increment.json").read_text(encoding="utf-8"))
+    # 显式提供旧路径时，历史配置仍精确往返；新默认仅改变已授权的目录。
+    assert AppConfig.model_validate(baseline).model_dump(mode="json") == baseline
+    baseline["project"]["workdir"] = "./workdir/rag/runtime"
+    baseline["storage"]["database"] = "./workdir/rag/runtime/data.sqlite"
     assert AppConfig().model_dump(mode="json") == baseline
     assert "min_edge" not in VisionProcessing().model_dump()
     cfg = load_config(environ={"TC_RAG_VISION_REVIEW_MODEL": "review"})

@@ -1,5 +1,7 @@
 # RAG 主线：功能、架构、流程与审核
 
+2026-11-17新增两轮生成的应用层证据记录：在预算检查后保存核心/检索补充证据，区分模型调用、缓存和失败，不改变请求内容及默认检索策略。只读导出方法及功能任务试标见[双链路执行计划](../../kb-evaluation/feature_task_execution_plan.md)。历史运行不自动补写，记录存在不等于语义验收通过。
+
 [返回学习导航](../README.md)
 
 ## 一条流程完成什么
@@ -86,7 +88,7 @@ flowchart TD
 .\.venv\Scripts\python.exe -m tc_rag.interfaces.cli run "需求.docx" -i "覆盖正常、异常和边界，依据需求生成测试用例" --config workdir/local.yaml --output-dir workdir/output
 ```
 
-产物默认在 `workdir/output/运行ID/`，可指定 `--output-dir`：
+产物默认在 `workdir/rag/output/运行ID/`，可指定 `--output-dir`：
 
 ```text
 运行ID/

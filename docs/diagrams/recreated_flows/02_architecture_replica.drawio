@@ -1,0 +1,539 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="tc-rag-native-diagrams">
+  <diagram id="02_architecture_replica" name="02 · 原图复刻：系统分层架构">
+    <mxGraphModel grid="0" gridSize="10" guides="1" connect="1" arrows="1" page="1" pageScale="1" math="0" pageWidth="711" pageHeight="606" background="#121212" adaptiveColors="none">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="bg" value="背景网格（可隐藏）" parent="0" style="locked=1;" />
+        <mxCell id="frames" value="分区" parent="0" />
+        <mxCell id="lines" value="连线" parent="0" />
+        <mxCell id="nodes" value="节点与文字" parent="0" />
+        <mxCell id="paper" parent="bg" vertex="1" style="rounded=1;arcSize=3;fillColor=#121212;strokeColor=none;locked=1;">
+          <mxGeometry x="0" y="0" width="711" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_10" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="10" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_20" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="20" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_30" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="30" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_40" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="40" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_50" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="50" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_60" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="60" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_70" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="70" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_80" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="80" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_90" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="90" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_100" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="100" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_110" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="110" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_120" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="120" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_130" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="130" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_140" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="140" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_150" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="150" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_160" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="160" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_170" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="170" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_180" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="180" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_190" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="190" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_200" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="200" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_210" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="210" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_220" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="220" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_230" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="230" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_240" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="240" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_250" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="250" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_260" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="260" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_270" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="270" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_280" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="280" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_290" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="290" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_300" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="300" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_310" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="310" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_320" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="320" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_330" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="330" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_340" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="340" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_350" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="350" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_360" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="360" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_370" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="370" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_380" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="380" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_390" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="390" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_400" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="400" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_410" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="410" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_420" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="420" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_430" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="430" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_440" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="440" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_450" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="450" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_460" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="460" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_470" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="470" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_480" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="480" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_490" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="490" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_500" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="500" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_510" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="510" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_520" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="520" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_530" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="530" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_540" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="540" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_550" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="550" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_560" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="560" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_570" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="570" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_580" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="580" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_590" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="590" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_600" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="600" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_610" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="610" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_620" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="620" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_630" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="630" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_640" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="640" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_650" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="650" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_660" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="660" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_670" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="670" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_680" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="680" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_690" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="690" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_700" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="700" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_x_710" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="710" y="0" width="0.4" height="606" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_10" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="10" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_20" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="20" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_30" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="30" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_40" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="40" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_50" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="50" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_60" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="60" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_70" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="70" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_80" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="80" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_90" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="90" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_100" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="100" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_110" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="110" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_120" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="120" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_130" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="130" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_140" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="140" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_150" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="150" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_160" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="160" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_170" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="170" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_180" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="180" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_190" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="190" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_200" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="200" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_210" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="210" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_220" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="220" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_230" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="230" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_240" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="240" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_250" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="250" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_260" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="260" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_270" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="270" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_280" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="280" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_290" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="290" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_300" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="300" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_310" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="310" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_320" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="320" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_330" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="330" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_340" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="340" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_350" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="350" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_360" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="360" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_370" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="370" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_380" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="380" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_390" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="390" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_400" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="400" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_410" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="410" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_420" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="420" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_430" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="430" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_440" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="440" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_450" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="450" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_460" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="460" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_470" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="470" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_480" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="480" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_490" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="490" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_500" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="500" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_510" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="510" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_520" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="520" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_530" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="530" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_540" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="540" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_550" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="550" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_560" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="560" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_570" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="570" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_580" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="580" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_590" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#242424;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="590" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="grid_y_600" parent="bg" vertex="1" connectable="0" style="shape=rectangle;fillColor=#373737;strokeColor=none;locked=1;pointerEvents=0;">
+          <mxGeometry x="0" y="600" width="711" height="0.4" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="&lt;div&gt;&lt;b&gt;系统分层架构&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#e8e8e8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="76" y="29" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="entry" value="&lt;div&gt;&lt;b&gt;&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=none;strokeColor=#454545;strokeWidth=1;" vertex="1" parent="frames">
+          <mxGeometry x="76" y="69" width="389" height="73" as="geometry" />
+        </mxCell>
+        <mxCell id="app" value="&lt;div&gt;&lt;b&gt;&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=none;strokeColor=#454545;strokeWidth=1;" vertex="1" parent="frames">
+          <mxGeometry x="76" y="170" width="389" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="infra" value="&lt;div&gt;&lt;b&gt;&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=none;strokeColor=#454545;strokeWidth=1;" vertex="1" parent="frames">
+          <mxGeometry x="76" y="279" width="389" height="129" as="geometry" />
+        </mxCell>
+        <mxCell id="external" value="&lt;div&gt;&lt;b&gt;&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=none;strokeColor=#454545;strokeWidth=1;" vertex="1" parent="frames">
+          <mxGeometry x="76" y="441" width="389" height="73" as="geometry" />
+        </mxCell>
+        <mxCell id="entry_label" value="&lt;div&gt;&lt;b&gt;入口与配置&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="94" y="92" width="62" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="app_label" value="&lt;div&gt;&lt;b&gt;应用层&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="102" y="193" width="48" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="app_sub" value="&lt;div&gt;&lt;b&gt;编排与接口定义&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#a8a8a8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="87" y="210" width="69" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_label" value="&lt;div&gt;&lt;b&gt;基础设施&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="98" y="327" width="52" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_sub" value="&lt;div&gt;&lt;b&gt;实现应用层接口&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#a8a8a8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="88" y="344" width="68" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="external_label" value="&lt;div&gt;&lt;b&gt;外部资源&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="99" y="456" width="55" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="external_sub" value="&lt;div&gt;&lt;b&gt;模型服务与本地文&lt;br&gt;件&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#a8a8a8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="84" y="474" width="72" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="cli" value="&lt;div&gt;&lt;b&gt;命令行入口&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;启动、查看、导出&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="157" y="81" width="93" height="49" as="geometry" />
+        </mxCell>
+        <mxCell id="config" value="&lt;div&gt;&lt;b&gt;配置装配&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;多级配置，装配实现&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="261" y="81" width="93" height="49" as="geometry" />
+        </mxCell>
+        <mxCell id="prompts" value="&lt;div&gt;&lt;b&gt;提示词&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;按阶段与版本管理&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="364" y="81" width="93" height="49" as="geometry" />
+        </mxCell>
+        <mxCell id="orchestration" value="&lt;div&gt;&lt;b&gt;流程编排&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;阶段串联与进度&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="157" y="186" width="93" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="services" value="&lt;div&gt;&lt;b&gt;业务服务&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;接入、分块、校验、设&lt;br&gt;计、评估&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="261" y="186" width="93" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="ports" value="&lt;div&gt;&lt;b&gt;外部能力接口&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;解析、模型、存储等接&lt;br&gt;口&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="364" y="186" width="93" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="parsers" value="&lt;div&gt;&lt;b&gt;文档解析&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;DOCX、PDF&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="157" y="291" width="93" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="models" value="&lt;div&gt;&lt;b&gt;模型适配&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;对话、向量、视觉、重&lt;br&gt;排&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="261" y="291" width="93" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="retrieval" value="&lt;div&gt;&lt;b&gt;检索&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;numpy 或 faiss&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="364" y="291" width="93" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="storage" value="&lt;div&gt;&lt;b&gt;存储&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;数据库与文件&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="157" y="349" width="93" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="export" value="&lt;div&gt;&lt;b&gt;导出&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;XMind、Excel、报告&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="261" y="349" width="93" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime" value="&lt;div&gt;&lt;b&gt;运行支持&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;计时与用量估算&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="364" y="349" width="93" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="domain" value="&lt;div&gt;&lt;b&gt;&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#121212;strokeColor=#454545;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="479" y="69" width="89" height="339" as="geometry" />
+        </mxCell>
+        <mxCell id="domain_title" value="&lt;div&gt;&lt;b&gt;领域层&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="492" y="152" width="64" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="domain_body" value="&lt;div&gt;&lt;b&gt;业务对象&lt;br&gt;块、证据、规则&lt;br&gt;测试点、用例&lt;br&gt;问题与覆盖&lt;br&gt;&lt;br&gt;检索与标识记录&lt;br&gt;向量空间、索引&lt;br&gt;上下文、文档指纹&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#a8a8a8;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="483" y="181" width="81" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="domain_bottom" value="&lt;div&gt;&lt;b&gt;被各层共用&lt;br&gt;不依赖外部实现&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#a8a8a8;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="483" y="327" width="81" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="remote" value="&lt;div&gt;&lt;b&gt;模型服务&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;DeepSeek 对话、智谱重排等&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="157" y="454" width="145" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="local" value="&lt;div&gt;&lt;b&gt;本地文件&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#9b9b9b&quot;&gt;数据库、原件、索引、输出&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="312" y="454" width="145" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1" value="&lt;div&gt;&lt;b&gt;&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#292929;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="76" y="534" width="16" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2" value="&lt;div&gt;&lt;b&gt;&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=9;fontColor=#e8e8e8;align=center;verticalAlign=middle;fillColor=#1c1c1c;strokeColor=#c3c3c3;strokeWidth=1;" vertex="1" parent="nodes">
+          <mxGeometry x="203" y="534" width="16" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1_text" value="&lt;div&gt;&lt;b&gt;白底：项目内模块&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=10;fontColor=#e8e8e8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="98" y="533" width="101" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2_text" value="&lt;div&gt;&lt;b&gt;灰底：外部资源&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=1;shadow=0;fontFamily=Microsoft YaHei;fontSize=10;fontColor=#e8e8e8;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="nodes">
+          <mxGeometry x="225" y="533" width="101" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_0" edge="1" parent="lines" style="edgeStyle=none;rounded=0;curved=0;sketch=0;html=1;strokeColor=#bababa;strokeWidth=1;endArrow=block;startArrow=none;endFill=1;dashed=0;jumpStyle=none;exitX=0.4987146529562982;exitY=1.0;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.4987146529562982;entryY=0.0;entryDx=0;entryDy=0;entryPerimeter=0;" source="entry" target="app">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="142" as="sourcePoint" />
+            <mxPoint x="270" y="170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label_0" vertex="1" parent="nodes" value="调用" style="text;html=1;align=center;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#bababa;fillColor=#121212;strokeColor=none;">
+          <mxGeometry x="255.0" y="147.5" width="30" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_1" edge="1" parent="lines" style="edgeStyle=none;rounded=0;curved=0;sketch=0;html=1;strokeColor=#bababa;strokeWidth=1;endArrow=block;startArrow=none;endFill=1;dashed=0;jumpStyle=none;exitX=0.4987146529562982;exitY=1.0;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.4987146529562982;entryY=0.0;entryDx=0;entryDy=0;entryPerimeter=0;" source="app" target="infra">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="245" as="sourcePoint" />
+            <mxPoint x="270" y="279" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label_1" vertex="1" parent="nodes" value="通过接口使用" style="text;html=1;align=center;fontFamily=Microsoft YaHei;fontSize=10;fontColor=#bababa;fillColor=#121212;strokeColor=none;">
+          <mxGeometry x="236.0" y="255.0" width="68" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_2" edge="1" parent="lines" style="edgeStyle=none;rounded=0;curved=0;sketch=0;html=1;strokeColor=#bababa;strokeWidth=1;endArrow=block;startArrow=none;endFill=1;dashed=0;jumpStyle=none;exitX=0.4987146529562982;exitY=1.0;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.4987146529562982;entryY=0.0;entryDx=0;entryDy=0;entryPerimeter=0;" source="infra" target="external">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="408" as="sourcePoint" />
+            <mxPoint x="270" y="441" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label_2" vertex="1" parent="nodes" value="访问" style="text;html=1;align=center;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#bababa;fillColor=#121212;strokeColor=none;">
+          <mxGeometry x="255.0" y="418.5" width="30" height="15" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

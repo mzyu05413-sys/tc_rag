@@ -36,6 +36,18 @@ class Document(DomainModel):
     asset_id: str = Field(min_length=1)
 
 
+class DeprecatedRange(DomainModel):
+    start_char: int = Field(ge=0)
+    end_char: int = Field(gt=0)
+    reason: Literal["docx_strike"] = "docx_strike"
+
+    @model_validator(mode="after")
+    def ordered(self) -> "DeprecatedRange":
+        if self.end_char <= self.start_char:
+            raise ValueError("作废区间必须非空")
+        return self
+
+
 class DocumentBlock(DomainModel):
     # 保留原文结构和定位；Chunk 是处理单元，不能取代原始 Block。
     block_id: str = Field(min_length=1)
@@ -49,6 +61,13 @@ class DocumentBlock(DomainModel):
     origin: Literal["text", "ocr", "vision"] = "text"
     processing_model: str | None = None
     processing_version: str | None = None
+    deprecated_ranges: list[DeprecatedRange] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def valid_deprecated_ranges(self) -> "DocumentBlock":
+        if any(r.end_char > len(self.content) for r in self.deprecated_ranges):
+            raise ValueError("作废区间超出原文")
+        return self
 
 
 class ChunkSource(DomainModel):

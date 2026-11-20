@@ -3,6 +3,7 @@
 import math
 from collections.abc import Callable
 from time import perf_counter
+from typing import Literal
 
 import httpx
 
@@ -20,7 +21,12 @@ class HttpReranker:
         run_id: str,
         record: Callable[[ModelInvocation], None],
         client: httpx.AsyncClient | None = None,
+        *,
+        tie_policy: Literal["provider_order", "input_order"] = "provider_order",
     ):
+        if tie_policy not in {"provider_order", "input_order"}:
+            raise ValueError("未知重排同分策略")
+        self.tie_policy = tie_policy
         if endpoint.adapter != "http" or not endpoint.enabled or not endpoint.model:
             raise ValueError("rerank 需要启用 http 适配器并配置模型")
         if not endpoint.base_url or "@" in endpoint.base_url or "?" in endpoint.base_url:
@@ -81,13 +87,18 @@ class HttpReranker:
                 output_tokens=0,
                 total_tokens=data.get("usage", {}).get("total_tokens"),
             )
+            # 仅完全同分使用原输入index；不舍入，不覆盖不同分数的排序。
+            ordered = sorted(rows, key=lambda r: (
+                -r["relevance_score"],
+                r["index"] if self.tie_policy == "input_order" else 0,
+            ))
             return [
                 RankedCandidate(
                     candidates[r["index"]].object_id,
                     candidates[r["index"]].text,
                     r["relevance_score"],
                 )
-                for r in sorted(rows, key=lambda r: -r["relevance_score"])
+                for r in ordered
             ]
         except Exception as exc:
             error = type(exc).__name__

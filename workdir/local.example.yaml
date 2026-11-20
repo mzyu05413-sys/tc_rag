@@ -5,11 +5,11 @@
 
 project:      # 项目配置
   name: demo
-  workdir: ./workdir  # 运行产物
+  workdir: ./workdir/rag/runtime  # 原 RAG 运行数据
 
 storage:      # 存储配置
   backend: sqlite
-  database: ./workdir/data.sqlite
+  database: ./workdir/rag/runtime/data.sqlite
 
 parsing:      # 文档解析
   formats: [pdf, docx]
@@ -66,9 +66,14 @@ retrieval:
   metric: cosine                      # cosine | euclidean | dot
   normalize: true
   embedding_dimension: 1536            # 必须等于模型实际返回维度，不自动截断
+  mode: vector                        # vector | hybrid | keyword；检索模式三选一
   vector_top_k: 20
-  keyword_enabled: false
+  keyword_top_k: 20                    # 关键词路单独召回预算
+  rrf_constant: 60                     # RRF 融合常数
+  rrf_vector_weight: 1.0               # hybrid 下向量:关键词权重，2.0 即 2:1
+  rerank_enabled: true                # 检索层重排开关；false 关闭检索层调用
   rerank_top_n: 6
+  rerank_tie_policy: provider_order    # input_order仅对完全同分保留重排输入次序
   threshold_policy: disabled          # 评估后按 metric 配置
 
 planning:   # 测试点设计

@@ -16,6 +16,11 @@ from tc_rag.domain.identity import new_id
 from tc_rag.domain.models import ModelInvocation, Timing, Usage
 
 
+def input_byte_limit(endpoint: Endpoint) -> int | None:
+    """文本 UTF-8 字节预算，embedding-3 采用低于文档 token 限制的保守值。"""
+    return endpoint.input_byte_limit
+
+
 class OpenAIEmbedder:
     capabilities = Capabilities(batch=True)
 
@@ -64,10 +69,24 @@ class OpenAIEmbedder:
     async def embed_batch(self, texts: list[str], space: EmbeddingSpace) -> EmbeddingBatch:
         if space.model != self.endpoint.model or space.dimension <= 0:
             raise ValueError("embedding 空间与端点不一致")
-        batches = [
-            texts[offset : offset + self.endpoint.batch_size]
-            for offset in range(0, len(texts), self.endpoint.batch_size)
-        ]
+        limit = input_byte_limit(self.endpoint)
+        if any(not text.strip() for text in texts):
+            raise ValueError("embedding 输入不能为空")
+        if limit is not None and any(len(text.encode("utf-8")) > limit for text in texts):
+            raise ValueError("embedding 单条文本超出字节预算，需先细分检索片段")
+        batches: list[list[str]] = []
+        current: list[str] = []
+        size = 0
+        for text in texts:
+            length = len(text.encode("utf-8"))
+            if current and (len(current) >= self.endpoint.batch_size
+                            or (limit is not None and size + length > limit)):
+                batches.append(current)
+                current, size = [], 0
+            current.append(text)
+            size += length
+        if current:
+            batches.append(current)
         results: list[tuple[list[list[float]], int | None] | None] = [None] * len(batches)
         pending = iter(enumerate(batches))
 

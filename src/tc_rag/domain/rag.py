@@ -62,6 +62,7 @@ class ContextPayload(DomainModel):
     fusion: list[dict[str, Any]]
     rerank: dict[str, Any]
     supplemental_evidence: list[EvidenceSpan]
+    coverage: dict[str, list[str]] = Field(default_factory=dict)
     query_embedding_cache_hit: bool
     timings_ms: dict[str, float]
     selection: str

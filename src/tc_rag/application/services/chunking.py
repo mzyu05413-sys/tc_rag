@@ -24,6 +24,12 @@ def normalized_quote(text: str) -> str:
 
 
 def verify_evidence(evidence: EvidenceSpan, block: DocumentBlock) -> bool:
+    if block.deprecated_ranges:
+        # 已带作废标记的块不能仅靠全块字符串包含来核验引用。
+        active = _active_pieces(block, 0, len(block.content))
+        if not any(normalized_quote(evidence.quote) in normalized_quote(p.text)
+                   for p in active):
+            return False
     quote = normalized_quote(evidence.quote)
     return bool(
         evidence.origin == block.origin
@@ -51,6 +57,21 @@ class _Piece:
     @property
     def text(self) -> str:
         return self.block.content[self.start : self.end]
+
+
+def _active_pieces(block: DocumentBlock, start: int, end: int) -> list[_Piece]:
+    pieces = []
+    cursor = start
+    for span in sorted(block.deprecated_ranges, key=lambda r: r.start_char):
+        left, right = max(start, span.start_char), min(end, span.end_char)
+        if right <= cursor or left >= end:
+            continue
+        if left > cursor:
+            pieces.append(_Piece(block, cursor, left))
+        cursor = max(cursor, right)
+    if cursor < end:
+        pieces.append(_Piece(block, cursor, end))
+    return pieces
 
 
 def _coalesce(items: list[_Piece]) -> list[_Piece]:
@@ -315,6 +336,23 @@ def structural_chunks(
                     description="完整段落/表格/条件例外组超出分块预算，未截断原文",
                 )
             )
+    if any(b.deprecated_ranges for b in blocks):
+        filtered = []
+        replacements: dict[str, list[str]] = {}
+        for chunk in refined:
+            pieces = [p for source in chunk.sources for p in _active_pieces(
+                by_id[source.block_id], source.start_char, source.end_char)]
+            if any(p.text.strip() for p in pieces):
+                updated = _piece_chunk(pieces, counter)
+                filtered.append(updated)
+                replacements[chunk.chunk_id] = [updated.chunk_id]
+            else:
+                replacements[chunk.chunk_id] = list(dict.fromkeys(
+                    source.block_id for source in chunk.sources))
+        for issue in issues:
+            issue.object_ids = [new_id for old_id in issue.object_ids
+                                for new_id in replacements.get(old_id, [old_id])]
+        refined = filtered
     return ChunkingResult(refined, issues)
 
 

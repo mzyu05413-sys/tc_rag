@@ -3,6 +3,7 @@
 import hashlib
 import math
 from collections import deque
+from collections.abc import AsyncIterator
 from copy import deepcopy
 from typing import Any
 
@@ -38,6 +39,25 @@ class FakeLLM:
         # 即使是 Fake，也要执行真实结构校验，避免测试绕过生产接口约束。
         output = output_schema.model_validate(payload)
         return ModelResult(output=output, request_id=f"fake-{self.calls}", finish_reason="stop")
+
+
+class FakeStreamingLLM:
+    # 逐段文本由测试显式预设；Fake 不推断测试用例内容。
+    capabilities = Capabilities()
+
+    def __init__(self, responses: list[list[str] | Exception] | None = None):
+        self._responses = deque(responses or [])
+        self.requests: list[dict[str, Any]] = []
+
+    async def stream_text(self, request: dict[str, Any]) -> AsyncIterator[str]:
+        self.requests.append(deepcopy(request))
+        if not self._responses:
+            raise RuntimeError("FakeStreamingLLM has no configured response")
+        response = self._responses.popleft()
+        if isinstance(response, Exception):
+            raise response
+        for piece in response:
+            yield piece
 
 
 class FakeEmbedder:

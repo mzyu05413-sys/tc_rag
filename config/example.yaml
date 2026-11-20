@@ -83,8 +83,12 @@ retrieval:
   backend: numpy                      # numpy | faiss
   metric: cosine                      # cosine | euclidean | dot
   normalize: true
+  mode: vector                        # vector | hybrid | keyword；检索模式三选一
   vector_top_k: 20
-  keyword_enabled: false
+  keyword_top_k: 20                    # 关键词路单独召回预算
+  rrf_constant: 60
+  rrf_vector_weight: 1.0               # hybrid 下向量:关键词权重，2.0 即 2:1
+  rerank_enabled: true                # 检索层重排开关；false 关闭检索层调用
   rerank_top_n: 6
   threshold_policy: disabled          # 评估后按 metric 配置
 

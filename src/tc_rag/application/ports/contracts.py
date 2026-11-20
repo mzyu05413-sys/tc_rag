@@ -1,6 +1,6 @@
 """定义外部能力的类型契约，不依赖具体供应商。"""
 
-from collections.abc import Iterable
+from collections.abc import AsyncIterator, Iterable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -175,6 +175,18 @@ class StructuredLLM(Protocol):
     capabilities: Capabilities
 
     async def generate(self, request: dict[str, Any], output_schema: type[T]) -> ModelResult: ...
+
+
+class StreamingTextLLM(Protocol):
+    """纯文本流式生成；交互问答使用，不承担结构化输出与引文校验。"""
+
+    capabilities: Capabilities
+
+    def stream_text(self, request: dict[str, Any]) -> AsyncIterator[str]: ...
+
+
+class AnswerLLM(StructuredLLM, StreamingTextLLM, Protocol):
+    """问答链路同时需要结构化输出和流式文本，二者共用同一端点与调用预算。"""
 
 
 class Embedder(Protocol):

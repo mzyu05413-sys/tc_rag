@@ -35,7 +35,7 @@ from tc_rag.infrastructure.storage.sqlite import SqliteRepository
 from tc_rag.interfaces.progress import TerminalProgress, format_duration
 
 DEFAULT_INSTRUCTION = "根据需求文档生成功能测试点和测试用例，保留原文依据"
-DEFAULT_OUTPUT_DIR = Path("workdir/output")
+DEFAULT_OUTPUT_DIR = Path("workdir/rag/output")
 
 app = typer.Typer(
     help="tc-rag：通过 RAG 一次生成测试点 XMind、用例 Excel 及报告。"

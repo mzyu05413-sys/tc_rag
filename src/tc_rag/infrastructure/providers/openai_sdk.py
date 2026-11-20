@@ -3,7 +3,7 @@
 import asyncio
 import json
 import random
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 from time import perf_counter
 from typing import Any
 
@@ -215,6 +215,83 @@ class OpenAIStructuredLLM:
                     ),
                 )
         raise AssertionError("unreachable")
+
+    async def stream_text(self, request: dict[str, Any]) -> AsyncIterator[str]:
+        """逐段返回纯文本回答；不发送 response_format，也不做本地结构校验。"""
+        if self.endpoint.api_mode != "chat_completions":
+            raise ProviderError("流式回答当前仅支持 chat_completions")
+        if self.runtime.budget.max_cost is not None:
+            raise ValueError("尚未配置价格表，无法执行金额预算；请使用 max_calls")
+        stage = str(request.get("stage", "kb_assistant"))
+        messages = [{"role": "system", "content": str(request.get("system", ""))}]
+        for item in request.get("history") or []:
+            if isinstance(item, dict):
+                messages.append({
+                    "role": "assistant" if item.get("role") == "assistant" else "user",
+                    "content": str(item.get("content", "")),
+                })
+        messages.append({"role": "user", "content": str(request.get("user", ""))})
+        options: dict[str, Any] = {"stream": True}
+        if self.endpoint.max_output_tokens is not None:
+            options["max_tokens"] = self.endpoint.max_output_tokens
+        if self.endpoint.thinking_mode != "default":
+            options["extra_body"] = {"thinking": {"type": self.endpoint.thinking_mode}}
+        async with self.semaphore:
+            if (
+                self.runtime.budget.max_calls is not None
+                and self.calls >= self.runtime.budget.max_calls
+            ):
+                raise ProviderError("达到模型调用次数预算")
+            self.calls += 1
+            if self.admit:
+                self.admit()
+            started = perf_counter()
+            usage = Usage()
+            error: str | None = None
+            report(self.progress, ProgressEvent("model_started", stage))
+            try:
+                client: Any = self.client
+                async with asyncio.timeout(self.runtime.request_timeout_seconds):
+                    stream = await client.chat.completions.create(
+                        model=self.endpoint.model, messages=messages, **options,
+                    )
+                    async for chunk in stream:
+                        # 未显式请求 include_usage，供应商可能不返回用量，保持未知。
+                        if getattr(chunk, "usage", None) is not None:
+                            usage = Usage(
+                                input_tokens=chunk.usage.prompt_tokens,
+                                output_tokens=chunk.usage.completion_tokens,
+                                total_tokens=chunk.usage.total_tokens,
+                            )
+                        choices = getattr(chunk, "choices", None) or []
+                        if not choices:
+                            continue
+                        delta = choices[0].delta.content
+                        if delta:
+                            yield str(delta)
+            except Exception as exc:
+                error = type(exc).__name__
+                raise ProviderError(error) from None
+            finally:
+                report(
+                    self.progress,
+                    ProgressEvent(
+                        "model_finished", stage,
+                        duration_ms=(perf_counter() - started) * 1000,
+                    ),
+                )
+                self.record(
+                    ModelInvocation(
+                        invocation_id=new_id("inv"),
+                        run_id=self.run_id,
+                        stage=stage,
+                        provider="openai_sdk",
+                        model=self.endpoint.model,
+                        usage=usage,
+                        timing=Timing(duration_ms=(perf_counter() - started) * 1000),
+                        error=error,
+                    )
+                )
 
     async def _request(
         self,

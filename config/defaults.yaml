@@ -1,10 +1,10 @@
 project:      # 项目配置
   name: demo
-  workdir: ./workdir  # 运行产物
+  workdir: ./workdir/rag/runtime  # 运行产物
 
 storage:      # 存储配置
   backend: sqlite
-  database: ./workdir/data.sqlite
+  database: ./workdir/rag/runtime/data.sqlite
 
 parsing:      # 文档解析
   formats: [pdf, docx]
@@ -91,15 +91,25 @@ retrieval:
   metric: cosine                      # cosine | euclidean | dot
   normalize: true
   embedding_dimension: 1536            # 必须等于模型实际返回维度，不自动截断
+  mode: vector                        # vector | hybrid | keyword；检索模式三选一
   vector_top_k: 20
-  keyword_enabled: false
+  keyword_top_k: 20                    # 关键词路单独召回预算
+  keyword_scorer: tf                  # tf | bm25；BM25 需显式开启，tf 保留历史基线
+  rrf_constant: 60                     # RRF 融合常数
+  rrf_vector_weight: 1.0               # hybrid 下向量:关键词权重，2.0 即 2:1
+  dedupe_sources: false               # 检索补充证据按 (block_id, quote) 去重并记录覆盖
+  rerank_enabled: true                # 检索层重排开关；false 可在已装配 reranker 时关闭检索层调用
   rerank_top_n: 6
+  rerank_tie_policy: provider_order    # 默认沿用服务同分次序；input_order保留重排输入次序
   threshold_policy: disabled          # 评估后按 metric 配置
 
 planning:   # 测试点设计
   max_points_per_rule: 12 # 模型补充数量上限
   methods: [equivalence, boundary, decision_table, state, permission] # 等价类、边界值、决策表、状态转换、权限矩阵
   relation_enabled: false # 业务关系
+  combination_matrix: false # 同功能内互补类型规则对生成组合候选点；false 保持逐条映射
+  feature_catalog_report: false # 报告同名/证据重叠的功能候选（只报告不合并）
+  gap_check_rounds: 0 # 遗漏规则缺口核查轮数；0 关闭，>0 按指令检索并报告未被规则引用的证据
   ui_display_policy: merge # merge=纯界面展示点合并为概括点；keep=保留旧行为
   vision_policy: aggregate # aggregate=仅图片证据不生成点并汇总问题；downgrade/keep 保留旧行为
 
@@ -107,6 +117,7 @@ generation:
   skill_file: null # 默认内置用例 Skill；可追加自包含 UTF-8 Markdown 文件
   max_cases_per_point: 3 # 防止模型无界扩展用例数量
   batch_point_limit: 5
+  batch_by_feature: false # 先按规范功能/场景分组再切片；false 保持旧连续切片
   schema_repair_attempts: 1
   unsupported_expectation_policy: flag
 

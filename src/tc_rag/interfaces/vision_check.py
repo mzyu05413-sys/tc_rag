@@ -177,7 +177,7 @@ async def execute(
 def vision(
     run_id: str | None = typer.Option(None, "--run-id", help="已有运行 ID；从其快照读取原图。"),
     config: Path = typer.Option(Path("workdir/local.yaml"), "--config", exists=True),
-    output_dir: Path = typer.Option(Path("workdir/diagnostics/vision"), "--output-dir"),
+    output_dir: Path = typer.Option(Path("workdir/rag/runtime/diagnostics/vision"), "--output-dir"),
     limit: int | None = typer.Option(None, "--limit", min=1, help="仅检查前 N 张图片。"),
     live: bool = typer.Option(False, "--live", help="真实调用视觉模型，会发送图文并产生费用。"),
     verify: bool | None = typer.Option(None, "--verify/--no-verify", help="仅本轮覆盖复核开关。"),

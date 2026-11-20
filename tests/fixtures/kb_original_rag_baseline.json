@@ -1,0 +1,13 @@
+{
+  "block_text": "最多300个，数量为整数。",
+  "chunk_ranges": [[0, 13]],
+  "vector_sha256_float32_le": "6bc94e36230d34202a5c93136bf9555d8196e2d8b08f159ee91430c50449f319",
+  "vector_shape": [2, 3],
+  "first_hit_is_direct": true,
+  "hit_ranks": [1, 2],
+  "case_title": "最多300个，数量为整数。；边界数据=299/300/301",
+  "action": "执行：最多300个，数量为整数。；边界数据=299/300/301",
+  "expected": "最多300个，数量为整数。",
+  "priority": "P2",
+  "status": "validated"
+}

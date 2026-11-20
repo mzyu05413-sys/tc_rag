@@ -2,6 +2,8 @@
 
 [文档入口](../README.md) · [完整运行说明](../reference/full_run_walkthrough.md) · [打开交互图集](index.html)
 
+新增 2026-11-06 [两张原图复刻与双遍视觉 / 两轮 RAG 详细图](recreated_flows/README.md)：提供[三页可编辑 Draw.io](recreated_flows/tc_rag_recreated_and_detailed.drawio)和[离线缩放预览](recreated_flows/index.html)。前两页保留截图表达，第三页按当前代码展开；下方旧五页图集保留原版本记录。
+
 Mermaid / SVG / 离线 HTML 是 **2026-10-29 版本的流程概览**；当前可编辑 Draw.io 采用 **2026-10-31 核对版**，旧同名文件已放入 [archive](archive/README.md)。各格式并非逐字同步的新版本。最新图片点策略、模块默认布局与有限覆盖补生成以 [运行说明](../reference/full_run_walkthrough.md) 为准。源码与旧设计文档有差别时，以当前实现为准；图示不代表真实模型和业务质量已验收。
 图表不含密钥、私有服务地址、真实需求内容或运行数据库数据。
 

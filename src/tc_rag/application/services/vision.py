@@ -4,7 +4,11 @@ import asyncio
 from typing import Any
 
 from tc_rag.application.ports.contracts import ArtifactStore, Repository, VisionReader
-from tc_rag.application.ports.errors import VisionImageSkipped, VisionReadError
+from tc_rag.application.ports.errors import (
+    VisionCacheMissError,
+    VisionImageSkipped,
+    VisionReadError,
+)
 from tc_rag.application.progress import ProgressEvent, ProgressReporter, report
 from tc_rag.application.services.design import issue
 from tc_rag.application.services.vision_content import image_context, vision_image_id
@@ -38,6 +42,7 @@ class VisionEvidenceService:
         self.concurrency = concurrency
         self.context_blocks, self.context_chars = context_blocks, context_chars
         self.progress: ProgressReporter | None = None
+        self.require_cache = False
 
     async def process(self, blocks: list[DocumentBlock]) -> tuple[list[DocumentBlock], list[Issue]]:
         """并发处理图片；输出仍按原始 block 顺序，单张失败不影响其余。"""
@@ -73,8 +78,14 @@ class VisionEvidenceService:
                 )
                 if cached:
                     data = cached.payload
+                    if self.require_cache and (
+                        not isinstance(data.get("text"), str) or not data["text"].strip()
+                    ):
+                        raise VisionCacheMissError("图片缓存内容无效，缓存限定恢复已停止")
                     cached_count += 1
                 else:
+                    if self.require_cache:
+                        raise VisionCacheMissError("图片缓存未命中，缓存限定恢复已停止")
                     token = vision_image_id.set(block.block_id)
                     try:
                         description = await self.reader.read(content, context)
@@ -117,12 +128,18 @@ class VisionEvidenceService:
                         "validation", "图片解释未完成复核，保留第一遍结果："
                         + details["verify_error"], [block.block_id]
                     )
+            except VisionCacheMissError:
+                raise
             except VisionImageSkipped:
                 skipped += 1
                 problem = issue(
                     "other", "图片过小，已跳过", [block.block_id, asset.asset_id], severity="info"
                 )
             except Exception as exc:
+                if self.require_cache:
+                    raise VisionCacheMissError(
+                        "图片缓存或来源校验失败，缓存限定恢复已停止"
+                    ) from None
                 failed += 1
                 # 只展开适配器保证安全的错误码，其他异常只保留类型。
                 error = exc.code if isinstance(exc, VisionReadError) else type(exc).__name__

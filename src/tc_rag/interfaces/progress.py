@@ -42,9 +42,21 @@ STAGE_NAMES = {
     "validate": "校验引用和覆盖",
     "export_cases": "联合导出 XMind、Excel 与报告",
     "completed": "已完成",
+    "kb_ingest": "知识库文档接入与解析",
+    "kb_preflight": "向量服务前置预检",
+    "kb_publish": "发布知识库快照",
+    "kb_retrieve": "检索知识库证据",
+    "kb_rerank": "重排候选证据",
+    "kb_answer": "依据证据回答",
 }
 
 STAGE_DETAILS = {
+    "kb_preflight": "先验证小文本请求和向量维度，再进行图片解释",
+    "kb_ingest": "逐份解析需求，保留原文、表格、图片及来源",
+    "kb_publish": "校验索引并切换完整快照，失败保留原版本",
+    "kb_retrieve": "固定快照和文档范围，执行向量及可选关键词召回",
+    "kb_rerank": "按配置重排，失败记录降级并保留已有顺序",
+    "kb_answer": "在预算内组织证据，生成带引用的回答或说明缺失信息",
     "ingest": "保存文档副本与指纹",
     "parse": "提取文字、表格、图片及来源定位",
     "vision": "解释已提取图片，保留图片来源与待确认项",

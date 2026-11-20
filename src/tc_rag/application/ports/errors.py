@@ -9,6 +9,10 @@ class WorkflowError(ValueError):
     """可展示的流程错误；只允许程序固定说明，不拼入模型或第三方异常正文。"""
 
 
+class VisionCacheMissError(RuntimeError):
+    """缓存限定恢复中缺少图片结果，必须停止且禁止发起视觉请求。"""
+
+
 class EmbeddingProviderError(RuntimeError):
     """向量服务失败；只携带适配器生成的状态码，不携带响应正文。"""
 

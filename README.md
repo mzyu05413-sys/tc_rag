@@ -1,5 +1,9 @@
 # tc_rag
 
+新增知识库终端路线提供 PDF/DOCX 多文档入库、检索、引用问答、离线评测，
+以及面向用例设计的多轮问答助手 `kb-assistant`，操作见[知识库使用说明](docs/kb-evaluation/usage.md)。
+工程离线验证与真实语义效果分别验收。
+
 面向测试设计的 RAG 框架：需求文档 → 图文解析 → 功能与规则提炼 → 向量索引与检索 →
 检索增强规划测试点 → Skill 与检索增强生成用例 → 输出 XMind、Excel 与质量报告。
 
@@ -24,7 +28,7 @@ rag
 
 > 根据需求文档生成功能测试点和测试用例，保留原文依据
 
-产物默认在 `workdir/output/<运行ID>/`：
+产物默认在 `workdir/rag/output/<运行ID>/`：
 
 - XMind 全量测试点目录（按 状态 → 业务维度 → 功能 分层，含待澄清）
 - 全量测试用例 Excel（主表 + 可读的测试点/规则/覆盖/问题附表）
@@ -140,7 +144,7 @@ export:
 | `parsing.pdf_running_text` | `keep` | 可选 isolate 标记边缘重复行/页码为 other，保留追溯 |
 
 [分块质量与统一验收指南](docs/reference/chunk_structure_quality.md)包含逐块对照方法。
-以下命令只读已保存的分块快照，零模型调用，产物在 `workdir/diagnostics/chunking/`：
+以下命令只读已保存的分块快照，零模型调用，产物在 `workdir/rag/runtime/diagnostics/chunking/`：
 
 ```powershell
 rag chunk-stats <run_id>
@@ -247,7 +251,7 @@ rag vision --run-id <已有运行ID> --limit 6
 `--verify` / `--no-verify` 仅覆盖该次验收的复核开关。对已有结果评分无需模型调用：
 
 ```powershell
-rag vision --results "workdir/diagnostics/vision/vision_check_实际ID/results.json" --gold "workdir/dev/demo/vision_gold.json"
+rag vision --results "workdir/rag/runtime/diagnostics/vision/vision_check_实际ID/results.json" --gold "workdir/dev/demo/vision_gold.json"
 ```
 
 子串匹配评分仅辅助检查，不能代替人工审核。使用 `--results` 时不能同时指定 `--live` 或 `--run-id`。
@@ -261,14 +265,14 @@ rag quality <run_id>
 rag inspect <run_id> --stage rules
 rag inspect <run_id> --stage cases
 rag inspect <run_id> --stage failure
-rag inspect <run_id> --stage cases --format xlsx --output workdir/output/<run_id>/cases.xlsx
+rag inspect <run_id> --stage cases --format xlsx --output workdir/rag/output/<run_id>/cases.xlsx
 ```
 
 - `rag status` 不带 `run_id` 时按时间倒序列出最近 20 次运行及其状态；
 - `rag quality` 只读运行快照，逐阶段输出 `reports/quality_check.json` 和 `.md`；
   `fail` 返回退出码 2，`--strict` 时 `warn` 也返回 2；不调用模型；
 - `inspect` 默认把阶段快照以 JSON 打印到终端；`--format xlsx` 只适用于 `cases` 阶段，
-  未给 `--output` 时写入 `workdir/output/<run_id>/reexport.xlsx`；
+  未给 `--output` 时写入 `workdir/rag/output/<run_id>/reexport.xlsx`；
 - `--format markdown` 可把任意阶段快照写成 Markdown。
 
 ### 重试用例生成或恢复运行
@@ -282,6 +286,22 @@ rag run "D:\需求资料\需求文档.pdf" -i "与原运行一致的生成指令
 - `cases`：复用已保存测试点，只重做用例阶段；省略 `-i` 时沿用原运行的生成指令，
   配置必须与原运行一致，变化时会列出发生变化的配置段；
 - `--resume`：从失败或中断处继续；`--from-stage` 支持 `extract` / `plan_points`。
+
+### 知识库问答助手（多轮流式）
+
+面向用例设计的对话入口：基于已入库的知识库快照，流式输出答案，支持多轮追问。
+
+```powershell
+kb-assistant --live                # 默认知识库 cordys
+kb-assistant cordys --live         # 显式指定知识库
+rag kb assistant cordys --live     # 等价完整写法
+```
+
+启动后先打印本次使用的配置、知识库、快照 ID 和回答提示词版本，再出问候语；随后逐题输入。
+
+- 身份、能力、追问等自然口语回答；明确要求测试用例时才按"覆盖范围 + 用例"格式输出；
+- 保留最近三轮对话（`/new` 清空，`/exit` 退出）；答案流式输出，不显示检索阶段、分数或证据清单；
+- 省略 `--live` 只打印预览；检索、证据预算与调用记录沿用知识库链路，真实调用会产生费用。
 
 ### 真实连通检查与评估
 

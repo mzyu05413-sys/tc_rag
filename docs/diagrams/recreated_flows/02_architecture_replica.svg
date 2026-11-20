@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="711" height="606" viewBox="0 0 711 606">
+  <title>02 · 原图复刻：系统分层架构</title>
+  <defs>
+    <pattern id="minor" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#242424" stroke-width="0.6" />
+    </pattern>
+    <pattern id="major" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#373737" stroke-width="0.6" />
+    </pattern>
+    <marker id="abababa" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 0 1 L 7 4 L 0 7 z" fill="#bababa" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="711" height="606" rx="12" fill="#121212" />
+  <rect x="0" y="0" width="711" height="606" rx="12" fill="url(#minor)" />
+  <rect x="0" y="0" width="711" height="606" rx="12" fill="url(#major)" />
+  <rect x="76" y="69" width="389" height="73" rx="3" fill="none" stroke="#454545" />
+  <rect x="76" y="170" width="389" height="75" rx="3" fill="none" stroke="#454545" />
+  <rect x="76" y="279" width="389" height="129" rx="3" fill="none" stroke="#454545" />
+  <rect x="76" y="441" width="389" height="73" rx="3" fill="none" stroke="#454545" />
+  <polyline points="270,142 270,170" fill="none" stroke="#bababa" stroke-width="1" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="270,245 270,279" fill="none" stroke="#bababa" stroke-width="1" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="270,408 270,441" fill="none" stroke="#bababa" stroke-width="1" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <text x="77" y="49.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" text-anchor="start" font-weight="600">系统分层架构</text>
+  <text x="95" y="110.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="start" font-weight="600">入口与配置</text>
+  <text x="103" y="207.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="start" font-weight="600">应用层</text>
+  <text x="88" y="223.5" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="start" font-weight="600">编排与接口定义</text>
+  <text x="99" y="341.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="start" font-weight="600">基础设施</text>
+  <text x="89" y="357.5" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="start" font-weight="600">实现应用层接口</text>
+  <text x="100" y="470.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="start" font-weight="600">外部资源</text>
+  <text x="85" y="485.0" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="start" font-weight="600">模型服务与本地文</text>
+  <text x="85" y="496.0" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="start" font-weight="600">件</text>
+  <rect x="157" y="81" width="93" height="49" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="203.5" y="104.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">命令行入口</text>
+  <text x="203.5" y="116.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">启动、查看、导出</text>
+  <rect x="261" y="81" width="93" height="49" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="307.5" y="104.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">配置装配</text>
+  <text x="307.5" y="116.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">多级配置，装配实现</text>
+  <rect x="364" y="81" width="93" height="49" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="410.5" y="104.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">提示词</text>
+  <text x="410.5" y="116.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">按阶段与版本管理</text>
+  <rect x="157" y="186" width="93" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="203.5" y="209.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">流程编排</text>
+  <text x="203.5" y="221.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">阶段串联与进度</text>
+  <rect x="261" y="186" width="93" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="307.5" y="203.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">业务服务</text>
+  <text x="307.5" y="215.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">接入、分块、校验、设</text>
+  <text x="307.5" y="226.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">计、评估</text>
+  <rect x="364" y="186" width="93" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="410.5" y="203.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">外部能力接口</text>
+  <text x="410.5" y="215.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">解析、模型、存储等接</text>
+  <text x="410.5" y="226.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">口</text>
+  <rect x="157" y="291" width="93" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="203.5" y="314.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">文档解析</text>
+  <text x="203.5" y="326.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">DOCX、PDF</text>
+  <rect x="261" y="291" width="93" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="307.5" y="308.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">模型适配</text>
+  <text x="307.5" y="320.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">对话、向量、视觉、重</text>
+  <text x="307.5" y="331.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">排</text>
+  <rect x="364" y="291" width="93" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="410.5" y="314.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">检索</text>
+  <text x="410.5" y="326.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">numpy 或 faiss</text>
+  <rect x="157" y="349" width="93" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="203.5" y="372.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">存储</text>
+  <text x="203.5" y="384.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">数据库与文件</text>
+  <rect x="261" y="349" width="93" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="307.5" y="372.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">导出</text>
+  <text x="307.5" y="384.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">XMind、Excel、报告</text>
+  <rect x="364" y="349" width="93" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="410.5" y="372.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">运行支持</text>
+  <text x="410.5" y="384.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">计时与用量估算</text>
+  <rect x="479" y="69" width="89" height="339" rx="3" fill="#121212" stroke="#454545" />
+  <text x="524.0" y="167.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">领域层</text>
+  <text x="523.5" y="211.0" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="600">业务对象</text>
+  <text x="523.5" y="222.0" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="600">块、证据、规则</text>
+  <text x="523.5" y="233.0" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="600">测试点、用例</text>
+  <text x="523.5" y="244.0" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="600">问题与覆盖</text>
+  <text x="523.5" y="255.0" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="600" />
+  <text x="523.5" y="266.0" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="600">检索与标识记录</text>
+  <text x="523.5" y="277.0" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="600">向量空间、索引</text>
+  <text x="523.5" y="288.0" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="600">上下文、文档指纹</text>
+  <text x="523.5" y="339.5" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="600">被各层共用</text>
+  <text x="523.5" y="350.5" fill="#a8a8a8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="600">不依赖外部实现</text>
+  <rect x="157" y="454" width="145" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="229.5" y="477.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">模型服务</text>
+  <text x="229.5" y="489.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">DeepSeek 对话、智谱重排等</text>
+  <rect x="312" y="454" width="145" height="48" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <text x="384.5" y="477.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="600">本地文件</text>
+  <text x="384.5" y="489.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="9" text-anchor="middle" font-weight="400">数据库、原件、索引、输出</text>
+  <rect x="76" y="534" width="16" height="16" rx="3" fill="#292929" stroke="#c3c3c3" />
+  <rect x="203" y="534" width="16" height="16" rx="3" fill="#1c1c1c" stroke="#c3c3c3" />
+  <text x="99" y="547.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="10" text-anchor="start" font-weight="600">白底：项目内模块</text>
+  <text x="226" y="547.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="10" text-anchor="start" font-weight="600">灰底：外部资源</text>
+  <rect x="255.0" y="144" width="30" height="15" fill="#121212" />
+  <text x="270" y="155" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="400">调用</text>
+  <rect x="236.0" y="252" width="68" height="14" fill="#121212" />
+  <text x="270" y="262" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="10" text-anchor="middle" font-weight="400">通过接口使用</text>
+  <rect x="255.0" y="415" width="30" height="15" fill="#121212" />
+  <text x="270" y="426" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="11" text-anchor="middle" font-weight="400">访问</text>
+</svg>

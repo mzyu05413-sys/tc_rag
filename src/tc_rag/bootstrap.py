@@ -2,12 +2,14 @@
 
 import importlib.util
 import sys
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tc_rag.application.ports.contracts import (
+    AnswerLLM,
     ArtifactStore,
     Embedder,
     Repository,
@@ -19,9 +21,12 @@ from tc_rag.core.config import AppConfig, resolve_api_key
 from tc_rag.infrastructure.providers.fakes import FakeEmbedder, FakeLLM
 
 if TYPE_CHECKING:
+    from tc_rag.application.kb.ingest import IngestionService
+    from tc_rag.application.kb.search import SearchService
     from tc_rag.application.orchestration.pipeline import Pipeline
     from tc_rag.application.services.vision import VisionEvidenceService
     from tc_rag.domain.models import ModelInvocation
+    from tc_rag.infrastructure.providers.embedding import OpenAIEmbedder
 
 
 @dataclass
@@ -49,7 +54,7 @@ def validate_runtime_config(
     required.append(("embedding", config.models.embedding, "openai_sdk", embedder is not None))
     for enabled, package in (
         (config.retrieval.backend == "faiss", "faiss"),
-        (config.retrieval.keyword_enabled, "jieba"),
+        (config.retrieval.mode != "vector", "jieba"),
     ):
         if enabled and importlib.util.find_spec(package) is None:
             raise StartupConfigurationError(f"缺少可选依赖 {package}，请安装对应 extras")
@@ -312,7 +317,13 @@ def build_pipeline(
         config.retrieval.vector_top_k,
         run_id,
         backend=config.retrieval.backend,
-        keyword_enabled=config.retrieval.keyword_enabled,
+        mode=config.retrieval.mode,
+        keyword_top_k=config.retrieval.keyword_top_k,
+        keyword_scorer=config.retrieval.keyword_scorer,
+        rrf_constant=config.retrieval.rrf_constant,
+        rrf_vector_weight=config.retrieval.rrf_vector_weight,
+        dedupe_sources=config.retrieval.dedupe_sources,
+        rerank_enabled=config.retrieval.rerank_enabled,
         rerank_top_n=config.retrieval.rerank_top_n,
         cache_enabled=config.runtime.cache_enabled,
     )
@@ -322,7 +333,10 @@ def build_pipeline(
         from tc_rag.infrastructure.providers.rerank import HttpReranker
 
         if reranker is None:
-            http_reranker = HttpReranker(config.models.rerank, config.runtime, run_id, record)
+            http_reranker = HttpReranker(
+                config.models.rerank, config.runtime, run_id, record,
+                tie_policy=config.retrieval.rerank_tie_policy,
+            )
             http_reranker.admit = admit
             reranker = http_reranker
         retrieval_context.reranker = reranker
@@ -355,3 +369,169 @@ def build_pipeline(
             config, repository, store, run_id, record, prompts, admit=admit,
         )
     return pipeline
+
+
+def build_kb_ingestion(config: AppConfig, root: Path) -> tuple[
+    "IngestionService", "OpenAIEmbedder"
+]:
+    """独立装配 DOCX 入库，不要求回答模型，不读取原运行数据库。"""
+    from tc_rag.application.kb.embedding_cache import CachedEmbedder
+    from tc_rag.application.kb.ingest import IngestionService
+    from tc_rag.application.ports.contracts import DocumentParser, EmbeddingSpace
+    from tc_rag.domain.identity import new_id
+    from tc_rag.infrastructure.parsing.docx import DocxParser
+    from tc_rag.infrastructure.parsing.pdf import PdfParser
+    from tc_rag.infrastructure.providers.embedding import OpenAIEmbedder
+    from tc_rag.infrastructure.retrieval.faiss_index import FaissIndex
+    from tc_rag.infrastructure.retrieval.index import NumpyIndex
+    from tc_rag.infrastructure.runtime.kb_manifest import runtime_manifest
+    from tc_rag.infrastructure.runtime.tokens import token_counter
+    from tc_rag.infrastructure.storage.files import LocalArtifactStore
+    from tc_rag.infrastructure.storage.kb.sqlite import KnowledgeSqliteRepository
+
+    chunking = config.chunking
+    repository = KnowledgeSqliteRepository(root / "data.sqlite")
+    store = LocalArtifactStore(root)
+    space = EmbeddingSpace(
+        provider=config.models.embedding.base_url or "openai",
+        model=config.models.embedding.model,
+        dimension=config.retrieval.embedding_dimension,
+        normalize=config.retrieval.normalize,
+    )
+    index_factory = (
+        lambda: NumpyIndex(config.retrieval.metric)
+    ) if config.retrieval.backend == "numpy" else (
+        lambda: FaissIndex(config.retrieval.metric)
+    )
+    counter = token_counter(config.chunking.token_counter)
+    provider = OpenAIEmbedder(
+        config.models.embedding, config.runtime, new_id("kb_ingest"),
+        repository.save_invocation,
+    )
+    calls = 0
+
+    def admit() -> None:
+        nonlocal calls
+        maximum = config.runtime.budget.max_calls
+        if maximum is not None and calls >= maximum:
+            raise RuntimeError("知识库入库达到调用预算")
+        calls += 1
+
+    provider.admit = admit
+    def parser(suffix: str) -> DocumentParser:
+        if suffix == ".docx":
+            return DocxParser(
+                store, infer_headings=config.parsing.infer_docx_headings,
+                extended=config.parsing.docx_extended,
+                table_headers=chunking.strategy == "structural_v2",
+            )
+        if suffix == ".pdf":
+            return PdfParser(store, running_text=config.parsing.pdf_running_text)
+        raise ValueError("知识库仅支持 PDF/DOCX")
+
+    service = IngestionService(
+        repository, store, parser,
+        CachedEmbedder(provider, repository) if config.runtime.cache_enabled else provider,
+        space, index_factory,
+        counter, config.chunking.token_counter,
+    )
+    service.chunk_options = {
+        "strategy": chunking.strategy, "attach_headings": chunking.attach_headings,
+        "min_tokens": chunking.min_tokens,
+        "split_long_paragraphs": chunking.split_long_paragraphs,
+    }
+    service.processing_identity = {"parsing": config.parsing.model_dump(mode="json")}
+    service.runtime_identity = runtime_manifest(config, resolve_prompt_root())
+    from tc_rag.infrastructure.providers.embedding import input_byte_limit
+
+    service.max_embedding_bytes = input_byte_limit(config.models.embedding)
+    service.preflight_embedder = provider
+    service.runtime_identity["embedding_input_bytes"] = service.max_embedding_bytes
+    return service, provider
+
+
+@asynccontextmanager
+async def kb_ingestion_session(
+    config: AppConfig, root: Path, *, cached_vision_only: bool = False,
+) -> AsyncIterator["IngestionService"]:
+    """Vision 与 embedding 共用请求预算及资源生命周期。"""
+    from tc_rag.infrastructure.providers.vision import OpenAICompatVision
+    from tc_rag.infrastructure.storage.kb.sqlite import KnowledgeSqliteRepository
+    from tc_rag.infrastructure.storage.sqlite import SqliteRepository
+
+    async with AsyncExitStack() as stack:
+        service, provider = build_kb_ingestion(config, root)
+        stack.push_async_callback(provider.close)
+        if cached_vision_only and (not config.runtime.cache_enabled
+                                   or not config.parsing.vision_enabled):
+            raise ValueError("缓存限定恢复需要开启原有图片处理及缓存配置")
+        if config.parsing.vision_enabled:
+            prompts, _ = load_prompts(resolve_prompt_root())
+            recorder = KnowledgeSqliteRepository(root / "data.sqlite")
+            vision = build_vision_service(
+                config, SqliteRepository(root / "data.sqlite"), service.store,
+                provider.run_id, recorder.save_invocation, prompts, admit=provider.admit,
+            )
+            if isinstance(vision.reader, OpenAICompatVision):
+                stack.push_async_callback(vision.reader.close)
+            service.vision = vision
+            vision.require_cache = cached_vision_only
+            service.processing_identity["vision"] = vision.identity
+        yield service
+
+
+@asynccontextmanager
+async def kb_session(
+    config: AppConfig, root: Path, *, with_answer: bool = False,
+) -> AsyncIterator[tuple["SearchService", AnswerLLM | None]]:
+    """知识库请求共享调用预算，构造失败也关闭已创建的客户端。"""
+    from tc_rag.application.kb.search import SearchService
+    from tc_rag.domain.identity import new_id
+    from tc_rag.infrastructure.providers.openai_sdk import OpenAIStructuredLLM
+    from tc_rag.infrastructure.providers.rerank import HttpReranker
+    from tc_rag.infrastructure.retrieval.keyword import KeywordIndex, rrf
+    from tc_rag.infrastructure.storage.kb.sqlite import KnowledgeSqliteRepository
+
+    async with AsyncExitStack() as stack:
+        components, embedding = build_kb_ingestion(config, root)
+        stack.push_async_callback(embedding.close)
+        calls = 0
+
+        def admit() -> None:
+            nonlocal calls
+            if config.runtime.budget.max_calls is not None:
+                if calls >= config.runtime.budget.max_calls:
+                    raise RuntimeError("知识库请求达到调用预算")
+            calls += 1
+
+        embedding.admit = admit
+        repository = KnowledgeSqliteRepository(root / "data.sqlite")
+        reranker = None
+        if config.models.rerank.enabled:
+            reranker = HttpReranker(
+                config.models.rerank, config.runtime, new_id("kb_rerank"),
+                repository.save_invocation,
+                tie_policy=config.retrieval.rerank_tie_policy,
+            )
+            stack.push_async_callback(reranker.close)
+            reranker.admit = admit
+        search = SearchService(
+            components,
+            keyword=KeywordIndex() if config.retrieval.mode in {"hybrid", "keyword"} else None,
+            fusion=rrf, reranker=reranker, candidate_count=config.retrieval.vector_top_k,
+            rerank_count=config.retrieval.rerank_top_n,
+            mode=config.retrieval.mode,
+            keyword_top_k=config.retrieval.keyword_top_k,
+            rrf_constant=config.retrieval.rrf_constant,
+            rrf_vector_weight=config.retrieval.rrf_vector_weight,
+            rerank_enabled=config.retrieval.rerank_enabled,
+        )
+        model = None
+        if with_answer:
+            model = OpenAIStructuredLLM(
+                config.models.llm, config.runtime, new_id("kb_answer"),
+                repository.save_invocation, repairs=config.generation.schema_repair_attempts,
+            )
+            model.admit = admit
+            stack.push_async_callback(model.close)
+        yield search, model

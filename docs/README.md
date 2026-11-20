@@ -1,5 +1,7 @@
 # 文档导航
 
+知识库入口：[实际使用说明](kb-evaluation/usage.md)与[评测开发指南](kb-evaluation/dev_guide.md)。终端工程首版已提供，真实语料与人工金标效果待验收。
+
 [项目入口与启动命令](../README.md) · [完整运行说明](reference/full_run_walkthrough.md) · [当前质量评估](reviews/quality_review_20261101.md)
 
 日常使用只维护 `workdir/local.yaml`；已激活虚拟环境时执行 `rag`。

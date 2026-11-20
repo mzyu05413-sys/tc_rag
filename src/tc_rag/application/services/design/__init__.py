@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 from tc_rag.application.services.chunking import normalized_quote, verify_evidence
 from tc_rag.application.services.design._common import issue
+from tc_rag.application.services.design.batching import group_by_feature
 from tc_rag.application.services.design.case_validation import (
     case_signature,
     unsupported_numbers,
@@ -23,11 +24,21 @@ from tc_rag.application.services.design.extraction import (
     error_rule_ids,
     reconcile,
 )
+from tc_rag.application.services.design.feature_catalog import catalog_feature_candidates
+from tc_rag.application.services.design.gap_checker import (
+    gap_report,
+    uncovered_evidence,
+)
 from tc_rag.application.services.design.planning import (
     boundary_values,
     plan_points,
     qualitative_boundary_values,
 )
+from tc_rag.application.services.design.query_builder import (
+    build_case_query,
+    build_plan_query,
+)
+from tc_rag.application.services.design.test_matrix import combination_points
 from tc_rag.application.services.design.ui_display import (
     is_ui_display_point,
     is_ui_display_rule,
@@ -78,14 +89,20 @@ __all__ = [
     "TestStep",
     "apply_vision_policy",
     "boundary_values",
+    "build_case_query",
+    "build_plan_query",
     "case_signature",
+    "catalog_feature_candidates",
     "check_extraction",
+    "combination_points",
     "dedupe_issues",
     "deduplicate_points",
     "derive_constraint",
     "drop_resolved_image_issues",
     "error_rule_ids",
     "fingerprint",
+    "gap_report",
+    "group_by_feature",
     "is_ui_display_point",
     "is_ui_display_rule",
     "is_vision_only",
@@ -100,6 +117,7 @@ __all__ = [
     "re",
     "reconcile",
     "resolved_image_asset_ids",
+    "uncovered_evidence",
     "unicodedata",
     "unsupported_numbers",
     "validate_cases",

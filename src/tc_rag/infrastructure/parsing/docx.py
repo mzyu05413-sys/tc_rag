@@ -13,7 +13,8 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 
 from tc_rag.application.ports.contracts import ArtifactStore, ParsedDocument
-from tc_rag.domain.models import Asset, DocumentBlock, Issue, Locator
+from tc_rag.domain.models import Asset, DeprecatedRange, DocumentBlock, Issue, Locator
+from tc_rag.infrastructure.parsing.docx_formatting import paragraph_ranges, struck, table_ranges
 
 
 class DocxParser:
@@ -56,6 +57,7 @@ class DocxParser:
             kind: Literal["heading", "paragraph", "table", "image", "other"],
             text: str,
             locator: Locator,
+            deprecated_ranges: list[dict[str, int]] | None = None,
         ) -> None:
             order = len(result.blocks)
             result.blocks.append(
@@ -67,6 +69,9 @@ class DocxParser:
                     order=order,
                     content=text,
                     locator=locator,
+                    deprecated_ranges=[DeprecatedRange(
+                        start_char=item["start_char"], end_char=item["end_char"]
+                    ) for item in deprecated_ranges or []],
                 )
             )
 
@@ -84,14 +89,19 @@ class DocxParser:
         def paragraph(element: Any, locator: Locator, include_text: bool = True) -> None:
             # 遍历XML内容而不是只用paragraph.runs，保留超链接中的文字和图片锚点顺序。
             pending: list[str] = []
+            deprecated: list[dict[str, int]] = []
 
             def flush() -> None:
                 if pending and include_text:
-                    add("paragraph", "".join(pending), locator)
+                    add("paragraph", "".join(pending), locator, deprecated.copy())
                 pending.clear()
+                deprecated.clear()
 
             for node in element.iter():
                 if node.tag == qn("w:t"):
+                    if struck(node) and node.text:
+                        start = sum(len(part) for part in pending)
+                        deprecated.append({"start_char": start, "end_char": start+len(node.text)})
                     pending.append(node.text or "")
                 elif node.tag == qn("w:tab"):
                     pending.append("\t")
@@ -135,8 +145,14 @@ class DocxParser:
                 locator = Locator(paragraph_index=paragraph_index)
                 if level is not None:
                     headings = {key: text for key, text in headings.items() if key < level}
-                    headings[level] = value.text
-                    add("heading", value.text, locator)
+                    ranges = paragraph_ranges(child, value.text)
+                    active_heading = value.text
+                    for span in reversed(ranges):
+                        active_heading = (active_heading[:span["start_char"]]
+                                          + active_heading[span["end_char"]:])
+                    if active_heading.strip():
+                        headings[level] = active_heading
+                    add("heading", value.text, locator, ranges)
                     paragraph(child, locator, include_text=False)
                 else:
                     paragraph(child, locator)
@@ -161,10 +177,12 @@ class DocxParser:
                     table_payload.update(
                         header_rows=header_rows, header_source="docx_repeat_header"
                     )
+                serialized = json.dumps(table_payload, ensure_ascii=False)
                 add(
                     "table",
-                    json.dumps(table_payload, ensure_ascii=False),
+                    serialized,
                     Locator(table_index=table_index),
+                    table_ranges(table, serialized),
                 )
                 if child.xpath(".//w:gridSpan | .//w:vMerge"):
                     issue(f"表格 {table_index} 含合并单元格，行列语义需要人工复核")
@@ -193,6 +211,10 @@ class DocxParser:
             name = str(part.partname)
             if any(key in name for key in ("/header", "/footer", "/footnotes", "/endnotes")):
                 issue(f"附属内容 {name} 尚未解析")
+        if document.element.body.xpath(".//w:del | .//w:moveFrom"):
+            issue("包含修订删除或移出内容；尚未实现修订语义，请人工核对原件")
+        if document.styles.element.xpath(".//w:strike | .//w:dstrike"):
+            issue("样式中包含删除线；当前仅映射直接run格式，继承删除线须人工核对")
         for message in control_messages + (
             [f"按大纲级别识别了 {outline_count} 个标题"] if outline_count else []
         ):

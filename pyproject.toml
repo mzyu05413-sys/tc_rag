@@ -27,6 +27,7 @@ dev = ["pytest", "pytest-asyncio", "respx", "ruff", "mypy", "types-PyYAML"]
 [project.scripts]
 tc-rag = "tc_rag.interfaces.cli:app"
 rag = "tc_rag.interfaces.cli:app"
+kb-assistant = "tc_rag.interfaces.kb.commands:assistant_main"
 
 # 包的位置
 [tool.setuptools.packages.find]
@@ -44,6 +45,7 @@ where = ["src"]
 "share/tc_rag/prompts/rag_context" = ["prompts/rag_context/v1.md"]
 "share/tc_rag/prompts/vision" = ["prompts/vision/v1.md", "prompts/vision/v2.md"]
 "share/tc_rag/prompts/vision_verify" = ["prompts/vision_verify/v1.md"]
+"share/tc_rag/prompts/kb_qa" = ["prompts/kb_qa/v1.md", "prompts/kb_qa/assistant_v1.md", "prompts/kb_qa/assistant_v2.md", "prompts/kb_qa/assistant_v3.md", "prompts/kb_qa/assistant_v4.md", "prompts/kb_qa/assistant_v5.md"]
 
 # pytest初始化配置
 [tool.pytest.ini_options]

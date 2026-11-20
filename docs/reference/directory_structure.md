@@ -2,11 +2,15 @@
 
 [文档入口](../README.md) · [RAG 主线与启动命令](../learn/P2/README.md)
 
-日常使用只需修改 `workdir/local.yaml`，生成完成后查看 `workdir/output/`。
+日常使用只需修改 `workdir/local.yaml`，生成完成后查看 `workdir/rag/output/`。
 其余业务数据由程序维护；开发测试资料统一进入 `workdir/dev/`。
 框架只读取需求 PDF/DOCX；源码扫描、代码索引及其配置支路已移除。运行目录中既有历史资产不随本次收敛移动或删除。
 
 ## 项目目录
+
+2026-11-11 起新运行使用 `workdir/rag/runtime/` 和 `workdir/rag/output/`。历史根目录数据保留，旧配置备份在 `workdir/dev/backups/local_before_rag_layout_20261111.yaml`，执行历史恢复、质检、重导出或离线评测时显式选择旧配置/数据库。下方原根目录树保留为历史布局说明。
+
+当前目录分为 `rag/sources`、`rag/runtime`、`rag/output`，以及 `kb/sources`、`kb/runtime`、`kb/output`、`kb/evaluation`。知识库评测下包含 corpus、annotations、protocols、runs、reports，细节见[知识库导航](../kb-evaluation/README.md)。数据库和索引按实际运行创建，空目录不代表功能已经实现。
 
 ```text
 RAG/

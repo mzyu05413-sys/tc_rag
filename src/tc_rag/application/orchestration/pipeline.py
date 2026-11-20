@@ -1,38 +1,51 @@
 """RAG 连续编排：保存测试点事实后生成用例，联合导出目录脑图与 Excel。"""
 
 import asyncio
-import re
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from time import perf_counter
 from typing import Any, TypeVar
 from typing import Literal as Literal  # 保留旧模块可导入的类型名。
 
+from tc_rag.application.orchestration.support import (
+    assign_module_paths,
+    safe_document_stem,
+    save_objects,
+)
+from tc_rag.application.orchestration.support import (
+    effective_chunk as _effective_chunk,
+)
+from tc_rag.application.orchestration.support import (
+    final_status as _final_status,
+)
 from tc_rag.application.ports.contracts import (
     ArtifactStore,
     DocumentParser,
     Exporter,
     ModelResult,
-    PageOutcome,
-    ParseState,
     PointMapAdapter,
     Repository,
     RetrievalContext,
     StructuredLLM,
     T,
 )
-from tc_rag.application.ports.errors import ContextBudgetError, OutputTruncatedError, WorkflowError
+from tc_rag.application.ports.errors import WorkflowError
 from tc_rag.application.progress import ProgressEvent, ProgressReporter, report
 from tc_rag.application.requests import CasesRequest
-from tc_rag.application.services.chunking import TokenCounter, structural_chunks
+from tc_rag.application.services.case_generation import CaseGenerator
+from tc_rag.application.services.chunking import TokenCounter
 from tc_rag.application.services.design import (
     apply_vision_policy,
     boundary_values,
-    check_extraction,
+    build_plan_query,
+    catalog_feature_candidates,
+    combination_points,
     dedupe_issues,
     deduplicate_points,
     drop_resolved_image_issues,
     error_rule_ids,
+    gap_report,
+    group_by_feature,
     is_ui_display_rule,
     issue,
     merge_ui_display_points,
@@ -42,15 +55,18 @@ from tc_rag.application.services.design import (
     reconcile,
     validate_cases,
 )
+from tc_rag.application.services.effective_text import effective_block, effective_slice
 from tc_rag.application.services.extraction_context import (
     CONTEXT_POLICY,
     fit_context_budget,
     neighboring_context,
 )
+from tc_rag.application.services.extraction_engine import ExtractionEngine
 
 # 保留旧模块的纯函数和常量导入入口。
 from tc_rag.application.services.extraction_namespace import namespace_extraction
 from tc_rag.application.services.ingest import ingest_document
+from tc_rag.application.services.ingest_flow import DocumentIngestHandler
 from tc_rag.application.services.point_tree import CATEGORY_ORDER as CATEGORY_ORDER
 from tc_rag.application.services.point_tree import ENTRY_HINTS as ENTRY_HINTS
 from tc_rag.application.services.point_tree import SECURITY_HINTS as SECURITY_HINTS
@@ -71,37 +87,10 @@ from tc_rag.domain.pipeline import (
     Extraction,
     PointBatch,
     StageSnapshot,
-    case_batch_schema,
 )
-from tc_rag.domain.rag import RagRecord
-from tc_rag.domain.review import PointNode, PointTree
+from tc_rag.domain.review import PointTree
 
 B = TypeVar("B")
-
-
-def save_objects(repository: Repository, collection: str, values: list[Any], key: str) -> None:
-    repository.save_many((collection, str(getattr(value, key)), value) for value in values)
-
-
-_INVALID_FILENAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
-
-def _final_status(issues: list[m.Issue]) -> str:
-    """只有 warning/error 级问题影响运行状态；info 提示不再拖成失败。"""
-    return (
-        "partial_failed"
-        if any(
-            item.status == "open" and item.severity in {"warning", "error"}
-            for item in issues
-        )
-        else "succeeded"
-    )
-
-
-def safe_document_stem(name: str) -> str:
-    """用需求文件名做导出的可读后缀，去掉文件系统非法字符并限制长度。"""
-    stem = Path(name).stem.strip()
-    stem = _INVALID_FILENAME.sub("_", stem).strip(" .")
-    return stem[:60] or "requirement"
 
 
 class Pipeline:
@@ -124,7 +113,7 @@ class Pipeline:
         prompt_versions: dict[str, str] | None = None,
     ) -> None:
         self.config, self.repository, self.store = config, repository, store
-        self.parser, self.llm, self.maps, self.exporter = parser, llm, maps, exporter
+        self.llm, self.maps, self.exporter = llm, maps, exporter
         self.counter, self.prompts, self.max_context = counter, prompts, max_context_tokens
         self.prompt_versions = prompt_versions or {}
         self.stages: dict[str, float] = {}
@@ -134,8 +123,33 @@ class Pipeline:
         self.resume_cache_run_id: str | None = None
         self.cache_hits = 0
         self.retriever = retriever
-        self.vision: VisionEvidenceService | None = None
+        self.ingest = DocumentIngestHandler(
+            config,
+            repository,
+            parser,
+            counter,
+            stage=self._stage,
+            snapshot=self.snapshot,
+        )
         self.progress: ProgressReporter | None = None
+        self.engine = ExtractionEngine(self)
+        self.generator = CaseGenerator(self)
+
+    @property
+    def vision(self) -> VisionEvidenceService | None:
+        return self.ingest.vision
+
+    @vision.setter
+    def vision(self, value: VisionEvidenceService | None) -> None:
+        self.ingest.vision = value
+
+    @property
+    def parser(self) -> Callable[[str], DocumentParser]:
+        return self.ingest.parser
+
+    @parser.setter
+    def parser(self, value: Callable[[str], DocumentParser]) -> None:
+        self.ingest.parser = value
 
     def snapshot(self, run_id: str, stage: str, payload: dict[str, Any]) -> None:
         snapshot = StageSnapshot(
@@ -180,114 +194,6 @@ class Pipeline:
         self.previous_stage, self.previous_started = stage, now
         self.snapshot(run_id, "progress", {"current_stage": stage, "timings_ms": self.stages})
         report(self.progress, ProgressEvent("stage", stage))
-
-    def _chunk(self, blocks: list[m.DocumentBlock]) -> tuple[list[m.Chunk], list[m.Issue]]:
-        chunked = structural_chunks(
-            blocks,
-            self.config.chunking.target_tokens,
-            self.config.chunking.overlap_tokens,
-            self.counter,
-            attach_headings=self.config.chunking.attach_headings,
-            min_tokens=self.config.chunking.min_tokens,
-            split_long_paragraphs=self.config.chunking.split_long_paragraphs,
-            strategy=self.config.chunking.strategy,
-        )
-        return chunked.chunks, chunked.issues
-
-    @staticmethod
-    def _chunk_payload(
-        doc: m.Document,
-        blocks: list[m.DocumentBlock],
-        chunks: list[m.Chunk],
-        issues: list[m.Issue],
-    ) -> dict[str, Any]:
-        return {
-            "document": doc.model_dump(mode="json"),
-            "blocks": [b.model_dump(mode="json") for b in blocks],
-            "chunks": [c.model_dump(mode="json") for c in chunks],
-            "issues": [i.model_dump(mode="json") for i in issues],
-        }
-
-    async def _parse_document(
-        self, run_id: str, document: Path, asset: m.Asset
-    ) -> tuple[list[m.DocumentBlock], list[m.Asset], list[m.Issue]]:
-        parser = self.parser(document.suffix.lower())
-        session_factory = getattr(parser, "session", None)
-        if document.suffix.lower() == ".pdf" and callable(session_factory):
-            return await self._parse_pdf_pages(run_id, session_factory, asset)
-        parsed = parser.parse(asset)
-        # 图片解释由 _apply_vision 在独立阶段执行，解析阶段只做抽取与定位。
-        return list(parsed.blocks), list(parsed.assets), list(parsed.issues)
-
-    async def _apply_vision(
-        self, run_id: str, blocks: list[m.DocumentBlock]
-    ) -> tuple[list[m.DocumentBlock], list[m.Issue]]:
-        """图片解释单独计时，避免视觉耗时被算进解析阶段。"""
-        if not self.config.parsing.vision_enabled or not blocks:
-            return blocks, []
-        if not any(block.kind == "image" for block in blocks):
-            return blocks, []
-        if self.vision is None:
-            raise ValueError("启用图片解释但缺少视觉适配器")
-        self._stage(run_id, "vision")
-        return await self.vision.process(blocks)
-
-    async def _parse_pdf_pages(
-        self, run_id: str, session_factory: Callable[[m.Asset], Any], asset: m.Asset
-    ) -> tuple[list[m.DocumentBlock], list[m.Asset], list[m.Issue]]:
-        """逐页解析并写检查点；恢复时从已完成页继续，已转写图片命中视觉缓存。
-
-        视觉处理放在所有页解析完成之后统一执行，避免每页图片数少时跨页并发失效。
-        """
-        blocks: list[m.DocumentBlock] = []
-        assets: list[m.Asset] = []
-        parse_issues: list[m.Issue] = []
-        with session_factory(asset) as session:
-            state = ParseState(heading_sizes=list(session.heading_sizes))
-            for page_index in range(session.page_count):
-                page_no = page_index + 1
-                current = self.repository.get(
-                    "stage_snapshots", f"{run_id}:pdf_page:{page_no}", StageSnapshot
-                )
-                parent = None
-                if current is None and self.resume_cache_run_id:
-                    parent = self.repository.get(
-                        "stage_snapshots",
-                        f"{self.resume_cache_run_id}:pdf_page:{page_no}",
-                        StageSnapshot,
-                    )
-                restored = current if current is not None else parent
-                if restored is not None:
-                    outcome = PageOutcome.from_payload(restored.payload)
-                    if current is None:
-                        # 复用父运行的页结果时同步写入本次运行，便于再次恢复。
-                        self.snapshot(run_id, f"pdf_page:{page_no}", outcome.to_payload())
-                else:
-                    outcome = session.parse_page(page_index, state)
-                    self.snapshot(run_id, f"pdf_page:{page_no}", outcome.to_payload())
-                blocks.extend(outcome.blocks)
-                assets.extend(outcome.assets)
-                parse_issues.extend(outcome.issues)
-                state = outcome.state
-            # 在完整页面序列上后处理，恢复页也参与重复判断；不修改原页检查点。
-            blocks, running_issues = session.finalize(blocks)
-            parse_issues.extend(running_issues)
-        if state.font_warnings:
-            parse_issues.append(
-                m.Issue(
-                    issue_id=f"doc_{asset.checksum}_font_bbox",
-                    kind="unparsed",
-                    severity="warning",
-                    object_ids=["doc_" + asset.checksum],
-                    description=(
-                        f"PDF字体边界信息缺失警告共{state.font_warnings}次，已合并重复终端提示；"
-                        "正文解析继续，表格及文字位置需人工核对"
-                    ),
-                )
-            )
-        # 图片解释由 _apply_vision 在独立阶段执行；这里只恢复全局阅读顺序。
-        ordered = [block.model_copy(update={"order": i}) for i, block in enumerate(blocks)]
-        return ordered, assets, parse_issues
 
     async def points(
         self,
@@ -347,22 +253,22 @@ class Pipeline:
                 else:
                     # 缺 chunk 快照（曾在解析/视觉阶段中断）时重新解析：
                     # 已完成页从检查点恢复，已转写图片命中视觉缓存，不重复调用模型。
-                    blocks, assets, parse_issues = await self._parse_document(
-                        run_id, document, ingested.asset
+                    blocks, assets, parse_issues = await self.ingest._parse_document(
+                        run_id, document, ingested.asset, self.resume_cache_run_id
                     )
                     issues.extend(parse_issues)
-                    blocks, vision_issues = await self._apply_vision(run_id, blocks)
+                    blocks, vision_issues = await self.ingest._apply_vision(run_id, blocks)
                     issues.extend(vision_issues)
                     issues = drop_resolved_image_issues(issues, blocks)
                     save_objects(self.repository, "assets", assets, "asset_id")
                     save_objects(self.repository, "document_blocks", blocks, "block_id")
                     stage = "chunk"
                     self._stage(run_id, stage)
-                    chunks, chunk_issues = self._chunk(blocks)
+                    chunks, chunk_issues = self.ingest._chunk(blocks)
                     issues.extend(chunk_issues)
                     save_objects(self.repository, "chunks", chunks, "chunk_id")
                     self.snapshot(
-                        run_id, "chunk", self._chunk_payload(doc, blocks, chunks, issues)
+                        run_id, "chunk", self.ingest._chunk_payload(doc, blocks, chunks, issues)
                     )
             else:
                 self._stage(run_id, stage)
@@ -376,21 +282,23 @@ class Pipeline:
                 )
                 stage = "parse"
                 self._stage(run_id, stage)
-                blocks, assets, parse_issues = await self._parse_document(
-                    run_id, document, ingested.asset
+                blocks, assets, parse_issues = await self.ingest._parse_document(
+                    run_id, document, ingested.asset, self.resume_cache_run_id
                 )
                 issues.extend(parse_issues)
-                blocks, vision_issues = await self._apply_vision(run_id, blocks)
+                blocks, vision_issues = await self.ingest._apply_vision(run_id, blocks)
                 issues.extend(vision_issues)
                 issues = drop_resolved_image_issues(issues, blocks)
                 save_objects(self.repository, "assets", assets, "asset_id")
                 save_objects(self.repository, "document_blocks", blocks, "block_id")
                 stage = "chunk"
                 self._stage(run_id, stage)
-                chunks, chunk_issues = self._chunk(blocks)
+                chunks, chunk_issues = self.ingest._chunk(blocks)
                 issues.extend(chunk_issues)
                 save_objects(self.repository, "chunks", chunks, "chunk_id")
-                self.snapshot(run_id, "chunk", self._chunk_payload(doc, blocks, chunks, issues))
+                self.snapshot(
+                    run_id, "chunk", self.ingest._chunk_payload(doc, blocks, chunks, issues)
+                )
             stage = "extract"
             self._stage(run_id, stage)
             extracted: list[Extraction] = []
@@ -400,16 +308,19 @@ class Pipeline:
                 extraction_requests: list[
                     tuple[m.Chunk, list[m.DocumentBlock], dict[str, Any]]
                 ] = []
+                block_map = {b.block_id: b for b in blocks}
                 for chunk in chunks:
                     relevant = [
                         b for b in blocks if b.block_id in {s.block_id for s in chunk.sources}
                     ]
+                    # 面向模型的有效视图：去掉作废文字，原始 blocks 保留用于来源与区间。
+                    effective_relevant = [effective_block(b) for b in relevant]
                     request: dict[str, Any] = {
                         "stage": stage,
                         "system": self.prompts[stage],
                         "instruction": instruction,
-                        "chunk": chunk.model_dump(mode="json"),
-                        "document_blocks": [b.model_dump(mode="json") for b in relevant],
+                        "chunk": _effective_chunk(chunk, block_map).model_dump(mode="json"),
+                        "document_blocks": [b.model_dump(mode="json") for b in effective_relevant],
                     }
                     if self.config.chunking.extraction_context_blocks:
                         background = neighboring_context(
@@ -428,16 +339,32 @@ class Pipeline:
                             )
                     # 分块正文很短也可能因来源元数据而超限。先检查所有完整请求，
                     # 避免前面的分块已消耗模型额度，后面的分块才发现无法发送。
-                    self._check_budget({**request, "output_schema": Extraction.model_json_schema()})
+                    self._check_budget(
+                        {**request, "output_schema": Extraction.model_json_schema()}
+                    )
                     extraction_requests.append((chunk, relevant, request))
                 extracted = await self._extract_concurrently(extraction_requests, run_id)
                 result = reconcile(extracted)
             self.snapshot(run_id, "extract", result.model_dump(mode="json"))
             stage = "index"
             self._stage(run_id, stage)
-            await self.retriever.prepare(
-                doc.content_hash, self._retrieval_evidence(result.evidence, blocks, chunks)
+            retrieval_evidence, dropped_slices = self._retrieval_evidence(
+                result.evidence,
+                blocks,
+                chunks,
+                max_input_bytes=self.config.models.embedding.input_byte_limit,
             )
+            if dropped_slices:
+                issues.append(
+                    issue(
+                        "gap",
+                        f"{len(dropped_slices)} 条原文切片超出 embedding 单条字节预算，"
+                        "未进入检索索引；这些区域的补充召回受限，请核对是否由规则证据覆盖",
+                        dropped_slices,
+                        severity="info",
+                    )
+                )
+            await self.retriever.prepare(doc.content_hash, retrieval_evidence)
             for collection, values, key in (
                 ("evidence_spans", result.evidence, "evidence_id"),
                 ("features", result.features, "feature_id"),
@@ -446,10 +373,20 @@ class Pipeline:
             ):
                 save_objects(self.repository, collection, values, key)
             issues.extend(result.issues)
+            if self.config.planning.feature_catalog_report:
+                issues.extend(catalog_feature_candidates(result.features))
+            if self.config.planning.gap_check_rounds > 0:
+                bundle = await self.retriever.retrieve(instruction, set())
+                candidates = [
+                    m.EvidenceSpan.model_validate(item)
+                    for item in bundle["supplemental_evidence"]
+                ]
+                issues.extend(gap_report(result.rules, candidates))
             stage = "plan_points"
             self._stage(run_id, stage)
             blocked_rules = error_rule_ids(result.issues, result.rules)
             evidence_by_id = {item.evidence_id: item for item in result.evidence}
+            features_by_id = {feature.feature_id: feature for feature in result.features}
             ui_rule_ids: set[str] = set()
             if self.config.planning.ui_display_policy == "merge":
                 ui_rule_ids = {
@@ -463,6 +400,10 @@ class Pipeline:
                 if rule.rule_id not in blocked_rules and rule.rule_id not in ui_rule_ids
             ]
             points = plan_points(planning_rules, self.config.planning.methods)
+            if self.config.planning.combination_matrix:
+                points.extend(
+                    combination_points(planning_rules, self.config.planning.methods)
+                )
             if ui_rule_ids:
                 ui_points, ui_issues = plan_ui_display_summary(
                     result.rules,
@@ -508,7 +449,7 @@ class Pipeline:
                 await self._supplement(
                     request,
                     evidence_ids,
-                    instruction + "\n" + "\n".join(r.statement for r in rule_batch),
+                    build_plan_query(instruction, rule_batch, features_by_id),
                     PointBatch,
                 )
                 self._check_budget(request)
@@ -524,10 +465,13 @@ class Pipeline:
                 return supplement
 
             size = self.config.generation.batch_point_limit
-            rule_batches = [
-                planning_rules[offset : offset + size]
-                for offset in range(0, len(planning_rules), size)
-            ]
+            if self.config.generation.batch_by_feature:
+                rule_batches = group_by_feature(planning_rules, lambda r: r.feature_id, size)
+            else:
+                rule_batches = [
+                    planning_rules[offset : offset + size]
+                    for offset in range(0, len(planning_rules), size)
+                ]
             supplements = await self._batches(rule_batches, plan_batch, stage)
             # 各批检索与调用可以并发，归并仍严格按规则的原始顺序进行。
             for rule_batch, supplement in zip(rule_batches, supplements, strict=True):
@@ -662,173 +606,6 @@ class Pipeline:
             )
         )
 
-    def _check_budget(self, request: dict[str, Any]) -> None:
-        import json
-
-        estimated_tokens = self.counter(json.dumps(request, ensure_ascii=False))
-        if estimated_tokens > self.max_context:
-            raise ContextBudgetError(estimated_tokens, self.max_context)
-
-    async def _model(self, request: dict[str, Any], schema: type[T]) -> ModelResult:
-        self._check_budget({**request, "output_schema": schema.model_json_schema()})
-        key = fingerprint(
-            [request, schema.model_json_schema(), self.config.models.llm.model_dump(mode="json")]
-        )
-        snapshot_id = f"{self.active_run_id}:cache:{key}"
-        if self.config.runtime.cache_enabled:
-            saved = self.repository.get("stage_snapshots", snapshot_id, StageSnapshot)
-            if saved is None and self.resume_cache_run_id and request.get("stage") == "extract":
-                parent = self.repository.get(
-                    "stage_snapshots", f"{self.resume_cache_run_id}:cache:{key}", StageSnapshot
-                )
-                if parent is not None:
-                    # 同一请求哈希才可复用；保存到新运行，以便再次恢复时保留成功批次。
-                    schema.model_validate(parent.payload["output"])
-                    saved = StageSnapshot(
-                        snapshot_id=snapshot_id,
-                        run_id=self.active_run_id,
-                        stage="model_cache",
-                        payload=parent.payload,
-                    )
-                    self.repository.save("stage_snapshots", snapshot_id, saved)
-            if saved is not None:
-                self.cache_hits += 1
-                report(self.progress, ProgressEvent("cache", str(request.get("stage", "unknown"))))
-                # 缓存命中没有新增 token 消耗，历史消耗仍在 ModelInvocation 中。
-                return ModelResult(output=schema.model_validate(saved.payload["output"]))
-        result = await self.llm.generate(request, schema)
-        if self.config.runtime.cache_enabled:
-            snapshot = StageSnapshot(
-                snapshot_id=snapshot_id,
-                run_id=self.active_run_id,
-                stage="model_cache",
-                payload={"output": result.output.model_dump(mode="json")},
-            )
-            self.repository.save("stage_snapshots", snapshot_id, snapshot)
-        return result
-
-    async def _extract_concurrently(
-        self,
-        requests: list[tuple[m.Chunk, list[m.DocumentBlock], dict[str, Any]]],
-        run_id: str,
-    ) -> list[Extraction]:
-        async def extract(
-            item: tuple[m.Chunk, list[m.DocumentBlock], dict[str, Any]],
-        ) -> Extraction:
-            chunk, blocks, request = item
-            try:
-                return await self._extract_chunk(chunk, blocks, request, run_id)
-            except Exception as exc:
-                if self.config.runtime.chunk_failure_policy == "fail":
-                    raise
-                # skip 策略只记录固定类型，不把模型响应或原文写入终端。
-                return Extraction(
-                    issues=[
-                        issue(
-                            "other",
-                            f"分块 {chunk.chunk_id} 提炼失败，已跳过：{type(exc).__name__}",
-                        )
-                    ]
-                )
-
-        return await self._batches(requests, extract, "extract")
-
-    async def _batches(
-        self, requests: list[B], operation: Callable[[B], Awaitable[T]], stage: str
-    ) -> list[T]:
-        """固定数量的工作协程，失败时取消并等待其余请求，按原文顺序归并。"""
-        pending = iter(enumerate(requests))
-        results: list[T | None] = [None] * len(requests)
-        completed = 0
-
-        async def worker() -> None:
-            nonlocal completed
-            for index, request in pending:
-                started = perf_counter()
-                report(
-                    self.progress,
-                    ProgressEvent("batch_started", stage, current=index + 1, total=len(requests)),
-                )
-                results[index] = await operation(request)
-                completed += 1
-                report(
-                    self.progress,
-                    ProgressEvent(
-                        "batch_completed",
-                        stage,
-                        completed=completed,
-                        total=len(requests),
-                        duration_ms=(perf_counter() - started) * 1000,
-                    ),
-                )
-
-        workers = [
-            asyncio.create_task(worker())
-            for _ in range(min(self.config.models.llm.concurrency, len(requests)))
-        ]
-        try:
-            await asyncio.gather(*workers)
-        except BaseException:
-            # gather 不会自动收尾其他协程；必须避免失败后仍后台调用或写入缓存。
-            for task in workers:
-                task.cancel()
-            await asyncio.gather(*workers, return_exceptions=True)
-            raise
-        ordered: list[T] = []
-        for result in results:
-            if result is None:
-                raise RuntimeError("批次任务结束但结果缺失")
-            ordered.append(result)
-        return ordered
-
-    async def _extract_chunk(
-        self, chunk: m.Chunk, blocks: list[m.DocumentBlock], request: dict[str, Any], run_id: str
-    ) -> Extraction:
-        from tc_rag.application.services.chunking import normalized_quote
-
-        result = await self._model(request, Extraction)
-        candidate = self._namespace(
-            Extraction.model_validate(result.output.model_dump()), run_id + "_" + chunk.chunk_id
-        )
-        if request.get("neighbor_context_omitted"):
-            candidate.issues.append(issue(
-                "gap", "提炼邻文因上下文预算不足已省略；当前分块原文未裁减",
-                request["neighbor_context_omitted"], severity="info",
-            ))
-        provenance = {b.block_id: b for b in blocks}
-        for evidence in candidate.evidence:
-            block = provenance.get(evidence.block_id)
-            if block:
-                # 来源取自解析事实，不允许模型把 vision 派生内容冒充原文。
-                evidence.origin = block.origin
-                evidence.processing_model = block.processing_model
-                evidence.processing_version = block.processing_version
-                evidence.uncertain = block.origin == "vision"
-        scoped: dict[str, list[str]] = {}
-        for source in chunk.sources:
-            scoped.setdefault(source.block_id, []).append(
-                provenance[source.block_id].content[source.start_char : source.end_char]
-            )
-        rejected = [
-            e.evidence_id for e in candidate.evidence if not any(
-                normalized_quote(e.quote) in normalized_quote(text)
-                for text in scoped.get(e.block_id, [])
-            )
-        ]
-        if rejected and "neighbor_context" in request:
-            candidate.issues.append(issue(
-                "validation", "证据超出当前分块允许区间，邻文不能扩展引用范围", rejected
-            ))
-        candidate.evidence = [
-            e
-            for e in candidate.evidence
-            if any(
-                normalized_quote(e.quote) in normalized_quote(text)
-                for text in scoped.get(e.block_id, [])
-            )
-        ]
-        return check_extraction(candidate, blocks)
-
     def _view(self, payload: dict[str, Any]) -> dict[str, Any]:
         result = dict(payload)
         if not self.config.export.include_issues:
@@ -935,22 +712,40 @@ class Pipeline:
             xmind_name = f"testpoints_{stem}.xmind"
             excel_name = f"testcases_{stem}.xlsx"
             blocks = [m.DocumentBlock.model_validate(b) for b in parsed["blocks"]]
-            await self.retriever.prepare(
-                tree.document_fingerprint,
-                self._retrieval_evidence(
-                    extracted.evidence,
-                    blocks,
-                    [m.Chunk.model_validate(c) for c in parsed["chunks"]],
-                ),
+            issues = [m.Issue.model_validate(i) for i in self.read(run.run_id, "issues")["items"]]
+            retrieval_evidence, dropped_slices = self._retrieval_evidence(
+                extracted.evidence,
+                blocks,
+                [m.Chunk.model_validate(c) for c in parsed["chunks"]],
+                max_input_bytes=self.config.models.embedding.input_byte_limit,
             )
+            if dropped_slices:
+                issues.append(
+                    issue(
+                        "gap",
+                        f"{len(dropped_slices)} 条原文切片超出 embedding 单条字节预算，"
+                        "未进入检索索引；这些区域的补充召回受限，请核对是否由规则证据覆盖",
+                        dropped_slices,
+                        severity="info",
+                    )
+                )
+            await self.retriever.prepare(tree.document_fingerprint, retrieval_evidence)
             stage = "generate"
             self._stage(run.run_id, stage)
             cases: list[m.TestCase] = []
-            issues = [m.Issue.model_validate(i) for i in self.read(run.run_id, "issues")["items"]]
             batch_size = self.config.generation.batch_point_limit
-            point_batches = [
-                points[offset : offset + batch_size] for offset in range(0, len(points), batch_size)
-            ]
+            if self.config.generation.batch_by_feature:
+                rule_feature = {r.rule_id: r.feature_id for r in extracted.rules}
+                point_batches = group_by_feature(
+                    points,
+                    lambda p: tuple(sorted(rule_feature[rid] for rid in p.rule_ids)),
+                    batch_size,
+                )
+            else:
+                point_batches = [
+                    points[offset : offset + batch_size]
+                    for offset in range(0, len(points), batch_size)
+                ]
 
             async def generate_batch(batch: list[m.TestPoint]) -> CaseBatch:
                 return await self._generate_batch(request.instruction, batch, extracted)
@@ -1006,61 +801,14 @@ class Pipeline:
             cases = validated_cases
             issues.extend(validation)
             block_map = {block.block_id: block for block in blocks}
-            rule_map = {rule.rule_id: rule for rule in extracted.rules}
-            evidence_map = {item.evidence_id: item for item in extracted.evidence}
-            feature_names = {
-                feature.feature_id: feature.name for feature in extracted.features
-            }
             document_stem = Path(str(parsed.get("document", {}).get("name", ""))).stem
-
-            def module_path(point: m.TestPoint) -> str | None:
-                paths = []
-                for rule_id in point.rule_ids:
-                    rule = rule_map.get(rule_id)
-                    if rule is None:
-                        continue
-                    for evidence_id in rule.evidence_ids:
-                        item = evidence_map.get(evidence_id)
-                        block = block_map.get(item.block_id) if item else None
-                        if block is not None and block.heading_path:
-                            paths.append(
-                                tuple(
-                                    part.strip()
-                                    for part in block.heading_path
-                                    if part.strip()
-                                )
-                            )
-                if not paths:
-                    rule = rule_map.get(point.rule_ids[0]) if point.rule_ids else None
-                    name = feature_names.get(rule.feature_id) if rule else None
-                    return f"/{name.replace('/', '_')}" if name else None
-                common = list(paths[0])
-                for path in paths[1:]:
-                    length = 0
-                    while length < min(len(common), len(path)) and common[length] == path[length]:
-                        length += 1
-                    common = common[:length]
-                if common and common[0] == document_stem:
-                    common = common[1:]
-                if not common:
-                    return None
-                return "/" + "/".join(part.replace("/", "_") for part in common)
-
-            for case in cases:
-                if case.module_path:
-                    continue
-                for point_id in case.point_ids:
-                    candidate_point = next(
-                        (p for p in points if p.point_id == point_id), None
-                    )
-                    path = (
-                        module_path(candidate_point)
-                        if candidate_point is not None
-                        else None
-                    )
-                    if path:
-                        case.module_path = path
-                        break
+            assign_module_paths(
+                cases,
+                points,
+                extracted,
+                block_map=block_map,
+                document_stem=document_stem,
+            )
             if not points or not cases:
                 issues.append(issue("gap", "没有可生成测试点或有效用例，不能作为完整交付"))
             # 待澄清的测试点不偷偷忽略，报告中列出不能生成的原因。
@@ -1163,18 +911,73 @@ class Pipeline:
             raise
 
     @staticmethod
-    def _case_directory(tree: PointTree, point_ids: set[str]) -> PointTree:
-        """保留用例所对应的叶子和祖先；不把步骤、预期或缺失用例的点写入目录。"""
-        nodes = {n.node_id: n for n in tree.nodes}
-        keep = {n.node_id for n in tree.nodes if n.parent_id is None}
-        for leaf in tree.nodes:
-            if leaf.kind != "point" or leaf.point_id not in point_ids:
-                continue
-            node: PointNode | None = leaf
-            while node is not None:
-                keep.add(node.node_id)
-                node = nodes.get(node.parent_id or "")
-        return tree.model_copy(update={"nodes": [n for n in tree.nodes if n.node_id in keep]})
+    def _retrieval_evidence(
+        evidence: list[m.EvidenceSpan],
+        blocks: list[m.DocumentBlock],
+        chunks: list[m.Chunk],
+        *,
+        max_input_bytes: int | None = None,
+    ) -> tuple[list[m.EvidenceSpan], list[str]]:
+        """原文片段也入检索库，避免提炼遗漏限制召回；不把片段自动登记为规则。
+
+        max_input_bytes 用于约束检索索引单条入量：模型提炼证据（rule 直接引用）必须保留，
+        原文切片是补充召回的引导，超过 embedding 单条预算时跳过并返回其 evidence_id，
+        避免整次索引构建因单条超限失败；被跳过区域仍可由规则证据直接提供。
+        """
+        result = {e.evidence_id: e for e in evidence}
+        block_map = {b.block_id: b for b in blocks}
+        dropped: list[str] = []
+        for chunk in chunks:
+            for source in chunk.sources:
+                block = block_map[source.block_id]
+                quote = effective_slice(
+                    block.content,
+                    source.start_char,
+                    source.end_char,
+                    block.deprecated_ranges,
+                )
+                if not quote:
+                    # 该来源区间整段作废，不入索引，避免旧索引返回作废文字。
+                    continue
+                key = "source_" + fingerprint(source.model_dump(mode="json"))
+                if max_input_bytes is not None and len(quote.encode("utf-8")) > max_input_bytes:
+                    # 单条超出 embedding 输入预算的切片不进索引，否则整次 prepare 失败。
+                    dropped.append(key)
+                    continue
+                result[key] = m.EvidenceSpan(
+                    evidence_id=key,
+                    block_id=block.block_id,
+                    locator=block.locator,
+                    quote=quote,
+                    origin=block.origin,
+                    processing_model=block.processing_model,
+                    processing_version=block.processing_version,
+                )
+        return list(result.values()), dropped
+
+    # 以下私有方法保留为编排层入口，委托给 ExtractionEngine/CaseGenerator；测试与旧调用直接使用。
+    def _check_budget(self, request: dict[str, Any]) -> None:
+        self.engine._check_budget(request)
+
+    async def _model(self, request: dict[str, Any], schema: type[T]) -> ModelResult:
+        return await self.engine._model(request, schema)
+
+    async def _extract_concurrently(
+        self,
+        requests: list[tuple[m.Chunk, list[m.DocumentBlock], dict[str, Any]]],
+        run_id: str,
+    ) -> list[Extraction]:
+        return await self.engine._extract_concurrently(requests, run_id)
+
+    async def _batches(
+        self, requests: list[B], operation: Callable[[B], Awaitable[T]], stage: str
+    ) -> list[T]:
+        return await self.engine._batches(requests, operation, stage)
+
+    async def _extract_chunk(
+        self, chunk: m.Chunk, blocks: list[m.DocumentBlock], request: dict[str, Any], run_id: str
+    ) -> Extraction:
+        return await self.engine._extract_chunk(chunk, blocks, request, run_id)
 
     async def _supplement(
         self,
@@ -1183,70 +986,7 @@ class Pipeline:
         query: str,
         schema: type[T],
     ) -> None:
-        started = perf_counter()
-        bundle = await self.retriever.retrieve(query, direct_ids)
-        # 仅上报计数和固定状态，不向终端暴露查询、证据或供应商响应正文。
-        report(
-            self.progress,
-            ProgressEvent(
-                "retrieval_completed",
-                str(request.get("stage", "unknown")),
-                rerank_status=bundle.get("rerank", {}).get("status"),
-            ),
-        )
-        supplement = list(bundle["supplemental_evidence"])
-        omitted = []
-        while supplement:
-            request["supplemental_evidence"] = supplement
-            try:
-                self._check_budget({**request, "output_schema": schema.model_json_schema()})
-                break
-            except ValueError:
-                omitted.append(supplement.pop()["evidence_id"])
-        request["supplemental_evidence"] = supplement
-        bundle["adopted_ids"] = [e["evidence_id"] for e in supplement]
-        bundle["omitted_ids"] = omitted
-        bundle["generation"] = {
-            "stage": request.get("stage"),
-            "schema": schema.__name__,
-            "max_context_tokens": self.max_context,
-            "model": self.config.models.llm.model,
-        }
-        bundle["timings_ms"]["context_build_ms"] += (perf_counter() - started) * 1000 - sum(
-            bundle["timings_ms"].values()
-        )
-        key = f"{self.active_run_id}:retrieval"
-        previous = self.repository.get("stage_snapshots", key, StageSnapshot)
-        bundles = previous.payload["bundles"] if previous else []
-        bundles.append(bundle)
-        self.snapshot(self.active_run_id, "retrieval", {"bundles": bundles})
-        # 保存最终采用/省略结果，不能只留下裁剪前的原始命中。
-        key = "context_" + fingerprint([self.active_run_id, query, sorted(direct_ids)])
-        self.repository.save(
-            "context_bundles", key, RagRecord(record_id=key, kind="context", payload=bundle)
-        )
-
-    @staticmethod
-    def _retrieval_evidence(
-        evidence: list[m.EvidenceSpan], blocks: list[m.DocumentBlock], chunks: list[m.Chunk]
-    ) -> list[m.EvidenceSpan]:
-        """原文片段也入检索库，避免提炼遗漏限制召回；不把片段自动登记为规则。"""
-        result = {e.evidence_id: e for e in evidence}
-        block_map = {b.block_id: b for b in blocks}
-        for chunk in chunks:
-            for source in chunk.sources:
-                block = block_map[source.block_id]
-                key = "source_" + fingerprint(source.model_dump(mode="json"))
-                result[key] = m.EvidenceSpan(
-                    evidence_id=key,
-                    block_id=block.block_id,
-                    locator=block.locator,
-                    quote=block.content[source.start_char : source.end_char],
-                    origin=block.origin,
-                    processing_model=block.processing_model,
-                    processing_version=block.processing_version,
-                )
-        return list(result.values())
+        await self.generator._supplement(request, direct_ids, query, schema)
 
     async def _generate_batch(
         self,
@@ -1256,72 +996,6 @@ class Pipeline:
         *,
         coverage_repair: bool = False,
     ) -> CaseBatch:
-        rule_ids = {r for p in points for r in p.rule_ids}
-        # 在模型输出和缓存写入前校验当前批次 ID，复用适配器的有界修复而不放宽引用。
-        output_schema = case_batch_schema(
-            [point.point_id for point in points], self.config.generation.max_cases_per_point
+        return await self.generator._generate_batch(
+            instruction, points, extracted, coverage_repair=coverage_repair
         )
-        rules = [r for r in extracted.rules if r.rule_id in rule_ids]
-        # 规则绑定的原文证据优先；补齐所属功能和关联规则的证据，保留条件与例外。
-        feature_ids = {r.feature_id for r in rules}
-        contextual_rules = [r for r in extracted.rules if r.feature_id in feature_ids]
-        evidence_ids = {e for r in contextual_rules for e in r.evidence_ids}
-        request = {
-            "stage": "generate",
-            "system": self.prompts["generate"],
-            "instruction": instruction,
-            "points": [p.model_dump(mode="json") for p in points],
-            "limits": {"max_cases_per_point": self.config.generation.max_cases_per_point},
-            "coverage_repair": coverage_repair,
-            "rules": [r.model_dump(mode="json") for r in contextual_rules],
-            "evidence": [
-                e.model_dump(mode="json")
-                for e in extracted.evidence
-                if e.evidence_id in evidence_ids
-            ],
-        }
-        try:
-            self._check_budget({**request, "output_schema": output_schema.model_json_schema()})
-        except ValueError:
-            if len(points) == 1:
-                raise
-            middle = len(points) // 2
-            left = await self._generate_batch(
-                instruction, points[:middle], extracted, coverage_repair=coverage_repair
-            )
-            right = await self._generate_batch(
-                instruction, points[middle:], extracted, coverage_repair=coverage_repair
-            )
-            return CaseBatch(cases=left.cases + right.cases, issues=left.issues + right.issues)
-        await self._supplement(
-            request,
-            evidence_ids,
-            "\n".join(p.objective for p in points),
-            output_schema,
-        )
-        try:
-            model_result = await self._model(request, output_schema)
-        except OutputTruncatedError:
-            if len(points) == 1:
-                raise
-            middle = len(points) // 2
-            left = await self._generate_batch(
-                instruction, points[:middle], extracted, coverage_repair=coverage_repair
-            )
-            right = await self._generate_batch(
-                instruction, points[middle:], extracted, coverage_repair=coverage_repair
-            )
-            return CaseBatch(cases=left.cases + right.cases, issues=left.issues + right.issues)
-        candidate = CaseBatch.model_validate(model_result.output.model_dump(mode="json"))
-        if len(candidate.cases) > len(points) * self.config.generation.max_cases_per_point:
-            raise WorkflowError("模型返回用例超过当前批次数量上限")
-        allowed = {p.point_id for p in points}
-        if any(not set(c.point_ids) <= allowed for c in candidate.cases):
-            raise WorkflowError("模型生成了不属于当前批次的测试点引用")
-        if any(
-            sum(point_id in c.point_ids for c in candidate.cases)
-            > self.config.generation.max_cases_per_point
-            for point_id in allowed
-        ):
-            raise WorkflowError("单个测试点用例数量超过配置上限")
-        return candidate

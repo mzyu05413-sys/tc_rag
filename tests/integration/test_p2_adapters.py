@@ -117,6 +117,18 @@ def test_keyword_scope_and_rrf_rank_fusion():
     assert fused[0][1] == pytest.approx(1 / 62 + 1 / 61)
 
 
+def test_rrf_supports_per_ranking_weights():
+    # 向量路权重 2、关键词路权重 1，融合分数按权重加权。
+    fused = rrf([["a", "b"], ["b"]], 2, weights=[2.0, 1.0])
+    assert [key for key, _ in fused] == ["b", "a"]
+    assert fused[0][1] == pytest.approx(2 / 62 + 1 / 61)
+    assert fused[1][1] == pytest.approx(2 / 61)
+    with pytest.raises(ValueError, match="权重数量"):
+        rrf([["a"], ["b"]], 2, weights=[1.0])
+    with pytest.raises(ValueError, match="必须为正"):
+        rrf([["a"], ["b"]], 2, weights=[0.0, 1.0])
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failure", [False, True])
 async def test_http_rerank_protocol_and_fallback(tmp_path, failure):
@@ -154,6 +166,7 @@ async def test_http_rerank_protocol_and_fallback(tmp_path, failure):
         2,
         "run",
         reranker=adapter,
+        rerank_enabled=True,
         rerank_top_n=2,
     )
     await context.prepare(
@@ -736,7 +749,7 @@ async def test_optional_chinese_keyword_rescues_vector_miss(tmp_path):
         "cosine",
         1,
         "run",
-        keyword_enabled=True,
+        mode="hybrid",
     )
     await context.prepare(
         "doc",
@@ -751,6 +764,31 @@ async def test_optional_chinese_keyword_rescues_vector_miss(tmp_path):
     assert bundle["hits"][0]["object_id"] == "a"
     assert bundle["hits"][0]["raw_score"] is None
     assert bundle["supplemental_evidence"][0]["quote"] == "审批待办"
+
+
+@pytest.mark.asyncio
+async def test_keyword_mode_retrieves_without_vector(tmp_path):
+    pytest.importorskip("jieba")
+    repo, store = SqliteRepository(tmp_path / "db"), LocalArtifactStore(tmp_path / "files")
+    # 只提供 prepare 阶段的索引向量；retrieve 纯关键词模式不应再请求 query 向量。
+    embedder = FakeEmbedder([[[0.0, 1.0], [1.0, 0.0]]])
+    context = RagContext(
+        repo, store, embedder,
+        EmbeddingSpace("fixture", "m", 2), "cosine", 2, "run",
+        mode="keyword",
+    )
+    await context.prepare(
+        "doc",
+        [
+            EvidenceSpan(evidence_id="a", block_id="a", quote="审批待办", locator=Locator()),
+            EvidenceSpan(evidence_id="b", block_id="b", quote="批量删除", locator=Locator()),
+        ],
+    )
+    bundle = await context.retrieve("审批", set())
+    assert bundle["vector_hits"] == []
+    assert bundle["keyword_ids"] == ["a"]
+    assert [h["object_id"] for h in bundle["hits"]] == ["a"]
+    assert bundle["hits"][0]["raw_score"] is None
 
 
 @pytest.mark.asyncio

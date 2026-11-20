@@ -96,7 +96,7 @@
     "metric": "cosine",
     "normalize": true,
     "vector_top_k": 20,
-    "keyword_enabled": false,
+    "keyword_top_k": 20,
     "rerank_top_n": 6,
     "threshold_policy": "disabled"
   },

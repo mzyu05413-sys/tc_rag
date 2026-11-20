@@ -1,0 +1,295 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1840" height="2860" viewBox="0 0 1840 2860">
+  <title>03 · 当前详细流程：双遍视觉与两轮 RAG</title>
+  <defs>
+    <pattern id="minor" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#242424" stroke-width="0.6" />
+    </pattern>
+    <pattern id="major" width="100" height="100" patternUnits="userSpaceOnUse">
+      <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#373737" stroke-width="0.6" />
+    </pattern>
+    <marker id="abababa" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 0 1 L 7 4 L 0 7 z" fill="#bababa" />
+    </marker>
+    <marker id="ac3c3c3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 0 1 L 7 4 L 0 7 z" fill="#c3c3c3" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1840" height="2860" rx="12" fill="#121212" />
+  <rect x="0" y="0" width="1840" height="2860" rx="12" fill="url(#minor)" />
+  <rect x="0" y="0" width="1840" height="2860" rx="12" fill="url(#major)" />
+  <rect x="30" y="110" width="1780" height="140" rx="5" fill="none" stroke="#454545" />
+  <rect x="30" y="280" width="1780" height="650" rx="5" fill="none" stroke="#454545" />
+  <rect x="30" y="970" width="1780" height="360" rx="5" fill="none" stroke="#454545" />
+  <rect x="30" y="1370" width="850" height="900" rx="5" fill="none" stroke="#454545" />
+  <rect x="940" y="1370" width="870" height="900" rx="5" fill="none" stroke="#454545" />
+  <rect x="30" y="2320" width="1780" height="310" rx="5" fill="none" stroke="#454545" />
+  <polyline points="470,190 535,190" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="985,190 1050,190" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1400,228 1400,265 1785,265 1785,325 170,325 170,350" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="270,395 320,395" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="605,390 665,390" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="955,390 1030,390" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="320,390 290,390 290,520 270,520" fill="none" stroke="#c3c3c3" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#ac3c3c3)" />
+  <polyline points="1330,390 1450,390" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1180,440 1180,480" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1180,565 1180,605" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1030,655 955,655" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1330,655 1490,655 1490,730 1635,730 1635,755" fill="none" stroke="#c3c3c3" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#ac3c3c3)" stroke-dasharray="5 4" />
+  <polyline points="665,655 570,655" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="470,705 470,755" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="670,805 740,805" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="670,805 705,805 705,870 1635,870 1635,855" fill="none" stroke="#c3c3c3" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#ac3c3c3)" stroke-dasharray="5 4" />
+  <polyline points="1040,805 1160,805" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="890,855 890,900 1635,900 1635,855" fill="none" stroke="#c3c3c3" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#ac3c3c3)" stroke-dasharray="5 4" />
+  <polyline points="810,705 810,730 1635,730 1635,755" fill="none" stroke="#c3c3c3" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#ac3c3c3)" stroke-dasharray="5 4" />
+  <polyline points="370,655 300,655 300,885 1310,885 1310,855" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" stroke-dasharray="5 4" />
+  <polyline points="1750,390 1785,390 1785,710 1460,710 1460,805" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1310,855 1310,950 1000,950 1000,1010 245,1010 245,1030" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1635,855 1635,950 1000,950 1000,1010 245,1010 245,1030" fill="none" stroke="#c3c3c3" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#ac3c3c3)" stroke-dasharray="5 4" />
+  <polyline points="70,395 50,395 50,950 1000,950 1000,1010 245,1010 245,1030" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="170,555 170,950 1000,950 1000,1010 245,1010 245,1030" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" stroke-dasharray="5 4" />
+  <polyline points="420,1080 520,1080" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="970,1080 1070,1080" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1420,1080 1510,1080" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1245,1130 1245,1210" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1245,1305 1245,1345 805,1345 805,1410 415,1410 415,1425" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="415,1500 415,1530" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="415,1615 415,1645" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="415,1745 415,1775" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="415,1875 415,1905" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="415,1990 415,2020" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="415,2105 415,2140" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1345,1500 1345,1530" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1345,1615 1345,1645" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1345,1745 1345,1775" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1345,1875 1345,1905" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1345,1990 1345,2020" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1345,2105 1345,2135" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="580,2190 910,2190 910,1462 1020,1462" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="1670,2062 1780,2062 1780,1572 1670,1572" fill="none" stroke="#c3c3c3" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#ac3c3c3)" stroke-dasharray="5 4" />
+  <polyline points="415,2240 415,2290 805,2290 805,2355 920,2355 920,2390" fill="none" stroke="#c3c3c3" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#ac3c3c3)" />
+  <polyline points="1345,2220 1345,2355 920,2355 920,2390" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="920,2470 920,2495 310,2495 310,2520" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="920,2470 920,2495 920,2495 920,2520" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <polyline points="920,2470 920,2495 1530,2495 1530,2520" fill="none" stroke="#bababa" stroke-width="1.4" stroke-linejoin="miter" marker-end="url(#abababa)" />
+  <text x="41" y="51.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="30" text-anchor="start" font-weight="600">tc_rag · 需求文档 → 双遍视觉 → 两轮 RAG → 测试资产</text>
+  <text x="43" y="83.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" text-anchor="start" font-weight="600">当前实现核对版 · 2026-11-06 · 模型由配置决定 · 阅读步骤不固定 CLI 阶段编号</text>
+  <text x="39" y="132.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="start" font-weight="600">A  接入与图文分离 · 本地处理</text>
+  <rect x="70" y="153" width="400" height="75" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="270.0" y="177.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">CLI 输入</text>
+  <text x="270.0" y="200.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">PDF / DOCX 路径＋生成目标</text>
+  <text x="270.0" y="220.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">配置校验，创建 run_id</text>
+  <rect x="535" y="153" width="450" height="75" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="760.0" y="177.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">接入文件</text>
+  <text x="760.0" y="200.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">保存原件、指纹、文档版本与运行记录</text>
+  <text x="760.0" y="220.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">SQLite 结构化事实；assets 原始资产</text>
+  <rect x="1050" y="153" width="700" height="75" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1400.0" y="177.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">文档解析：文字 / 表格 / 图片分离</text>
+  <text x="1400.0" y="200.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">PDF：页码与位置；DOCX：段落、表格与图片位置</text>
+  <text x="1400.0" y="220.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">保留 Block、章节和 Locator；无独立 OCR 扫描支路</text>
+  <text x="39" y="302.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="start" font-weight="600">B  图片逐张处理 · 图片之间有界并发；同图主读 → 复核按顺序执行</text>
+  <polygon points="170.0,350 270,395.0 170.0,440 70,395.0" fill="#292929" stroke="#c3c3c3" />
+  <text x="170.0" y="390.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" text-anchor="middle" font-weight="600">视觉启用</text>
+  <text x="170.0" y="413.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" text-anchor="middle" font-weight="600">且存在图片？</text>
+  <rect x="320" y="350" width="285" height="80" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="462.5" y="377.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">图片尺寸校验</text>
+  <text x="462.5" y="400.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">过小图片跳过并记 Issue</text>
+  <text x="462.5" y="420.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">原图保留，不执行独立 OCR</text>
+  <rect x="665" y="350" width="290" height="80" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="810.0" y="377.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">构造图片上下文</text>
+  <text x="810.0" y="400.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">章节＋同章节邻近正文</text>
+  <text x="810.0" y="420.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">正文 context_id 与原图 Locator</text>
+  <polygon points="1180.0,340 1330,390.0 1180.0,440 1030,390.0" fill="#292929" stroke="#c3c3c3" />
+  <text x="1180.0" y="396.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" text-anchor="middle" font-weight="600">视觉缓存命中？</text>
+  <rect x="1450" y="350" width="300" height="80" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1600.0" y="377.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">复用视觉结果与审计</text>
+  <text x="1600.0" y="400.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">指纹包含图片、上下文、模型</text>
+  <text x="1600.0" y="420.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">提示词与预处理参数</text>
+  <rect x="70" y="485" width="200" height="70" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="170.0" y="517.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">该图片跳过</text>
+  <text x="170.0" y="540.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">保留来源与跳过原因</text>
+  <rect x="1030" y="480" width="300" height="85" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1180.0" y="509.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">图像预处理与视图</text>
+  <text x="1180.0" y="532.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">总览图＋原像素重叠局部图</text>
+  <text x="1180.0" y="552.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">坐标、view_id；按配置决定切图</text>
+  <rect x="1030" y="605" width="300" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1180.0" y="632.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">第一遍：视觉主读 A</text>
+  <text x="1180.0" y="655.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">models.vision</text>
+  <text x="1180.0" y="675.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">同次请求提供全部视图与上下文</text>
+  <text x="1180.0" y="695.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">prompts/vision/v2.md</text>
+  <rect x="665" y="605" width="290" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="810.0" y="632.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">草稿结构与引用检查</text>
+  <text x="810.0" y="655.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">VisionDescription Schema</text>
+  <text x="810.0" y="675.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">视图 ID、事实 ID、正文引用</text>
+  <text x="810.0" y="695.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">无效草稿也可交复核修正</text>
+  <polygon points="470.0,605 570,655.0 470.0,705 370,655.0" fill="#292929" stroke="#c3c3c3" />
+  <text x="470.0" y="650.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" text-anchor="middle" font-weight="600">需要第二遍</text>
+  <text x="470.0" y="673.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" text-anchor="middle" font-weight="600">复核？</text>
+  <rect x="320" y="755" width="350" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="495.0" y="782.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">第二遍：视觉复核 B</text>
+  <text x="495.0" y="805.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">原图视图＋正文上下文＋主读草稿</text>
+  <text x="495.0" y="825.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">models.vision_review（独立启用时）</text>
+  <text x="495.0" y="845.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">prompts/vision_verify/v1.md</text>
+  <rect x="740" y="755" width="300" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="890.0" y="782.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">复核结构与引用检查</text>
+  <text x="890.0" y="805.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">重新校验事实 / 视图 / 图文关联</text>
+  <text x="890.0" y="825.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">表格列数、ID 唯一与非空内容</text>
+  <text x="890.0" y="845.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">校验通过不等于语义正确</text>
+  <rect x="1160" y="755" width="300" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1310.0" y="782.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">派生图片文字 Block</text>
+  <text x="1310.0" y="805.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">facts / relations / tables</text>
+  <text x="1310.0" y="825.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">context_links / uncertainties</text>
+  <text x="1310.0" y="845.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">origin=vision；保留模型与版本</text>
+  <rect x="1510" y="755" width="250" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1635.0" y="784.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" text-anchor="middle" font-weight="600">该图片失败 → Issue</text>
+  <text x="1635.0" y="805.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">默认 fail：复核失败不保留草稿</text>
+  <text x="1635.0" y="823.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">其他图片继续；原图与错误可查</text>
+  <text x="1635.0" y="841.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">未复核草稿另受 keep_draft 策略</text>
+  <text x="39" y="992.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="start" font-weight="600">C  结构分块、需求提炼、事实保存与索引</text>
+  <rect x="70" y="1030" width="350" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="245.0" y="1057.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">结构分块 → Chunk</text>
+  <text x="245.0" y="1080.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">章节 / 完整段落 / 完整表格行</text>
+  <text x="245.0" y="1100.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">保留 sources 的 [start,end) 区间</text>
+  <text x="245.0" y="1120.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">structural / 可选 structural_v2</text>
+  <rect x="520" y="1030" width="450" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="745.0" y="1057.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">LLM 提炼功能、规则、实体与证据</text>
+  <text x="745.0" y="1080.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">models.llm ＋ prompts/extract/v2.md</text>
+  <text x="745.0" y="1100.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">可选邻文仅作背景；完整请求预算预检</text>
+  <text x="745.0" y="1120.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">逐批并发，缓存按内容与配置区分</text>
+  <rect x="1070" y="1030" width="350" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1245.0" y="1057.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">结构、引文与引用闭包核验</text>
+  <text x="1245.0" y="1080.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">证据须在当前 Chunk 授权区间</text>
+  <text x="1245.0" y="1100.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">Feature / Rule / Entity / Evidence / Issue</text>
+  <text x="1245.0" y="1120.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">来源取自解析事实，不由模型改写</text>
+  <rect x="1510" y="1030" width="250" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1635.0" y="1059.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" text-anchor="middle" font-weight="600">SQLite 保存事实</text>
+  <text x="1635.0" y="1081.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">功能、规则、实体、证据与问题</text>
+  <text x="1635.0" y="1099.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">阶段快照、调用与耗时记录</text>
+  <text x="1635.0" y="1117.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">JSON / 索引均为派生产物</text>
+  <rect x="1070" y="1210" width="350" height="95" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1245.0" y="1234.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">证据与原文区间向量索引</text>
+  <text x="1245.0" y="1257.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">models.embedding：批量、并发、缓存</text>
+  <text x="1245.0" y="1277.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">NumPy / 可选 FAISS；当前需求版本</text>
+  <text x="1245.0" y="1297.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">保留 ID、向量空间、索引版本</text>
+  <rect x="70" y="1180" width="900" height="115" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="520.0" y="1214.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" text-anchor="middle" font-weight="600">此处保留的边界</text>
+  <text x="520.0" y="1236.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">邻文不扩大证据授权范围；缺少联合依据进入 Issue</text>
+  <text x="520.0" y="1256.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">视觉文字始终是不确定来源；仅图片点按 vision_policy 处理</text>
+  <text x="520.0" y="1276.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" text-anchor="middle" font-weight="400">新分块 / 邻文策略默认关闭；不自动查询历史全库或代码仓库</text>
+  <text x="39" y="1393.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" text-anchor="start" font-weight="600">D  第一轮 RAG · 规划需要测什么</text>
+  <text x="949" y="1393.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" text-anchor="start" font-weight="600">E  第二轮 RAG ＋ Skill · 生成如何测</text>
+  <rect x="90" y="1425" width="650" height="75" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="415.0" y="1448.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">本地基础测试点</text>
+  <text x="415.0" y="1471.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">按有效规则计算可确定的边界等基础意图</text>
+  <text x="415.0" y="1492.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">不凭空补精度、角色、数字；缺失信息进入 Issue</text>
+  <rect x="90" y="1530" width="650" height="85" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="415.0" y="1558.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">按规则批次构造查询</text>
+  <text x="415.0" y="1581.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">生成目标＋本批规则陈述</text>
+  <text x="415.0" y="1602.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">输入当前规则、直接证据与已有基础点</text>
+  <rect x="1020" y="1530" width="650" height="85" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1345.0" y="1558.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">按测试点批次构造查询</text>
+  <text x="1345.0" y="1581.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">生成目标＋本批测试点目标</text>
+  <text x="1345.0" y="1602.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">经 point → rule → feature 关联加载业务背景</text>
+  <rect x="90" y="1775" width="650" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="415.0" y="1800.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">组装第一轮上下文</text>
+  <text x="415.0" y="1823.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">规则直接证据不经检索裁剪；检索资料仅作补充</text>
+  <text x="415.0" y="1844.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">完整请求超预算时先裁低优先级补充资料</text>
+  <text x="415.0" y="1865.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">补充内容不能自动新增规则、扩大引用范围</text>
+  <rect x="1020" y="1775" width="650" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1345.0" y="1800.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">组装第二轮上下文</text>
+  <text x="1345.0" y="1823.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">直接加载点关联规则、所属功能相关证据及 Skill</text>
+  <text x="1345.0" y="1844.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">每步允许引用范围仍受所选点的规则 / 证据约束</text>
+  <text x="1345.0" y="1865.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">补充证据按预算裁减，不替代直接依据</text>
+  <rect x="90" y="1905" width="650" height="85" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="415.0" y="1933.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">LLM 补充测试意图 → PointBatch</text>
+  <text x="415.0" y="1956.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">models.llm ＋ prompts/plan_points/v2.md</text>
+  <text x="415.0" y="1977.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">补正常、异常、权限、状态等意图；不重复程序已计算边界</text>
+  <rect x="90" y="2020" width="650" height="85" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="415.0" y="2048.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">校验、归并并保存 PointTree</text>
+  <text x="415.0" y="2071.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">批次规则引用、重复与来源风险检查，保留各状态</text>
+  <text x="415.0" y="2092.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">不要求人工批准，不把 XMind 回读成生成输入</text>
+  <rect x="1020" y="1425" width="650" height="75" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1345.0" y="1448.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">筛选就绪点，准备 / 复用检索索引</text>
+  <text x="1345.0" y="1471.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">当前运行满足版本与空间条件时复用索引</text>
+  <text x="1345.0" y="1492.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">不会因为第二轮就必然重新向量化全部文档</text>
+  <rect x="1020" y="1905" width="650" height="85" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1345.0" y="1933.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">LLM ＋ Skill 生成 CaseBatch</text>
+  <text x="1345.0" y="1956.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">models.llm ＋ generate/v2.md ＋ case_skill/v2.md</text>
+  <text x="1345.0" y="1977.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">仅为本批测试点生成：前置、数据、动作、可观察预期</text>
+  <rect x="1020" y="2020" width="650" height="85" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1345.0" y="2048.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">用例校验与有限覆盖补生成</text>
+  <text x="1345.0" y="2071.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">Schema / 批次 ID / 引用闭包 / 依据风险 / 重复 / 覆盖</text>
+  <text x="1345.0" y="2092.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">可修复缺口受次数和调用预算限制；仍需检索与模型调用</text>
+  <rect x="1020" y="2135" width="650" height="85" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1345.0" y="2163.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">保存实际用例、覆盖与问题</text>
+  <text x="1345.0" y="2186.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">SQLite 保持事实记录，校验通过不证明业务语义正确</text>
+  <text x="1345.0" y="2207.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">没有通过校验的内容不伪造成有效用例</text>
+  <rect x="90" y="1645" width="650" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="415.0" y="1670.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">检索 → 可选重排</text>
+  <text x="415.0" y="1693.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">models.embedding：查询向量化＋缓存；当前需求索引向量 Top K</text>
+  <text x="415.0" y="1714.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">可选关键词检索＋RRF；可选 models.rerank 重排前 N 个</text>
+  <text x="415.0" y="1735.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">重排结果接回其余候选；失败保留召回排名，不是只保留 N 项</text>
+  <rect x="1020" y="1645" width="650" height="100" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1345.0" y="1670.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">检索 → 可选重排</text>
+  <text x="1345.0" y="1693.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">models.embedding：查询向量化＋缓存；当前需求索引向量 Top K</text>
+  <text x="1345.0" y="1714.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">可选关键词检索＋RRF；可选 models.rerank 重排前 N 个</text>
+  <text x="1345.0" y="1735.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">重排结果接回其余候选；失败保留召回排名，不是只保留 N 项</text>
+  <polygon points="415.0,2140 580,2190.0 415.0,2240 250,2190.0" fill="#292929" stroke="#c3c3c3" />
+  <text x="415.0" y="2185.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" text-anchor="middle" font-weight="600">存在 ready 且</text>
+  <text x="415.0" y="2208.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" text-anchor="middle" font-weight="600">applicable 的测试点？</text>
+  <text x="39" y="2343.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" text-anchor="start" font-weight="600">F  联合导出 · 本地实现，不调用模型</text>
+  <rect x="620" y="2390" width="600" height="80" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="920.0" y="2416.0" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">生成联合交付视图</text>
+  <text x="920.0" y="2439.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">保留全部测试点目录、实际用例与问题覆盖报告</text>
+  <text x="920.0" y="2460.0" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" text-anchor="middle" font-weight="400">没有就绪点也可导出目录 / 问题，Excel 可能只有表头</text>
+  <rect x="70" y="2520" width="480" height="80" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="310.0" y="2557.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">XMind · 全部测试点目录</text>
+  <text x="310.0" y="2580.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" text-anchor="middle" font-weight="400">模块 / 业务维度 / 功能 / 目标与状态；不包含完整步骤</text>
+  <rect x="680" y="2520" width="480" height="80" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="920.0" y="2557.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">Excel · 实际生成用例</text>
+  <text x="920.0" y="2580.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" text-anchor="middle" font-weight="400">标题、前置、数据、步骤与预期；列与格式由导出器负责</text>
+  <rect x="1290" y="2520" width="480" height="80" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="1530.0" y="2557.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" text-anchor="middle" font-weight="600">质量 / 覆盖 / 调用报告</text>
+  <text x="1530.0" y="2580.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" text-anchor="middle" font-weight="400">Issues、覆盖、阶段耗时、调用统计；启用的 JSON / Markdown</text>
+  <rect x="40" y="2660" width="1760" height="160" rx="5" fill="#292929" stroke="#c3c3c3" />
+  <text x="920.0" y="2692.5" fill="#e8e8e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" text-anchor="middle" font-weight="600">配置、调用次数与能力边界</text>
+  <text x="920.0" y="2716.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" text-anchor="middle" font-weight="400">视觉 verify=true / auto / false 控制第二遍是否执行；缓存命中不发请求，重试会增加调用次数。</text>
+  <text x="920.0" y="2738.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" text-anchor="middle" font-weight="400">独立复核 models.vision_review 启用时，启动校验要求与主读不是同端点同模型；未启用时适配器可复用主模型。</text>
+  <text x="920.0" y="2760.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" text-anchor="middle" font-weight="400">可选 keep_draft 仅保留结构及引用有效的第一遍草稿，明确标记未复核；默认 fail 将该图记失败。</text>
+  <text x="920.0" y="2782.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" text-anchor="middle" font-weight="400">两轮 RAG 按不同批次查询；索引与向量缓存可复用。直接证据不依赖召回命中，补充证据按预算裁减。</text>
+  <text x="920.0" y="2804.5" fill="#9b9b9b" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" text-anchor="middle" font-weight="400">全程记录调用与阶段耗时；无中间人工审批、无源码输入、无 XMind 回导。视觉语义和最终业务质量仍需验收。</text>
+  <rect x="284.5" y="369" width="21" height="17" fill="#121212" />
+  <text x="295" y="382" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">是</text>
+  <rect x="618.0" y="365" width="34" height="17" fill="#121212" />
+  <text x="635" y="378" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">可用</text>
+  <rect x="273.0" y="447" width="34" height="17" fill="#121212" />
+  <text x="290" y="460" fill="#c3c3c3" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">过小</text>
+  <rect x="1373.0" y="364" width="34" height="17" fill="#121212" />
+  <text x="1390" y="377" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">命中</text>
+  <rect x="1216.5" y="450" width="47" height="17" fill="#121212" />
+  <text x="1240" y="463" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">未命中</text>
+  <rect x="1395.0" y="628" width="80" height="16" fill="#121212" />
+  <text x="1435" y="640" fill="#c3c3c3" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="12" text-anchor="middle" font-weight="400">主读请求失败</text>
+  <rect x="479.5" y="717" width="21" height="17" fill="#121212" />
+  <text x="490" y="730" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">是</text>
+  <rect x="750.0" y="858" width="80" height="16" fill="#121212" />
+  <text x="790" y="870" fill="#c3c3c3" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="12" text-anchor="middle" font-weight="400">复核请求失败</text>
+  <rect x="1083.0" y="778" width="34" height="17" fill="#121212" />
+  <text x="1100" y="791" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">通过</text>
+  <rect x="1347.5" y="887" width="125" height="17" fill="#121212" />
+  <text x="1410" y="900" fill="#c3c3c3" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">失败 / 重试耗尽</text>
+  <rect x="1364.0" y="717" width="112" height="17" fill="#121212" />
+  <text x="1420" y="730" fill="#c3c3c3" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">未复核且草稿无效</text>
+  <rect x="472.5" y="872" width="125" height="17" fill="#121212" />
+  <text x="535" y="885" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">否：只接受有效草稿</text>
+  <rect x="82.0" y="912" width="86" height="17" fill="#121212" />
+  <text x="125" y="925" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">否：原文继续</text>
+  <rect x="852.0" y="1496" width="116" height="16" fill="#121212" />
+  <text x="910" y="1508" fill="#bababa" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="12" text-anchor="middle" font-weight="400">是：就绪点进入生成</text>
+  <rect x="1731.0" y="1838" width="68" height="32" fill="#121212" />
+  <text x="1765" y="1850" fill="#c3c3c3" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="12" text-anchor="middle" font-weight="400">有限补生成</text>
+  <text x="1765" y="1866" fill="#c3c3c3" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="12" text-anchor="middle" font-weight="400">再次检索</text>
+  <rect x="489.5" y="2277" width="151" height="17" fill="#121212" />
+  <text x="565" y="2290" fill="#c3c3c3" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" text-anchor="middle" font-weight="400">否：保留问题与全部目录</text>
+</svg>
